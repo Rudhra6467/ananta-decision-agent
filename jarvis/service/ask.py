@@ -861,6 +861,16 @@ class Lookups:
                         "stray call; mention it only if the person asked for this to be saved, in one short clause."}
 
     def call(self, name: str, args: dict) -> Any:
+        out = self._call(name, args)
+        if self.test:                                    # 10 Nov 2026: the night test's look list reads what a test answer was given
+            try:
+                EVIDENCE.append(json.dumps(out, default=str)[:20000])
+                del EVIDENCE[:-60]
+            except Exception:  # noqa: BLE001
+                pass
+        return out
+
+    def _call(self, name: str, args: dict) -> Any:
         if self.test and name in self.TEST_WRITES:
             return self._test_write(name, args or {})
         if self.guest and name in self.GUEST_SCOPED:
@@ -1346,6 +1356,9 @@ class Lookups:
         if part in ("rules", "all"):
             r = discipline.rules()
             out["rules"] = {"version": r.get("version"), "decided": r.get("decided"), "items": r.get("items")}
+            core = r.get("core") or {}
+            if core.get("mode"):                     # 10 Nov 2026: the core's mode replaces item 4 while it is all_in
+                out["rules"]["core_now"] = {"mode": core.get("mode"), "words": core.get("mode_words"), "replaces": "item 4 (the core in thirds) while the mode is all_in"}
         if part in ("reconstruction", "all"):
             c = reconstruct.latest(self.j)
             out["reconstruction_last_night"] = ({"day": c.get("day"), "about_day": c.get("about_day"), "headline": c.get("headline"), "findings": c.get("findings"),
@@ -1964,6 +1977,7 @@ MODELS = {   # key: provider, API model, price per million tokens (input, output
     "sonnet": {"label": "Claude Sonnet", "provider": "claude", "model": os.getenv("ASK_CLAUDE_MODEL", "claude-sonnet-5-5"), "price": (2.0, 10.0), "cache": 0.1},
     "opus": {"label": "Claude Opus", "provider": "claude", "model": os.getenv("ASK_OPUS_MODEL", "claude-opus-5-5"), "price": (4.0, 20.0), "cache": 0.05},
 }
+EVIDENCE: list[str] = []      # test questions only (source="eval"): the brief and every lookup result of the answer being made (nightcheck.py)
 MODES = {"everyday": "gemini", "deep": "sonnet", "max": "opus", "google": "gemini_deep"}
 # The app's two switches: Auto on/off x Claude/Google -> auto | deep | google_auto | google
 ALIASES = {"claude": "sonnet", "gemini": "gemini", "haiku": "haiku", "sonnet": "sonnet", "opus": "opus", "local": "local"}
@@ -2762,6 +2776,8 @@ class Ask:
                     + ("\n" + "\n".join(f"{k} (live):\n" + json.dumps(v, default=str, separators=(",", ":")) for k, v in brief.items()) if brief else "")
                     + f"\n\nQUESTION: {text}")
         log: list = list(pre_log)
+        if source == "eval":
+            EVIDENCE.append(user_msg[:60000])
         t0 = time.time()
         aid = uuid.uuid4().hex[:12]
         from jarvis.service import appmap as _amh

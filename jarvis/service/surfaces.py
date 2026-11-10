@@ -383,6 +383,29 @@ def _setup_points(parts: dict) -> list[str]:
     return [p for p in pts if p]
 
 
+def _night_test() -> dict | None:
+    """10 Nov 2026: the night test's result as a card: how many answers were right, each wrong one in a few words, and what it cost."""
+    from jarvis.service import nightcheck
+
+    r = nightcheck.latest()
+    if not r or not r.get("asked"):
+        return None
+    wrong = r.get("wrong") or []
+    pts = [f"{r['right']} of {r['asked']} answers were right on {_dm(r['day'])}"]
+    pts += [f"Wrong: {w['name']} ({_tidy(str(w.get('why') or ''))[:140]})" for w in wrong[:5]]
+    if not wrong:
+        pts.append("Every answer that could be checked against the book agreed with it")
+    if r.get("ungraded"):
+        pts.append(f"{r['ungraded']} answer{'s' if r['ungraded'] != 1 else ''} could not be marked")
+    if r.get("look"):
+        pts.append(f"{len(r['look'])} answer{'s' if len(r['look']) != 1 else ''} had a figure worth a second look")
+    if r.get("stopped_for_budget"):
+        pts.append(f"It stopped at the night's budget with {r.get('not_asked')} questions not asked")
+    pts.append(f"The test cost ${float(r.get('cost_usd') or 0):.2f}")
+    return {"kind": "nighttest", "label": "Night test · Ananta asked and marked", "text": " ".join(p + "." for p in pts[:2]), "points": pts,
+            "foot": "Ananta is asked these questions every night after the daily close. You do not have to test it yourself."}
+
+
 def _did_points(b: dict, since: dt.datetime | None) -> list[str]:
     """What the $500 book bought and sold at the last daily close (its fills since that close), each sale with its result."""
     if not since:
@@ -473,6 +496,9 @@ def today(j) -> dict:
     if pts:
         cards.append({"kind": "setups", "label": "Coins being watched", "text": " ".join(p + "." for p in pts[:2]), "points": pts,
                       "foot": "Held back means seen and noted. Nothing is bought while buying is off."})
+    nt = _night_test()
+    if nt:
+        cards.append(nt)
     fails = [_tidy(c.get("words")) for c in (plan.get("checks") or []) if c.get("state") == "FAIL" and c.get("words")]
     if fails:
         cards.append({"kind": "checks", "label": "Checks that fail", "text": "; ".join(fails) + ".", "points": fails,

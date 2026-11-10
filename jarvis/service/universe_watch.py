@@ -866,6 +866,10 @@ def run_daily(j) -> dict:
         out["officer_note"] = (officer.write(j, out, push=_phone_push()) or {}).get("ok")
     except Exception as exc:  # noqa: BLE001
         out["officer_error"] = str(exc)[:200]
+    try:  # 10 Nov 2026 (Madhav: "yes, lets build it"): the night test asks Ananta its questions once the note is written
+        out["night_test_started"] = start_night_test(j)
+    except Exception as exc:  # noqa: BLE001
+        out["night_test_error"] = str(exc)[:200]
     # RX-CR v1 (Madhav, 24 Oct 2026, discipline item 9): the reconstruction card is made by the 15-minute loop (jarvis/service/app.py)
     # from 00:30 UTC, after the day's missed moves are reviewed; made here at 00:05 it saw none of them (6 Nov 2026 audit)
     try:  # OD-SHADOW-LANE (Oct 20): the blind shadow lane logs each pre-registered rule's trigger state; it shows no result and touches no book
@@ -895,6 +899,28 @@ def _step(out: dict, name: str, fn) -> bool:
         out[name + "_error"] = str(exc)[:200]
         out.setdefault("steps_failed", []).append(name)
         return False
+
+
+def start_night_test(j) -> bool:
+    """Start scripts/run_nightcheck.py in its own process, once per UTC day. Never under a test run."""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("NIGHTCHECK_OFF") == "1":
+        return False
+    key = "nightcheck_started:" + time.strftime("%Y-%m-%d", time.gmtime(j.now()))
+    if j.db.execute("SELECT 1 FROM engine_state WHERE k=?", (key,)).fetchone():
+        return False
+    j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (key, str(int(j.now()))))
+    j.db.commit()
+    root = Path(__file__).resolve().parents[2]
+    log = Path.home() / "ananta_runs" / "nightcheck.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with log.open("a") as f:
+        subprocess.Popen([sys.executable, str(root / "scripts" / "run_nightcheck.py")], cwd=str(root), stdout=f, stderr=subprocess.STDOUT, start_new_session=True)
+    return True
 
 
 def _phone_push() -> Callable | None:

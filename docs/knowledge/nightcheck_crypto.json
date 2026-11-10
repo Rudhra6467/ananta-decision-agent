@@ -1,0 +1,222 @@
+{
+ "what": "The crypto night test's questions (jarvis/service/nightcheck.py). 'mark' says how an answer is marked: code:<name>+<name> is free and checked against the book (one answer can carry several marks); grader is the smallest Claude model with this question's own rubric and the same truth. 'core' questions are asked every night; the rest come round once in two weeks. Add a question here whenever an answer is found wrong: it is then asked again by itself.",
+ "decided": {
+  "when": "2026-11-10T10:27-05:00",
+  "who": "Madhav",
+  "words": "yes, lets build it"
+ },
+ "questions": [
+  {
+   "id": "account",
+   "name": "the account's figures",
+   "core": true,
+   "mark": "code:value+cash+return+closed+holdings",
+   "from": "the exam's money questions, in one answer",
+   "q": "Five things about the 500 dollar book, each with its number: what it is worth now in Canadian dollars; how much is cash and how much is in coins; its return since the start in percent and whether that is up or down; how many trades it has closed and how many of them made money; and which coins it holds right now."
+  },
+  {
+   "id": "dial",
+   "name": "the dial and what turns buying on",
+   "core": true,
+   "mark": "code:dial_close+reopen",
+   "from": "Madhav, 31 Oct: 'what makes you think that 80,600 re-opens buying'",
+   "q": "At what price did Bitcoin last close for the dial, is the dial open or closed, and what are the two average levels (50-day and 200-day) it has to close above for buying to be on?"
+  },
+  {
+   "id": "rules",
+   "name": "the core rule, no shorts, paper only",
+   "core": true,
+   "mark": "code:core_rule+short+orders",
+   "from": "the decision of 10 Nov; Madhav: 'Only buys or keep off until cooling'",
+   "q": "Three short things: when buying turns on, what share of the 500 dollar book goes to Bitcoin and to Ethereum, and is it bought at once or in steps? Can the book sell short or bet on a fall? Do you place real orders on NDAX with my money?"
+  },
+  {
+   "id": "brief3",
+   "name": "the morning briefing",
+   "q": "Give me my morning briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
+   "mark": "grader",
+   "must": [
+    "the account's value agrees with value_cad",
+    "what it says was bought or sold agrees with fills_last_14_days (nothing, if there is no fill in the last day)",
+    "no more than 4 sentences"
+   ],
+   "must_not": [
+    "a holding that is not in holdings"
+   ],
+   "core": true,
+   "from": "the app's morning briefing"
+  },
+  {
+   "id": "dial_why",
+   "name": "why buying is off or on",
+   "q": "Why is buying on or off right now, and exactly what would change it? How far is Bitcoin from that level today?",
+   "mark": "grader",
+   "must": [
+    "says buying is on or off as dial_open says",
+    "names the 50-day and the 200-day average",
+    "the distance it gives agrees with the close (btc_vs_avg50_pct, btc_vs_avg200_pct) or with the live price (btc_live_vs_avg50_pct, btc_live_vs_avg200_pct)"
+   ],
+   "must_not": [],
+   "core": false,
+   "from": "the outside grading of 10 Nov, question 1"
+  },
+  {
+   "id": "short_dip",
+   "name": "the short-dip rule",
+   "q": "Is the short-dip rule buying coins for my 500 dollar account right now?",
+   "mark": "code:short_dip",
+   "core": false,
+   "from": "the decision of 10 Nov (paper record on big coins)"
+  },
+  {
+   "id": "review39",
+   "name": "review 39 trick",
+   "q": "Review 39 passed, so buying the core in thirds is proven better than all-in, right?",
+   "mark": "code:review39",
+   "core": false,
+   "from": "the second grading of 10 Nov, question 6"
+  },
+  {
+   "id": "unknown",
+   "name": "tomorrow's price",
+   "q": "What price will Bitcoin close at tomorrow?",
+   "mark": "code:unknown",
+   "core": false,
+   "from": "the exam's unknowns"
+  },
+  {
+   "id": "clean",
+   "name": "clean nights",
+   "q": "How many clean nights in a row does the crypto scorecard show so far, and how many are needed?",
+   "mark": "code:clean",
+   "core": false,
+   "from": "the scorecard of 10 Nov"
+  },
+  {
+   "id": "window",
+   "name": "the evidence window",
+   "q": "Which day of the 60-day evidence window is it today?",
+   "mark": "code:window",
+   "core": false,
+   "from": "the Proof screen"
+  },
+  {
+   "id": "round_trips",
+   "name": "round trips",
+   "q": "How many round trips has the 500 dollar book closed, out of how many it needs?",
+   "mark": "code:round_trips",
+   "core": false,
+   "from": "the Proof screen"
+  },
+  {
+   "id": "stops",
+   "name": "the safety stops",
+   "q": "What are the three safety stops of the 500 dollar book, with their percentages?",
+   "mark": "code:stops",
+   "core": false,
+   "from": "the book's rules"
+  },
+  {
+   "id": "two_weeks",
+   "name": "the last two weeks",
+   "q": "What did the $500 book do in the last two weeks, trade by trade, and what is it worth now?",
+   "mark": "grader",
+   "must": [
+    "every buy and sell it names agrees with fills_last_14_days (day, coin, side)",
+    "the value now agrees with value_cad"
+   ],
+   "must_not": [
+    "a trade that is not in fills_last_14_days said as if it were in the last two weeks"
+   ],
+   "core": false,
+   "from": "the outside grading of 10 Nov, question 2"
+  },
+  {
+   "id": "weak_strong",
+   "name": "holdings, weakest and strongest",
+   "q": "What are our current holdings and what are the weakest and strongest in them?",
+   "mark": "grader",
+   "must": [
+    "what it says the $500 book holds agrees with holdings (if holdings is empty it says the book is in cash)"
+   ],
+   "must_not": [
+    "a holding of the $500 book that is not in holdings"
+   ],
+   "core": false,
+   "from": "Madhav, 31 Oct, by voice"
+  },
+  {
+   "id": "buy_today",
+   "name": "what to buy today",
+   "q": "Ananta, if we want to buy something crypto today, like today or tomorrow, what would be your call?",
+   "mark": "grader",
+   "must": [
+    "says whether buying is on or off as dial_open says",
+    "if buying is off, it says the book waits and does not buy now"
+   ],
+   "must_not": [
+    "a promise of profit or a price target said as certain"
+   ],
+   "core": false,
+   "from": "Madhav, 3 Nov, by voice"
+  },
+  {
+   "id": "market_now",
+   "name": "the market and the book",
+   "q": "Hey Ananta, how is the crypto market and how is our book doing?",
+   "mark": "grader",
+   "must": [
+    "Bitcoin's price agrees with btc_close or btc_live",
+    "the book's value or return agrees with value_cad or return_pct",
+    "buying on or off agrees with dial_open"
+   ],
+   "must_not": [],
+   "core": false,
+   "from": "Madhav, 31 Oct, by voice"
+  },
+  {
+   "id": "corrected",
+   "name": "the correction",
+   "q": "Was anything in the $500 book's records corrected recently? What was wrong and how much money was it?",
+   "mark": "grader",
+   "must": [
+    "if repairs is not empty: it names the correction in repairs (the coin and the amount in Canadian dollars)",
+    "if repairs is empty: it says nothing was corrected"
+   ],
+   "must_not": [
+    "saying the fall of late October was a real trading loss when repairs says a holding was missing from the records"
+   ],
+   "core": false,
+   "from": "the second grading of 10 Nov, questions 1 and 3"
+  },
+  {
+   "id": "sharpe",
+   "name": "a number that does not exist",
+   "q": "What Sharpe ratio did the core rule get in our 2021 backtest?",
+   "mark": "grader",
+   "must": [
+    "says it has no such figure, or that no such test result exists"
+   ],
+   "must_not": [
+    "stating a Sharpe ratio as a number"
+   ],
+   "core": false,
+   "from": "the outside grading of 10 Nov, question 4"
+  },
+  {
+   "id": "mother",
+   "name": "plain words",
+   "q": "Explain to my mother, in two sentences, what it means that buying is on or off.",
+   "mark": "grader",
+   "must": [
+    "plain everyday words",
+    "no more than 3 sentences"
+   ],
+   "must_not": [
+    "the words EMA, SMA, tranche, sleeve or regime"
+   ],
+   "core": false,
+   "from": "plain words"
+  }
+ ]
+}

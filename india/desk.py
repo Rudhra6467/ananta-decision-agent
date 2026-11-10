@@ -203,10 +203,13 @@ def _dw(day: str) -> str:
         return str(day)
 
 
-def holdings_news(since: str | None = None, held: list[str] | None = None, by_sym: dict | None = None, ahead: dict | None = None, qb: dict | None = None) -> dict:
+def holdings_news(since: str | None = None, held: list[str] | None = None, by_sym: dict | None = None, ahead: dict | None = None, qb: dict | None = None,
+                  numbers: dict | None = None) -> dict:
     """One line for each stock in the account that has filed something since the last session's close, the day's move of each, and the
     results meetings ahead (9 Nov 2026; Madhav: "yes, lets complete", the readiness review's fix 3: holdings first). The morning view opens
-    with this. What was filed is NSE's own heading and the first words of the filing; the figures inside a results filing are not read here.
+    with this. What was filed is NSE's own heading. For a results filing the line also gives the filing's own headline figures (the top
+    line and the profit for the quarter, against the same quarter a year before), read from the filing's data file (india/filingnumbers.py;
+    Madhav, 9 Nov 19:51: "Yes to all your recommendations"). numbers: {symbol: {"words": ...}} to use instead of reading (tests).
     since: 'YYYY-MM-DD HH:MM' in India (default: the 15:30 close of the read model's last session)."""
     rm = _json(paths.data_dir() / "readmodel" / "latest.json", {}) or {}
     qb = qb if qb is not None else (_json(_man() / "quotebook.json", {}) or {})
@@ -225,7 +228,8 @@ def holdings_news(since: str | None = None, held: list[str] | None = None, by_sy
     rows, quiet = [], []
     for sym in held:
         new = [i for i in by_sym.get(sym, []) if str(i.get("at") or "") >= since]
-        said = [i for i in new if i["kind"] in SAY_KINDS]
+        # a newspaper copy of something already filed is routine, whatever words it carries
+        said = [i for i in new if i["kind"] in SAY_KINDS and "newspaper" not in str(i.get("what") or "").lower()]
         mv = (q.get(sym) or {}).get("chg_1d")
         move = round(100 * mv, 1) if isinstance(mv, (int, float)) else None
         if not said:                       # nothing, or only routine filings (newspaper copies, allotments, call schedules)
@@ -237,6 +241,8 @@ def holdings_news(since: str | None = None, held: list[str] | None = None, by_sy
         for (kind, what), items in list(seen.items())[:3]:
             last = items[-1]
             label = SAY_KINDS[kind]
+            if kind == "order" and "orders passed" in what.lower():
+                label = "a notice of a regulatory, tax or court order"          # NSE's heading "Action(s) initiated or orders passed": not a business order
             if kind == "results":
                 board = "board meeting" in what.lower()
                 per = re.search(r"(?:quarter|half[- ]year|period|year)(?: and [a-z -]{3,20})? ended[^.;,]{0,30}", str(last.get("text") or ""), re.I)
@@ -244,6 +250,28 @@ def holdings_news(since: str | None = None, held: list[str] | None = None, by_sy
             bits.append(f"{label} ({what}, {_dw(last['at'])} {str(last['at'])[11:16]} IST" + (f", {len(items)} filings" if len(items) > 1 else "") + ")")
         line = f"{sym}: filed " + "; ".join(bits) + (f". It closed {move:+.1f}% on {_dw(moved_on)}." if move is not None and moved_on else ".")
         rows.append({"symbol": sym, "kinds": sorted({i["kind"] for i in said}), "items": said[:4], "move_pct": move, "line": line})
+    if numbers is None:
+        try:
+            from india import filingnumbers
+            numbers = filingnumbers.headline(list(held), since) if held else {}
+        except Exception:  # noqa: BLE001 - the lines still say what was filed
+            numbers = {}
+    for sym, n in (numbers or {}).items():
+        if not n.get("words") or sym not in held:
+            continue
+        row = next((r for r in rows if r["symbol"] == sym), None)
+        if row is None:                 # the results filing is on the index but no announcement of it was classed as results
+            mv = (q.get(sym) or {}).get("chg_1d")
+            move = round(100 * mv, 1) if isinstance(mv, (int, float)) else None
+            row = {"symbol": sym, "kinds": ["results"], "items": [], "move_pct": move,
+                   "line": f"{sym}: filed its results" + (f". It closed {move:+.1f}% on {_dw(moved_on)}." if move is not None and moved_on else ".")}
+            rows.append(row)
+            if sym in quiet:
+                quiet.remove(sym)
+        row["numbers"] = {k: n.get(k) for k in ("top", "top_label", "profit", "eps_basic", "quarter_end", "consolidated", "audited", "yoy", "source")}
+        row["line"] = row["line"] + " " + n["words"]
+        if "results" not in row["kinds"]:
+            row["kinds"] = sorted(set(row["kinds"]) | {"results"})
     rows.sort(key=lambda r: (0 if "results" in r["kinds"] else 1, r["symbol"]))
     due = sorted((d, s) for d, syms in ahead.items() for s in syms if s in set(held))
     movers = sorted(((round(100 * (q.get(s) or {}).get("chg_1d"), 1), s) for s in quiet if isinstance((q.get(s) or {}).get("chg_1d"), (int, float))
@@ -257,7 +285,8 @@ def holdings_news(since: str | None = None, held: list[str] | None = None, by_sy
     if due:
         lines.append("Results meetings ahead for your stocks: " + ", ".join(f"{s} on {_dw(d)}" for d, s in due) + ".")
     return {"since": since, "through": through, "held": len(held), "rows": rows, "quiet": quiet, "ahead": [{"symbol": s, "date": d} for d, s in due], "lines": lines,
-            "note": "what was filed is NSE's heading and the filing's first words; the figures inside a results filing are not read here"}
+            "note": ("what was filed is NSE's own heading; a results filing's figures are the filing's own (the top line and the profit for the quarter, "
+                     "against the same quarter a year before), read from its data file at NSE; no estimate of what analysts expected is on file")}
 
 
 def build(write: bool = True) -> dict:

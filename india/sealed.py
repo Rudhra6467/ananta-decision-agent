@@ -16,6 +16,9 @@ what window, how many rows) before any row is returned. Nothing here lets a stud
                   a fixed folder list; every query is logged; once the run is marked completed it can never be opened again
   paper_model / paper_parity   after a run is completed: its own derived tables, to fit the live model the spec prescribes and to check the
                   live paper code against the run's rows (holdout_outputs); the verdicts are already in the ledger and cannot change
+  holdings_results  the results-filing index rows (no figures) of the stocks named, for filings made on live paper days, and for each the same
+                  company's filing for the same quarter a year before (Madhav, 9 Nov 2026: "Yes to all your recommendations"); the
+                  holdings' lines of the morning view say the filing's headline figures; india/filingnumbers.py is the only caller; no rule is scored
   paper_review    live paper days only (Madhav, 20 Oct 2026): cash-market series-EQ rows dated on or after PAPER_REVIEW_START (the stock paper's
                   first decision day), for the missed-movers review of the paper book (india/missed.py, the only caller india/leakcheck.py allows,
                   with a constant start). An earlier start is refused, never clipped; nothing on history is computed from these rows
@@ -577,3 +580,69 @@ def read_flows(purpose: str, since: str) -> pd.DataFrame:
         df = df[df["date"] >= since_d]
     _log(purpose, "flows participant_oi", since, len(df))
     return df
+
+
+ALLOWED_HOLDINGS = {"holdings_results"}
+HOLDINGS_RESULTS_APPROVAL = ("Madhav, 9 Nov 2026 19:51 Toronto, to recommendation 3 of claude/progress-2026-11-09-readiness-fixes.md (headline numbers "
+                             "from results filings: a logged, display-only read for the holdings): 'Yes to all your recommendations.'")
+HOLDINGS_MAX = 60
+
+
+def read_filings(purpose: str, symbols: list[str], since: str) -> list[dict]:
+    """Which results filings the holdings' lines may read (purpose holdings_results; see HOLDINGS_RESULTS_APPROVAL). For the stocks named:
+    each integrated results filing broadcast on or after `since` (a live paper day), from the newest filing-index files, and beside it the
+    same company's filing for the same quarter one year before (from the fundamentals index, sealed since 2024), so the line can say the
+    change on the year. Index rows only: symbol, quarter end, consolidated or standalone, audited, broadcast time and the link to the
+    filing's own data file; no figure is read here. india/filingnumbers.py is the only caller and reads only those files. Nothing is scored. Logged."""
+    import glob
+
+    if purpose not in ALLOWED_HOLDINGS:
+        raise PermissionError(f"sealed filings read refused: purpose {purpose!r} is not on the allowed list {sorted(ALLOWED_HOLDINGS)}")
+    since_t = pd.Timestamp(since)
+    if since_t.date() < PAPER_REVIEW_START or since_t.date() > dt.date.today() + dt.timedelta(days=1):
+        raise PermissionError(f"sealed filings read refused: {since_t.date()} is not a live paper day")
+    syms = sorted({str(x) for x in symbols if x})
+    if len(syms) > HOLDINGS_MAX:
+        raise PermissionError(f"sealed filings read refused: {len(syms)} symbols is more than a portfolio ({HOLDINGS_MAX})")
+    root = paths.data_dir()
+    new: dict[tuple, dict] = {}
+    for f in sorted(glob.glob(str(root / "bronze" / "results_index_integrated" / "*" / "IF_*.json")))[-21:]:
+        try:
+            rows = json.loads(Path(f).read_text())
+        except (OSError, ValueError):
+            continue
+        for x in rows if isinstance(rows, list) else (rows.get("data") or []):
+            if x.get("symbol") not in syms or "Financial" not in str(x.get("type") or "") or not str(x.get("xbrl") or "").startswith("http"):
+                continue
+            try:
+                bc = pd.to_datetime(x.get("broadcast_Date"), format="%d-%b-%Y %H:%M:%S")
+                qe = pd.to_datetime(x.get("qe_Date"), format="%d-%b-%Y").date()
+            except (TypeError, ValueError):
+                continue
+            if bc < since_t:
+                continue
+            key = (x["symbol"], str(x.get("consolidated")), qe)
+            if key not in new or bc > new[key]["broadcast"]:
+                new[key] = {"role": "new", "symbol": x["symbol"], "consolidated": str(x.get("consolidated")), "audited": str(x.get("audited") or ""),
+                            "quarter_end": qe, "broadcast": bc, "url": str(x["xbrl"])}
+    out = list(new.values())
+    if out:
+        p = root / "sealed" / "silver" / "fundamentals" / "results.parquet"
+        if p.exists():
+            idx = pd.read_parquet(p, columns=["symbol", "index_period", "consolidated", "available_at", "url", "source_index"])
+            idx = idx[(idx["source_index"] == "integrated") & idx["symbol"].isin({r["symbol"] for r in out})]
+            for r in list(out):
+                q = r["quarter_end"]
+                try:
+                    want = q.replace(year=q.year - 1)
+                except ValueError:
+                    continue
+                hit = idx[(idx["symbol"] == r["symbol"]) & (idx["consolidated"] == r["consolidated"]) & (idx["index_period"].astype(str).str.upper() == f"{want:%d-%b-%Y}".upper())]
+                if len(hit):
+                    h = hit.sort_values("available_at").iloc[-1]
+                    out.append({"role": "year_ago", "symbol": r["symbol"], "consolidated": r["consolidated"], "audited": "", "quarter_end": want,
+                                "broadcast": pd.Timestamp(h["available_at"]), "url": str(h["url"])})
+    _log(purpose, f"results filings index of {len(syms)} held stocks: {sum(1 for r in out if r['role'] == 'new')} new, {sum(1 for r in out if r['role'] == 'year_ago')} a year before",
+         str(since_t), len(out))
+    return out
+

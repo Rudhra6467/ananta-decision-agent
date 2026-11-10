@@ -134,7 +134,7 @@ def test_one_line_for_each_holding_that_filed_since_the_close(monkeypatch, tmp_p
                        {"at": "2026-11-05 10:00", "kind": "results", "what": "Outcome of Board Meeting", "text": "old"}],
             "NATIONALUM": [{"at": "2026-11-07 09:00", "kind": "other", "what": "Copy of Newspaper Publication", "text": "x"}]}
     qb = {"as_of": "2026-11-06", "quotes": {"TATACHEM": {"chg_1d": -0.004}, "IRFC": {"chg_1d": 0.038}, "MARICO": {"chg_1d": 0.005}}}
-    h = desk.holdings_news(held=["IRFC", "MARICO", "NATIONALUM", "TATACHEM"], by_sym=news, ahead={"2026-11-11": ["IRFC", "ZZZ"]}, qb=qb)
+    h = desk.holdings_news(held=["IRFC", "MARICO", "NATIONALUM", "TATACHEM"], by_sym=news, ahead={"2026-11-11": ["IRFC", "ZZZ"]}, qb=qb, numbers={})
     assert h["since"] == "2026-11-06 15:30" and [r["symbol"] for r in h["rows"]] == ["TATACHEM", "MARICO"]            # results first
     assert "TATACHEM: filed its results for the period ended September 30 (Outcome of Board Meeting, Sat 7 Nov 17:10 IST)" in h["lines"][0]
     assert "2 filings" in h["lines"][1] and "old" not in h["lines"][1]                                                 # before the close: not news
@@ -161,7 +161,7 @@ def test_the_newer_of_the_read_model_and_the_quote_book_is_the_last_close(monkey
     (tmp_path / "readmodel").mkdir()
     (tmp_path / "readmodel" / "latest.json").write_text(json.dumps({"data_through": "2026-11-06"}))
     news = {"MARICO": [{"at": "2026-11-06 17:20", "kind": "deal", "what": "Acquisition", "text": "x"}], "TATACHEM": [{"at": "2026-11-09 18:05", "kind": "order", "what": "Award of Order", "text": "x"}]}
-    h = desk.holdings_news(held=["MARICO", "TATACHEM"], by_sym=news, ahead={}, qb={"as_of": "2026-11-09", "quotes": {"TATACHEM": {"chg_1d": 0.012}}})
+    h = desk.holdings_news(held=["MARICO", "TATACHEM"], by_sym=news, ahead={}, qb={"as_of": "2026-11-09", "quotes": {"TATACHEM": {"chg_1d": 0.012}}}, numbers={})
     assert h["since"] == "2026-11-09 15:30" and [r["symbol"] for r in h["rows"]] == ["TATACHEM"]          # Friday's filing was Monday's news, not Wednesday's
     assert "It closed +1.2% on Mon 9 Nov." in h["lines"][0]
 
@@ -185,3 +185,95 @@ def test_the_last_regular_session_comes_from_the_calendar_not_the_nightly_build(
     assert premarket.last_regular_session(dt.date(2026, 11, 11), hol) == dt.date(2026, 11, 9)       # Wednesday, after Tuesday's holiday
     assert premarket.last_regular_session(dt.date(2026, 11, 9), hol) == dt.date(2026, 11, 6)        # Monday: Friday (Sunday's Muhurat hour is not a regular session)
     assert premarket.last_regular_session(dt.date(2026, 11, 12), hol) == dt.date(2026, 11, 11)
+
+
+# ---------------------------------------------------------------------------------------------------------------- the filing's own figures
+def _xml(rev, pat, nature="Consolidated", top="RevenueFromOperations", profit="ProfitLossForPeriod"):
+    return (f'<x xmlns:in-capmkt="u"><in-capmkt:{top} contextRef="OneD" unitRef="INR" decimals="-5">{rev}</in-capmkt:{top}>'
+            f'<in-capmkt:{top} contextRef="FourD" unitRef="INR">999</in-capmkt:{top}>'
+            f'<in-capmkt:{profit} contextRef="OneD" unitRef="INR">{pat}</in-capmkt:{profit}>'
+            f'<in-capmkt:DateOfEndOfReportingPeriod contextRef="OneD">2026-09-30</in-capmkt:DateOfEndOfReportingPeriod>'
+            f'<in-capmkt:NatureOfReportStandaloneConsolidated contextRef="OneD">{nature}</in-capmkt:NatureOfReportStandaloneConsolidated>'
+            f'<in-capmkt:WhetherResultsAreAuditedOrUnaudited contextRef="OneD">Unaudited</in-capmkt:WhetherResultsAreAuditedOrUnaudited></x>')
+
+
+def test_the_quarters_figures_are_read_from_the_filings_own_file():
+    from india import filingnumbers as fn
+    d = fn.parse(_xml(41770000000, -500000000))
+    assert d["top"] == 41770000000.0 and d["top_label"] == "revenue" and d["profit"] == -500000000.0 and d["period_end"] == "2026-09-30"      # the quarter, never the half-year
+    li = fn.parse(_xml(1474331500000, 121147800000, top="NetPremiumIncome", profit="ProfitLossAfterTaxAndExtraordinaryItems"))
+    assert li["top_label"] == "net premium income" and li["profit"] == 121147800000.0
+    bank = fn.parse(_xml(106019900000, 10841200000, top="Income", profit="ProfitLossForThePeriod"))
+    assert bank["top_label"] == "total income"
+    assert fn.parse("<html>not a filing</html>") is None and fn.parse("") is None
+
+
+def test_a_loss_is_said_with_last_years_figure_never_as_a_percentage(monkeypatch):
+    from india import filingnumbers as fn
+    files = {"https://x/new.xml": _xml(41770000000, -500000000), "https://x/old.xml": _xml(38780000000, 1540000000)}
+    monkeypatch.setattr(fn, "_file", lambda url, fetch_new, fetcher=None: files.get(url))
+    q = dt.date(2026, 9, 30)
+    filings = [{"role": "new", "symbol": "TATACHEM", "consolidated": "Standalone", "quarter_end": q, "broadcast": dt.datetime(2026, 11, 7, 19, 52), "url": "https://x/other.xml"},
+               {"role": "new", "symbol": "TATACHEM", "consolidated": "Consolidated", "quarter_end": q, "broadcast": dt.datetime(2026, 11, 7, 19, 53), "url": "https://x/new.xml"},
+               {"role": "year_ago", "symbol": "TATACHEM", "consolidated": "Consolidated", "quarter_end": dt.date(2025, 9, 30), "broadcast": dt.datetime(2025, 11, 1), "url": "https://x/old.xml"}]
+    h = fn.headline(["TATACHEM"], "2026-11-06 15:30", filings=filings)
+    w = h["TATACHEM"]["words"]
+    assert h["TATACHEM"]["consolidated"] == "Consolidated"                                       # consolidated before standalone
+    assert "revenue ₹4,177 crore (+8% on the same quarter a year before)" in w
+    assert "a loss for the quarter of ₹50.0 crore (a year before: a profit of ₹154 crore)" in w and "%)" not in w.split("loss")[1]
+    up = fn.headline(["X"], "2026-11-06", filings=[{**filings[1], "symbol": "X", "url": "https://x/old.xml"}])["X"]["words"]
+    assert "a profit for the quarter of ₹154 crore." in up and "year before" not in up            # no year-ago filing: the figures alone
+
+
+def test_which_filings_may_be_read_is_gated_and_logged(monkeypatch, tmp_path):
+    import pytest
+    from india import sealed
+    monkeypatch.setattr(sealed.paths, "data_dir", lambda: tmp_path)
+    monkeypatch.setattr(sealed.paths, "manifest_dir", lambda: tmp_path / "manifests")
+    (tmp_path / "manifests").mkdir()
+    d = tmp_path / "bronze" / "results_index_integrated" / "2026"
+    d.mkdir(parents=True)
+    row = {"symbol": "TATACHEM", "type": "Integrated Filing- Financials", "consolidated": "Consolidated", "audited": "Un-Audited", "qe_Date": "30-SEP-2026",
+           "broadcast_Date": "07-Nov-2026 19:53:32", "xbrl": "https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1_WEB.xml"}
+    (d / "IF_2026-11-02.json").write_text(json.dumps([row, {**row, "symbol": "NOTHELD"}, {**row, "broadcast_Date": "01-Nov-2026 10:00:00", "qe_Date": "30-JUN-2026"}]))
+    with pytest.raises(PermissionError):
+        sealed.read_filings("paper_review", ["TATACHEM"], "2026-11-06 15:30")                     # another purpose
+    with pytest.raises(PermissionError):
+        sealed.read_filings("holdings_results", ["TATACHEM"], "2025-06-02")                       # before the paper's first day: history, refused
+    with pytest.raises(PermissionError):
+        sealed.read_filings("holdings_results", [f"S{i}" for i in range(80)], "2026-11-06")       # more names than a portfolio
+    rows = sealed.read_filings("holdings_results", ["TATACHEM"], "2026-11-06 15:30")
+    assert [(r["role"], r["symbol"], str(r["quarter_end"])) for r in rows] == [("new", "TATACHEM", "2026-09-30")]          # only the named stock, only since the close
+    log = [json.loads(x) for x in (tmp_path / "manifests" / "sealed_access.jsonl").read_text().splitlines()]
+    assert log[-1]["purpose"] == "holdings_results" and log[-1]["rows"] == 1
+
+
+def test_only_the_filing_reader_asks_for_the_holdings_filings():
+    import ast
+    from pathlib import Path
+    india = Path(desk.__file__).resolve().parent
+    callers = []
+    for f in india.glob("*.py"):
+        if f.name == "sealed.py":
+            continue
+        tree = ast.parse(f.read_text())
+        if any(isinstance(n, ast.Attribute) and n.attr == "read_filings" for n in ast.walk(tree)):
+            callers.append(f.name)
+    assert callers == ["filingnumbers.py"]
+
+
+def test_the_holdings_line_gives_the_figures_and_routine_copies_are_not_news(monkeypatch, tmp_path):
+    monkeypatch.setattr(desk.paths, "data_dir", lambda: tmp_path)
+    (tmp_path / "readmodel").mkdir()
+    (tmp_path / "readmodel" / "latest.json").write_text(json.dumps({"data_through": "2026-11-06"}))
+    news = {"TATACHEM": [{"at": "2026-11-07 17:10", "kind": "results", "what": "Outcome of Board Meeting", "text": "financial results for the period ended September 30, 2026"}],
+            "MARICO": [{"at": "2026-11-07 10:00", "kind": "results", "what": "Copy of Newspaper Publication", "text": "financial results approved"}],
+            "UNITDSPR": [{"at": "2026-11-07 11:00", "kind": "order", "what": "Action(s) initiated or orders passed", "text": "order received"}]}
+    nums = {"TATACHEM": {"words": "For the quarter ended 30 Sep 2026 (consolidated, unaudited): revenue ₹4,177 crore, a loss for the quarter of ₹50.0 crore.", "top": 1.0},
+            "LICI": {"words": "For the quarter ended 30 Sep 2026 (consolidated, unaudited): net premium income ₹147,433 crore.", "top": 2.0}}
+    h = desk.holdings_news(held=["LICI", "MARICO", "TATACHEM", "UNITDSPR"], by_sym=news, ahead={}, qb={"as_of": "2026-11-06", "quotes": {}}, numbers=nums)
+    by = {r["symbol"]: r["line"] for r in h["rows"]}
+    assert "Outcome of Board Meeting, Sat 7 Nov 17:10 IST). For the quarter ended 30 Sep 2026" in by["TATACHEM"] and "a loss for the quarter of ₹50.0 crore" in by["TATACHEM"]
+    assert by["LICI"].startswith("LICI: filed its results. For the quarter ended 30 Sep 2026")         # on the filings index though no announcement was classed as results
+    assert "MARICO" not in by and "MARICO" in h["quiet"]                                               # a newspaper copy is routine
+    assert "a notice of a regulatory, tax or court order" in by["UNITDSPR"]                            # not "an order or contract"

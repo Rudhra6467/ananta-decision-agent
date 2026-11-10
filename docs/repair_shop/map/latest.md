@@ -1,11 +1,12 @@
-# The one map (2026-11-03T20:35)
+# The one map (2026-11-09T20:35)
 
-The map holds 173 studies and 1428 variants. 75 mismatches between layers: 23 planned, not done, 14 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 14 need Madhav's yes.
+The map holds 175 studies and 1440 variants. 79 mismatches between layers: 24 planned, not done, 14 proved, not in the paper rules, 37 tested, but not at full scale, 2 the voice has it, but no plain-words name, 2 a result the screens do not show; 14 need Madhav's yes.
 
 ## Mismatches
 
 | class | id | what | lane | fix |
 |---|---|---|---|---|
+| A planned, not done | ALLOC_WRONG:regime_table | an approved draft with no study answering it | SAFE | register and run it, or record why not |
 | A planned, not done | C09 | tracker: BLOCKED: Intermarket: dollar, crude, S&P, rate cuts, Nifty valuation zones (TWT-H42-45, H47, OPT-H60) | SAFE | 18 Oct: rupee weakening OPPOSITE (entries earn 2.5-3.6% more); Nifty valuation part waits for D30 |
 | A planned, not done | D14 | tracker: WAIT_TIME: Option recorder, 1-minute live contracts | SAFE | auto: started 18 Oct 2026; milestones 4, 12, 26 weeks |
 | A planned, not done | D15 | tracker: WAIT_TIME: Nightly builds clean (gate counter) | SAFE | auto: counted from heartbeats |
@@ -55,6 +56,7 @@ The map holds 173 studies and 1428 variants. 75 mismatches between layers: 23 pl
 | E tested, but not at full scale | CEV-BRK | every variant short of the registry's block count in a period (INCONCLUSIVE for want of data) | SAFE | say so in the facts; re-run when the data allows |
 | E tested, but not at full scale | CEV-PULL | every variant short of the registry's block count in a period (INCONCLUSIVE for want of data) | SAFE | say so in the facts; re-run when the data allows |
 | E tested, but not at full scale | E04-PULL | every variant short of the registry's block count in a period (INCONCLUSIVE for want of data) | SAFE | say so in the facts; re-run when the data allows |
+| E tested, but not at full scale | SP1R | every variant short of the registry's block count in a period (INCONCLUSIVE for want of data) | SAFE | say so in the facts; re-run when the data allows |
 | E tested, but not at full scale | SZ2 | every variant short of the registry's block count in a period (INCONCLUSIVE for want of data) | SAFE | say so in the facts; re-run when the data allows |
 | E tested, but not at full scale | T-OPT-H16 | every variant short of the registry's block count in a period (INCONCLUSIVE for want of data) | SAFE | say so in the facts; re-run when the data allows |
 | E tested, but not at full scale | T-OPT-H20 | every variant short of the registry's block count in a period (INCONCLUSIVE for want of data) | SAFE | say so in the facts; re-run when the data allows |
@@ -79,6 +81,8 @@ The map holds 173 studies and 1428 variants. 75 mismatches between layers: 23 pl
 | E tested, but not at full scale | T-TWT-H51 | every variant short of the registry's block count in a period (INCONCLUSIVE for want of data) | SAFE | say so in the facts; re-run when the data allows |
 | E tested, but not at full scale | V03 | every variant short of the registry's block count in a period (INCONCLUSIVE for want of data) | SAFE | say so in the facts; re-run when the data allows |
 | E tested, but not at full scale | VL1 | every variant short of the registry's block count in a period (INCONCLUSIVE for want of data) | SAFE | say so in the facts; re-run when the data allows |
+| F the voice has it, but no plain-words name | RX2 | in the voice's facts with no plain-words name (the voice may say the code) | SAFE | add a name to askwords.STUDIES |
+| F the voice has it, but no plain-words name | RX3 | in the voice's facts with no plain-words name (the voice may say the code) | SAFE | add a name to askwords.STUDIES |
 | G a result the screens do not show | C02-PULL | CONDITIONAL result that neither the read model nor the facts carry | SAFE | surface it in indicator_knowledge or the teacher cards |
 | G a result the screens do not show | E03-ANY | OPPOSITE result that neither the read model nor the facts carry | SAFE | surface it in indicator_knowledge or the teacher cards |
 
@@ -175,12 +179,14 @@ The map holds 173 studies and 1428 variants. 75 mismatches between layers: 23 pl
 | P01-ANY | the lab | VALIDATED | 20 | full | yes | yes | - | yes | yes | - | - | READY |
 | P01-BRK | the lab | CONDITIONAL | 20 | full | yes | yes | - | yes | yes | - | - | READY |
 | P01-PULL | the lab | REJECTED | 20 | full | yes | yes | - | yes | - | - | - | READY |
+| PH1 | the lab | OPPOSITE | 9 | full | yes | - | - | - | yes | - | - | - |
 | RS1 | the lab | REJECTED | 6 | full | yes | - | - | - | - | - | - | - |
-| RX1 | reconstruction draft (Madhav's yes) | CONDITIONAL | 12 | full | yes | yes | - | yes | yes | - | - | - |
-| RX2 | reconstruction draft (Madhav's yes) | OPPOSITE | 1 | full | yes | - | - | - | yes | - | - | - |
-| RX3 | reconstruction draft (Madhav's yes) | CONDITIONAL | 3 | full | yes | - | - | - | yes | - | - | - |
+| RX1 | reconstruction draft (Madhav's yes) | CONDITIONAL | 12 | full | yes | yes | yes | yes | yes | - | - | - |
+| RX2 | reconstruction draft (Madhav's yes) | OPPOSITE | 1 | full | yes | - | yes | - | yes | - | - | - |
+| RX3 | reconstruction draft (Madhav's yes) | CONDITIONAL | 3 | full | yes | - | yes | - | yes | - | - | - |
 | SP1 | the playbook work (Madhav, 19-21 Oct) | SUPPORTED_SEEN | 7 | full | yes | yes | yes | yes | yes | - | yes | READY |
 | SP1H | the playbook work (Madhav, 19-21 Oct) | NOT_CONFIRMED | 5 | full | yes | - | - | - | - | - | - | - |
+| SP1R | the playbook work (Madhav, 19-21 Oct) | NOT_SUPPORTED_SEEN | 3 | thin | yes | - | - | - | - | - | - | - |
 | SP3 | the playbook work (Madhav, 19-21 Oct) | NOT_SUPPORTED_SEEN | 14 | full | yes | yes | - | yes | - | - | yes | READY |
 | SR1 | the lab | OPPOSITE | 11 | full | yes | - | yes | yes | yes | - | - | - |
 | SZ2 | the playbook work (Madhav, 19-21 Oct) | INCONCLUSIVE | 20 | thin | yes | yes | - | yes | - | - | yes | READY |

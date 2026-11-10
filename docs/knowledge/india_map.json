@@ -1,21 +1,21 @@
 {
  "summary": {
-  "built_at": "2026-11-03T20:35:09",
-  "studies": 173,
-  "variants": 1428,
+  "built_at": "2026-11-09T20:35:07",
+  "studies": 175,
+  "variants": 1440,
   "gap_counts": {
-   "A planned, not done": 23,
+   "A planned, not done": 24,
    "B done, not noted": 0,
    "C proved, not in the paper rules": 14,
    "D in the paper rules, not in the voice's facts": 0,
-   "E tested, but not at full scale": 36,
-   "F the voice has it, but no plain-words name": 0,
+   "E tested, but not at full scale": 37,
+   "F the voice has it, but no plain-words name": 2,
    "G a result the screens do not show": 2
   },
-  "gaps_total": 75,
+  "gaps_total": 79,
   "needs_yes": 14,
-  "seconds": 2.6,
-  "words": "The map holds 173 studies and 1428 variants. 75 mismatches between layers: 23 planned, not done, 14 proved, not in the paper rules, 36 tested, but not at full scale, 2 a result the screens do not show; 14 need Madhav's yes."
+  "seconds": 3.9,
+  "words": "The map holds 175 studies and 1440 variants. 79 mismatches between layers: 24 planned, not done, 14 proved, not in the paper rules, 37 tested, but not at full scale, 2 the voice has it, but no plain-words name, 2 a result the screens do not show; 14 need Madhav's yes."
  },
  "rows": [
   {
@@ -7760,6 +7760,99 @@
    ]
   },
   {
+   "id": "PH1",
+   "family": "market_phase",
+   "source": "the lab",
+   "title": "Market phase: does the Nifty's phase (trend up, trend down, range, squeeze) say how big and which way the next moves are, and how the options line does in each?",
+   "registered": true,
+   "registered_at": "2026-11-05",
+   "versions": 1,
+   "variants": 9,
+   "verdicts": {
+    "REJECTED": 1,
+    "INCONCLUSIVE": 4,
+    "OPPOSITE": 2,
+    "NOT_SUPPORTED_SEEN": 2
+   },
+   "best_verdict": "OPPOSITE",
+   "proved": false,
+   "scale": "full",
+   "last_result": "2026-11-05T16:11:45+00:00",
+   "spec_file": true,
+   "results_page": true,
+   "tracker_state": null,
+   "hypotheses": [],
+   "in_paper": false,
+   "paper_role": null,
+   "in_facts": false,
+   "plain_name": null,
+   "in_readmodel": true,
+   "in_exam": false,
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "nifty|trend_up|fwd20",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.01698778134319037,
+     "dev_t": -5.254645113113238,
+     "dev_blocks": 50,
+     "val_mean": -0.009053504774654038,
+     "val_t": -2.3786045792540507,
+     "val_blocks": 22
+    },
+    {
+     "variant": "nifty|range|abs_fwd10",
+     "verdict": "OPPOSITE",
+     "dev_mean": 0.006476509417018662,
+     "dev_t": 2.3334556508390536,
+     "dev_blocks": 47,
+     "val_mean": 0.004616711019719499,
+     "val_t": 1.4632817841147001,
+     "val_blocks": 21
+    },
+    {
+     "variant": "nifty|squeeze|abs_fwd10",
+     "verdict": "REJECTED",
+     "dev_mean": 0.006023696005530553,
+     "dev_t": 2.556827903516221,
+     "dev_blocks": 42,
+     "val_mean": -0.0014235711056200594,
+     "val_t": -0.30497537501153765,
+     "val_blocks": 18
+    },
+    {
+     "variant": "options_line|after_squeeze|net_bps",
+     "verdict": "NOT_SUPPORTED_SEEN",
+     "dev_mean": 1.531233291766557,
+     "dev_t": 0.20665758830397096,
+     "dev_blocks": 4,
+     "val_mean": 5.430267853171113,
+     "val_t": 0.977639379931965,
+     "val_blocks": 20
+    },
+    {
+     "variant": "options_line|after_range|net_bps",
+     "verdict": "NOT_SUPPORTED_SEEN",
+     "dev_mean": -3.838329705313926,
+     "dev_t": -0.1809241002303699,
+     "dev_blocks": 3,
+     "val_mean": 3.83325440442713,
+     "val_t": 0.8644072204909533,
+     "val_blocks": 24
+    },
+    {
+     "variant": "nifty|trend_down|fwd20",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": 0.03871131831118436,
+     "dev_t": 5.68442421499434,
+     "dev_blocks": 24,
+     "val_mean": 0.03438691206966331,
+     "val_t": 4.362814779411843,
+     "val_blocks": 10
+    }
+   ]
+  },
+  {
    "id": "RS1",
    "family": "relative_strength",
    "source": "the lab",
@@ -7875,7 +7968,7 @@
    "hypotheses": [],
    "in_paper": true,
    "paper_role": "the RX1 paper trial",
-   "in_facts": false,
+   "in_facts": true,
    "plain_name": "Ananta's test of the 12 reconstruction drafts",
    "in_readmodel": true,
    "in_exam": false,
@@ -7965,7 +8058,7 @@
    "hypotheses": [],
    "in_paper": false,
    "paper_role": null,
-   "in_facts": false,
+   "in_facts": true,
    "plain_name": null,
    "in_readmodel": true,
    "in_exam": false,
@@ -8007,7 +8100,7 @@
    "hypotheses": [],
    "in_paper": false,
    "paper_role": null,
-   "in_facts": false,
+   "in_facts": true,
    "plain_name": null,
    "in_readmodel": true,
    "in_exam": false,
@@ -8214,6 +8307,67 @@
      "val_mean": 4.281173727296559,
      "val_t": 1.3080048881709014,
      "val_blocks": 687
+    }
+   ]
+  },
+  {
+   "id": "SP1R",
+   "family": "options_line_review",
+   "source": "the playbook work (Madhav, 19-21 Oct)",
+   "title": "The options line's 20-session review: four questions written down before the review",
+   "registered": true,
+   "registered_at": "2026-11-05",
+   "versions": 1,
+   "variants": 3,
+   "verdicts": {
+    "NOT_SUPPORTED_SEEN": 1,
+    "INCONCLUSIVE": 2
+   },
+   "best_verdict": "NOT_SUPPORTED_SEEN",
+   "proved": false,
+   "scale": "thin",
+   "last_result": "2026-11-05T16:11:45+00:00",
+   "spec_file": true,
+   "results_page": true,
+   "tracker_state": null,
+   "hypotheses": [],
+   "in_paper": false,
+   "paper_role": null,
+   "in_facts": false,
+   "plain_name": null,
+   "in_readmodel": false,
+   "in_exam": false,
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "banknifty|below_nifty_bar|net_bps",
+     "verdict": "NOT_SUPPORTED_SEEN",
+     "dev_mean": -4.969018891546225,
+     "dev_t": -1.2305915871352968,
+     "dev_blocks": 4,
+     "val_mean": 4.97067991170324,
+     "val_t": 1.1538453694525936,
+     "val_blocks": 16
+    },
+    {
+     "variant": "both|d0_gap_fade_1pct|net_bps",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 2,
+     "val_mean": -32.8719708364888,
+     "val_t": -2.101672892937296,
+     "val_blocks": 9
+    },
+    {
+     "variant": "both|edge_below_1se|net_bps",
+     "verdict": "INCONCLUSIVE",
+     "dev_mean": NaN,
+     "dev_t": NaN,
+     "dev_blocks": 0,
+     "val_mean": -8.431914711446662,
+     "val_t": -0.7356277384104104,
+     "val_blocks": 4
     }
    ]
   },
@@ -13674,12 +13828,36 @@
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
   },
   {
+   "class": "F",
+   "meaning": "the voice has it, but no plain-words name",
+   "id": "RX2",
+   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
+   "lane": "SAFE",
+   "fix": "add a name to askwords.STUDIES"
+  },
+  {
    "class": "C",
    "meaning": "proved, not in the paper rules",
    "id": "RX3",
    "what": "CONDITIONAL: Breaking out of a tight base: is there a rule, known at the close, for the next session's ",
    "lane": "DECISION",
    "fix": "decide: a filter in the paper rules, a 20-session trial, or 'noted, not used' with the reason"
+  },
+  {
+   "class": "F",
+   "meaning": "the voice has it, but no plain-words name",
+   "id": "RX3",
+   "what": "in the voice's facts with no plain-words name (the voice may say the code)",
+   "lane": "SAFE",
+   "fix": "add a name to askwords.STUDIES"
+  },
+  {
+   "class": "E",
+   "meaning": "tested, but not at full scale",
+   "id": "SP1R",
+   "what": "every variant short of the registry's block count in a period (INCONCLUSIVE for want of data)",
+   "lane": "SAFE",
+   "fix": "say so in the facts; re-run when the data allows"
   },
   {
    "class": "E",
@@ -14112,6 +14290,14 @@
    "what": "tracker: BLOCKED: Two families validated on development plus validation years; holdout opened once per family, and the",
    "lane": "SAFE",
    "fix": "build it, or mark it dropped with a reason"
+  },
+  {
+   "class": "A",
+   "meaning": "planned, not done",
+   "id": "ALLOC_WRONG:regime_table",
+   "what": "an approved draft with no study answering it",
+   "lane": "SAFE",
+   "fix": "register and run it, or record why not"
   }
  ]
 }

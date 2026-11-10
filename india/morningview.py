@@ -216,7 +216,9 @@ def plan_today(session: str, rm: dict) -> dict:
         ind = {"NIFTY": gf.get("change_pct")} if gf.get("change_pct") is not None and str(gf.get("taken_at") or "")[:10] == session else None
         pw = sp1plan.words(sp1plan.load(session), ind)
         if pw.get("ready"):
-            opt.update({"plan": {k: pw.get(k) for k in ("made_at", "by_index", "inputs", "missing", "row", "short")}, "words": pw["words"]})
+            rows = " ".join(r["words"] for r in (pw.get("row") or {}).values())
+            opt.update({"plan": {k: pw.get(k) for k in ("made_at", "by_index", "inputs", "missing", "row", "short")},
+                        "words": pw["words"] + (f" Going by GIFT Nifty at 08:30: {rows}" if rows else "")})
     except Exception as e:  # noqa: BLE001  the general sentence stands
         opt["plan_note"] = f"the plan could not be read: {e.__class__.__name__}"
     av = _load(_paper() / "allocation_view.json", {}) or {}

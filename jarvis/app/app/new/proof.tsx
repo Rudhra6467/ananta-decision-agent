@@ -43,7 +43,7 @@ export default function Proof() {
           {open ? (
             <NCard pad={14}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-                <H>{open === "studies" ? "The versions tested, explained" : "The nightly check, explained"}</H>
+                <H>{ex?.title || (open === "studies" ? "The versions tested, explained" : "The nightly check, explained")}</H>
                 {ex?.updated ? <Meta faint>updated {ex.updated}</Meta> : null}
               </View>
               <View style={{ marginTop: 10, gap: 10 }}>
@@ -56,7 +56,8 @@ export default function Proof() {
               </View>
               {ex?.source ? <Meta faint style={{ marginTop: 8 }}>from {ex.source}</Meta> : null}
               <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-                <Btn label="Ask Ananta" style={{ flex: 1, paddingVertical: 8, minHeight: 40 }} onPress={() => askIt(ex?.ask || (open === "studies" ? STUDIES_Q : EXAM_Q))} />
+                <Btn label="Ask Ananta" style={{ flex: 1, paddingVertical: 8, minHeight: 40 }}
+                  onPress={() => askIt(ex?.ask || (open === "studies" ? d.studies?.ask || STUDIES_Q : d.exam?.ask || EXAM_Q))} />
                 <Pressable onPress={() => setOpen(null)} accessibilityRole="button" accessibilityLabel="Close the explanation"
                   style={{ paddingHorizontal: 16, minHeight: 40, borderRadius: 12, backgroundColor: C.card2, justifyContent: "center" }}>
                   <Text style={[TY.meta, { color: C.text }]}>Close</Text>

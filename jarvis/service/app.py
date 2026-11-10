@@ -1561,6 +1561,20 @@ def surface(name: str, who: str = Depends(owner)) -> dict:
     return getattr(surfaces, name)(_main())
 
 
+@app.get("/v3/surface/chart/{name}")
+def surface_chart(name: str, who: str = Depends(owner)) -> dict:
+    """The new look's charts for crypto (Madhav, 10 Nov 2026): BTC, ETH and SOL (daily closes with the dial's two averages) and PORTFOLIO
+    (the $500 book against its yardsticks), in the shape of India's /v3/chart. Read-only."""
+    from jarvis.service import surfaces
+
+    if is_guest(who) and name.upper() in ("PORTFOLIO", "ACCOUNT"):
+        raise HTTPException(status_code=403, detail="The account's chart is Madhav's; a guest's own book is on the classic screens for now.")
+    try:
+        return surfaces.chart(_main(), name)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
 @app.get("/v3/book500")
 def book500(who: str = Depends(owner)) -> dict:
     from jarvis.service import ndax_book

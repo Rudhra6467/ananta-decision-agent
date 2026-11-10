@@ -40,6 +40,7 @@ export default function Money() {
           <View>
             <Text style={[TY.hero, { color: C.text }]}>{d.value_words ?? inr(d.value_inr)}</Text>
             <Meta>{d.sub_words ?? `${d.as_of ? d.as_of + " · " : ""}${inr(d.stocks_inr)} stocks · ${inr(d.options_inr)} options · ${inr(d.cash_inr)} cash`}</Meta>
+            {d.under_check ? <Meta color={C.warn} style={{ marginTop: 6 }}>{d.under_check}</Meta> : null}
           </View>
           <BookRow title={d.books_title} books={d.books || []} clock={d.clock?.words ? `${d.clock.words}` : null} note={d.books_note}
             onAsk={() => askIt(d.books_ask || "Explain the four books in detail: what each one is, how each started, what the numbers mean today, what the 60-session clock is for, and what would tell us the managed book is working.")} />

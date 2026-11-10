@@ -3,6 +3,8 @@
 // book did. Data: /india/v3/today (jarvis/india/surfaces.py).
 // 4 Nov (Madhav): the headline is one line ("No change today") with Details; each box holds two numbers, swiped up inside the box (Nifty 50 /
 // Bank Nifty; stocks / options); every card is short points, two shown, "Show more" for the rest.
+// 10 Nov (Madhav): crypto has the same Today: Bitcoin / Ethereum / Solana in the first box, the account and its coins in the second,
+// every card as points, and each box opens its chart.
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import { router } from "expo-router";
@@ -16,7 +18,7 @@ import { useMarket } from "../../src/market";
 
 export const ErrorBoundary = ScreenError;
 
-type Page = { label: string; value: string; sub?: string; sub2?: string; tone?: "good" | "bad" | null; tone2?: "good" | "bad" | null; focus?: string };
+type Page = { label: string; value: string; sub?: string; sub2?: string; tone?: "good" | "bad" | null; tone2?: "good" | "bad" | null; focus?: string; coin?: string };
 type Tile = { id: string; pages: Page[] };
 
 export default function Today() {
@@ -26,15 +28,15 @@ export default function Today() {
   const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);                    // 7 Nov: the Today button, pressed again, goes back to the top
   const mk = useMarket();
-  // 7 Nov (Madhav): the index box opens the Nifty 50 / Bank Nifty chart, the portfolio box its performance over time (India; crypto's boxes
-  // still open Money)
+  // 7 Nov (Madhav): the index box opens the Nifty 50 / Bank Nifty chart, the portfolio box its performance over time. 10 Nov: crypto too
+  // (Bitcoin / Ethereum / Solana; the $500 book over time)
   const [chart, setChart] = useState<{ kind: ChartKind; which: string; focus?: string } | null>(null);
-  const openTile = (p: Page) => { if (mk === "india") setChart({ ...chartFor(p.label), focus: p.focus }); else openMoney(p.focus); };
-  // older surfaces (the crypto one) still send two single numbers: each becomes a one-page box
+  const openTile = (p: Page) => setChart({ ...chartFor(p.label, mk, p.coin), focus: p.focus });
+  // a surface that still sends two single numbers: each becomes a one-page box
   const tiles: Tile[] = d?.tiles || (d?.numbers || []).map((n: any, i: number) => ({ id: n.label, pages: [{ ...n, focus: n.focus || (i === 1 ? "holdings" : "options") }] }));
   return (
     <NScreen title="Today" loading={loading} onRefresh={reload} err={err} scrollRef={scrollRef}>
-      {chart ? <ChartSheet kind={chart.kind} which={chart.which} onClose={() => setChart(null)} onAsk={askIt} onOpenMoney={() => openMoney(chart.focus)} /> : null}
+      {chart ? <ChartSheet kind={chart.kind} which={chart.which} market={mk} onClose={() => setChart(null)} onAsk={askIt} onOpenMoney={() => openMoney(chart.focus)} /> : null}
       {d ? (
         <>
           <Meta>{d.now_words}{d.when ? ` · ${d.when}` : ""}</Meta>

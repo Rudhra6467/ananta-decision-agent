@@ -29,41 +29,83 @@ def _days(from_year: int) -> list[dt.date]:
     days = [x for x in d if x.year >= from_year]
     x = (days[-1] if days else dt.date(from_year, 1, 1)) + dt.timedelta(days=1)
     while x < dt.date.today():
-        if x.weekday() < 5:
-            days.append(x)
+        days.append(x)          # 9 Nov 2026: weekends too. Companies file results on Saturdays; "weekdays only" never fetched them
         x += dt.timedelta(days=1)
     return days
+
+
+IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
+
+
+def _complete(day: dt.date, fetched_at: str) -> bool:
+    """A day's file is whole only when it was fetched after that day ended in India."""
+    try:
+        at = dt.datetime.fromisoformat(fetched_at)
+    except (TypeError, ValueError):
+        return True                                   # rows from before this field: fetched the next evening, whole
+    return at >= dt.datetime.combine(day + dt.timedelta(days=1), dt.time(0, 0), IST)
+
+
+def _done(man) -> set[str]:
+    done = {}
+    if man.exists():
+        for line in man.read_text().splitlines():
+            r = json.loads(line)
+            if r.get("status") == 200:
+                done[r["date"]] = r.get("complete", True)       # the newest row for a date decides
+    return {d for d, ok in done.items() if ok}
+
+
+def _fetch_day(f, d: dt.date, man) -> dict:
+    st, body, secs = f.get(URL.format(d=d))
+    now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    row = {"date": d.isoformat(), "status": st, "bytes": len(body), "fetched_at": now, "complete": _complete(d, now)}
+    if st == 200:
+        try:
+            data = json.loads(body)
+            row["rows"] = len(data) if isinstance(data, list) else None
+            out = paths.bronze("announce_api") / str(d.year) / f"{d:%Y%m%d}.json.gz"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            with gzip.open(out, "wb") as fh:
+                fh.write(body)
+        except ValueError:
+            row["status"] = 520  # an HTML page instead of JSON: retried on the next run
+    with man.open("a") as fh:
+        fh.write(json.dumps(row) + "\n")
+    return row
+
+
+def fetch_recent(days_back: int = 6, fetcher=None, today: dt.date | None = None) -> dict:
+    """The last few calendar days, weekends and today in India included, fetched again until each was fetched after it ended (9 Nov 2026;
+    Madhav: "yes, lets complete", the readiness review's fix 3). Before this the feed came once a day at 06:50 IST for the day before and
+    never for a Saturday or Sunday, so a holding's results filed after Friday's close were not seen until Monday night. It runs before the
+    morning view and with each desk build (after the close and at night)."""
+    paths.ensure()
+    man = paths.manifest_dir() / "announce_api.jsonl"
+    done = _done(man)
+    today = today or dt.datetime.now(IST).date()
+    f = fetcher or nse.Fetcher(rate_s=1.0)
+    got = []
+    for k in range(days_back, -1, -1):
+        d = today - dt.timedelta(days=k)
+        if d.isoformat() in done:
+            continue
+        r = _fetch_day(f, d, man)
+        got.append({"date": r["date"], "status": r["status"], "rows": r.get("rows"), "complete": r["complete"]})
+    return {"fetched": got, "words": (f"announcements: {len(got)} day file(s) fetched" + (f", the newest {got[-1]['date']} with {got[-1].get('rows')} rows" if got else ""))}
 
 
 def fetch(from_year: int = 2010) -> dict:
     paths.ensure()
     man = paths.manifest_dir() / "announce_api.jsonl"
-    done = set()
-    if man.exists():
-        for line in man.read_text().splitlines():
-            r = json.loads(line)
-            if r.get("status") == 200:
-                done.add(r["date"])
+    done = _done(man)            # a day fetched before it ended in India (fetch_recent) is fetched again here
     f = nse.Fetcher(rate_s=1.0)
     n = rows_total = 0
     for d in _days(from_year):
         if d.isoformat() in done:
             continue
-        st, body, secs = f.get(URL.format(d=d))
-        row = {"date": d.isoformat(), "status": st, "bytes": len(body), "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
-        if st == 200:
-            try:
-                data = json.loads(body)
-                row["rows"] = len(data) if isinstance(data, list) else None
-                out = paths.bronze("announce_api") / str(d.year) / f"{d:%Y%m%d}.json.gz"
-                out.parent.mkdir(parents=True, exist_ok=True)
-                with gzip.open(out, "wb") as fh:
-                    fh.write(body)
-                rows_total += row["rows"] or 0
-            except ValueError:
-                row["status"] = 520  # an HTML page instead of JSON: retried on the next run
-        with man.open("a") as fh:
-            fh.write(json.dumps(row) + "\n")
+        row = _fetch_day(f, d, man)
+        rows_total += row.get("rows") or 0
         n += 1
         if n % 100 == 0:
             print(f"announce {d} days={n} rows={rows_total}", flush=True)
@@ -113,5 +155,7 @@ if __name__ == "__main__":
     paths.ensure()
     if sys.argv[1] == "fetch":
         print(fetch(int(sys.argv[2]) if len(sys.argv) > 2 else 2010))
+    elif sys.argv[1] == "recent":
+        print(json.dumps(fetch_recent(), indent=1))
     else:
         print(json.dumps(build(), indent=1, default=str))

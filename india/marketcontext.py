@@ -14,7 +14,7 @@ Sources and their lag (said in words per series):
   dollar index, Brent, WTI, US 10-year and 2-year, S&P 500, Nasdaq, US VIX   FRED (silver/macro): each reading carries its own lag in days (Brent has run about a week behind)
   India VIX         the paper_context index reader (technicals.latest_index): the newest close
   FII / DII cash    the evening capture (manifests/fii_dii_cash.jsonl: NSE provisional, NSDL): the newest session
-  GIFT Nifty        no free source
+  GIFT Nifty        read live through Zerodha since 9 Nov 2026 (india/giftnifty.py), not kept in this nightly file
 FRED's raw series stay on the Mac (their terms); this file holds derived readings only.
 """
 from __future__ import annotations
@@ -270,7 +270,7 @@ def build() -> dict:
         r = flows["rows"]
         bits = [f"{k} {v['net_cr']:+,.0f} crore" for k, v in (("FII", r.get("FII")), ("DII", r.get("DII"))) if v]
         lines.append(f"Institutions on {_dw(flows['as_of'])} (cash, net): " + ", ".join(bits) + ".")
-    lines.append("GIFT Nifty: no free source, so the pre-open signal is not available.")
+    lines.append("GIFT Nifty: read live through Zerodha (the morning view at 08:30 IST and the Ask), against its own level at the last NSE close; not kept in this nightly file.")
     explains = []
     if rupee.get("status") == "ok" and abs(rupee["change_1"]) >= 0.003:
         explains.append(f"The rupee moved {_pc(rupee['change_1'])} against the dollar on {_dw(rupee['as_of'])}: a large day for the currency.")
@@ -283,7 +283,7 @@ def build() -> dict:
         explains.append("No single reading made an unusually large move on its latest day.")
     out = {"rules": RULES, "built_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "status": "ok",
            "rupee_same_day": rupee, "macro": macro, "india_vix": vix, "flows": flows, "opening_gaps": gaps, "valuation": val,
-           "gift_nifty": {"status": "missing", "why": "no free source"},
+           "gift_nifty": {"status": "live", "why": "read live through Zerodha since 9 Nov 2026 (india/giftnifty.py); not kept in this nightly file"},
            "words": " ".join(lines), "explains": explains, "tested": TESTED,
            "how_to_say_it": ("Give each reading with its as-of date; the macro series are FRED and lag the Indian open by a day or more, so say 'as of' and never "
                              "present them as live. The rupee same-day reading is the Kite future's last candle. A reading explains a move, it does not predict one: say the "

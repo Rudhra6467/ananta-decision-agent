@@ -10,8 +10,9 @@ and it could not name a stock to watch or say why one moved. This module is the 
   feeds           each data source's last day and when it was fetched, so "check the link" is answered feed by feed
   inventory       what data Ananta has, its years and size, and where it is thin (from manifests/data_inventory.json and the tracker's data rows)
 
-Read-only on files the other jobs already fetched (bronze announcements of the live window, manifests); no network, no Kite, no order.
-It runs in the postclose and nightly chains.
+build() is read-only on files already fetched (bronze announcements of the live window, manifests); no Kite, no order. Run as a job
+(the postclose and nightly chains) it first fetches the last few days' announcements again (announce.fetch_recent, 9 Nov 2026) and
+rebuilds the one calendar (calendar_ahead).
 
   python -m india.desk build        writes manifests/desk.json
 """
@@ -190,6 +191,75 @@ def movers(qb: dict, by_sym: dict, n: int = MOVERS) -> dict:
     return {"as_of": qb.get("as_of"), "liquid_names": len(liquid), "up": [row(x) for x in up], "down": [row(x) for x in dn]}
 
 
+SAY_KINDS = {"results": "results", "order": "an order or contract", "corporate_action": "a dividend, bonus, split or buyback", "deal": "an acquisition or merger",
+             "rating": "a credit rating", "board_meeting": "a board meeting notice"}
+
+
+def _dw(day: str) -> str:
+    try:
+        d = dt.date.fromisoformat(str(day)[:10])
+        return f"{d:%a} {d.day} {d:%b}"
+    except ValueError:
+        return str(day)
+
+
+def holdings_news(since: str | None = None, held: list[str] | None = None, by_sym: dict | None = None, ahead: dict | None = None, qb: dict | None = None) -> dict:
+    """One line for each stock in the account that has filed something since the last session's close, the day's move of each, and the
+    results meetings ahead (9 Nov 2026; Madhav: "yes, lets complete", the readiness review's fix 3: holdings first). The morning view opens
+    with this. What was filed is NSE's own heading and the first words of the filing; the figures inside a results filing are not read here.
+    since: 'YYYY-MM-DD HH:MM' in India (default: the 15:30 close of the read model's last session)."""
+    rm = _json(paths.data_dir() / "readmodel" / "latest.json", {}) or {}
+    qb = qb if qb is not None else (_json(_man() / "quotebook.json", {}) or {})
+    # the last session with a close on file: the quote book is built the same night, the read model the next morning; the newer one decides,
+    # and each stock's move is labelled with the quote book's own day
+    through = max([str(x) for x in (rm.get("data_through"), qb.get("as_of")) if x] or [""]) or None
+    moved_on = qb.get("as_of") or through
+    since = since or (f"{through} 15:30" if through else "0000")
+    if held is None:
+        held = sorted((_json(paths.data_dir() / "paper" / "account" / "state.json", {}) or {}).get("positions") or {})
+    if by_sym is None:
+        by_sym, _ = news(_announce_files(DAYS_NEWS + 3))
+    if ahead is None:
+        ahead = (_json(_man() / "desk.json", {}) or {}).get("results_ahead") or {}
+    q = qb.get("quotes") or {}
+    rows, quiet = [], []
+    for sym in held:
+        new = [i for i in by_sym.get(sym, []) if str(i.get("at") or "") >= since]
+        said = [i for i in new if i["kind"] in SAY_KINDS]
+        mv = (q.get(sym) or {}).get("chg_1d")
+        move = round(100 * mv, 1) if isinstance(mv, (int, float)) else None
+        if not said:                       # nothing, or only routine filings (newspaper copies, allotments, call schedules)
+            quiet.append(sym)
+            continue
+        bits, seen = [], {}
+        for i in sorted(said, key=lambda i: i["at"]):
+            seen.setdefault((i["kind"], i["what"]), []).append(i)
+        for (kind, what), items in list(seen.items())[:3]:
+            last = items[-1]
+            label = SAY_KINDS[kind]
+            if kind == "results":
+                board = "board meeting" in what.lower()
+                per = re.search(r"(?:quarter|half[- ]year|period|year)(?: and [a-z -]{3,20})? ended[^.;,]{0,30}", str(last.get("text") or ""), re.I)
+                label = ("its results" + (f" for the {re.sub(chr(92) + 's+', ' ', per.group(0)).strip()}" if per else "")) if board else "a results call or presentation"
+            bits.append(f"{label} ({what}, {_dw(last['at'])} {str(last['at'])[11:16]} IST" + (f", {len(items)} filings" if len(items) > 1 else "") + ")")
+        line = f"{sym}: filed " + "; ".join(bits) + (f". It closed {move:+.1f}% on {_dw(moved_on)}." if move is not None and moved_on else ".")
+        rows.append({"symbol": sym, "kinds": sorted({i["kind"] for i in said}), "items": said[:4], "move_pct": move, "line": line})
+    rows.sort(key=lambda r: (0 if "results" in r["kinds"] else 1, r["symbol"]))
+    due = sorted((d, s) for d, syms in ahead.items() for s in syms if s in set(held))
+    movers = sorted(((round(100 * (q.get(s) or {}).get("chg_1d"), 1), s) for s in quiet if isinstance((q.get(s) or {}).get("chg_1d"), (int, float))
+                     and abs((q.get(s) or {}).get("chg_1d")) >= 0.02), reverse=True)
+    lines = [r["line"] for r in rows]
+    if quiet:
+        lines.append((f"No results, order, deal or dividend filing since {_dw(since)}'s close from the other {len(quiet)}: " if rows
+                      else f"None of your {len(held)} stocks has filed results, an order, a deal or a dividend since {_dw(since)}'s close: ") + ", ".join(quiet) + ".")
+    if movers:
+        lines.append(f"Moved 2% or more on {_dw(moved_on)} with no filing: " + ", ".join(f"{s} {m:+.1f}%" for m, s in movers) + ".")
+    if due:
+        lines.append("Results meetings ahead for your stocks: " + ", ".join(f"{s} on {_dw(d)}" for d, s in due) + ".")
+    return {"since": since, "through": through, "held": len(held), "rows": rows, "quiet": quiet, "ahead": [{"symbol": s, "date": d} for d, s in due], "lines": lines,
+            "note": "what was filed is NSE's heading and the filing's first words; the figures inside a results filing are not read here"}
+
+
 def build(write: bool = True) -> dict:
     by_sym, _ = news()
     _, meets = news(_announce_files(25))          # a results meeting is intimated a week or more ahead: read 25 fetched days for the dates
@@ -217,6 +287,7 @@ def build(write: bool = True) -> dict:
                                   "read from the company announcements feed only (a meeting date named in the filing); NSE's own board-meetings "
                                   "calendar has not been fetched yet, so this list is incomplete"),
            "movers": movers(qb, by_sym),
+           "holdings_news": holdings_news(by_sym=news(_announce_files(DAYS_NEWS + 3))[0], ahead=due, qb=qb),
            "feeds": feeds(), "inventory": inventory()}
     if write:
         (_man() / "desk.json").write_text(json.dumps(out, indent=1, default=str, ensure_ascii=False))
@@ -225,6 +296,14 @@ def build(write: bool = True) -> dict:
 
 if __name__ == "__main__":
     paths.ensure()
+    # 9 Nov 2026: the announcements of the last few days (weekends and today so far) are fetched again first, so the desk after the close
+    # and at night holds what companies filed that evening; build() itself still reads only what is on disk
+    try:
+        from india import announce, calendar_ahead
+        print(announce.fetch_recent()["words"])
+        calendar_ahead.build()
+    except Exception as e:  # noqa: BLE001 - the desk still builds from what is on disk
+        print(f"announcements not refreshed: {type(e).__name__}: {str(e)[:120]}")
     r = build()
     print(json.dumps({"news_symbols": len(r["news"]), "news_days": r["news_days"], "results_ahead": {k: len(v) for k, v in r["results_ahead"].items()},
                       "movers_as_of": r["movers"]["as_of"], "feeds": len(r["feeds"])}, indent=1))

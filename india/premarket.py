@@ -202,6 +202,41 @@ def results(session: str | None = None) -> dict:
     return out
 
 
+def announcements() -> dict:
+    """The last few days' company announcements fetched again, weekends and this morning included, before the results flag and the holdings
+    lines read them (9 Nov 2026, the readiness review's fix 3)."""
+    from india import announce
+    return announce.fetch_recent()
+
+
+def gift() -> dict:
+    """GIFT Nifty against its own level at the last NSE close, for the morning view (9 Nov 2026, the readiness review's fix 1). Read with
+    the morning sign-in to Zerodha; when that is missing the file says so and the view says GIFT Nifty could not be read."""
+    from india import giftnifty, kite
+    rm = {}
+    try:
+        rm = json.loads((paths.data_dir() / "readmodel" / "latest.json").read_text())
+    except (OSError, ValueError):
+        pass
+    try:
+        k = kite.Kite() if kite._read_token() is not None else None        # the file's own expiry only: no sign-in attempt, no phone nudge
+    except Exception:  # noqa: BLE001
+        k = None
+    if k is None:
+        out = {"symbol": giftnifty.SYMBOL, "taken_at": dt.datetime.now(giftnifty.IST).isoformat(timespec="seconds"), "error": "no Zerodha sign-in this morning", "words": None}
+    else:
+        out = giftnifty.read(k, rm.get("data_through"), (rm.get("market") or {}).get("nifty_close"))
+    (_man() / "premarket_gift.json").write_text(json.dumps(out, indent=1))
+    return {**out, "status": out.get("words") or f"GIFT Nifty not read: {out.get('error')}"}
+
+
+def calendar() -> dict:
+    """The one calendar of dated events ahead, rebuilt for the morning view and the voice (india/calendar_ahead.py)."""
+    from india import calendar_ahead
+    out = calendar_ahead.build()
+    return {"status": f"calendar: {len(out['events'])} events ahead" + (f", next {out['events'][0]['what']} on {out['events'][0]['day_words']}" if out["events"] else "")}
+
+
 def gaps() -> dict:
     """The routine against the inputs Ananta has, read from the manifests as they stand."""
     dc = {}
@@ -228,7 +263,8 @@ def gaps() -> dict:
     rows = [
         {"input": "US close (S&P 500, Nasdaq, 10-year yield)", "have": "yes", "source": "FRED / us_close, nightly", "status": st("market context: SP500"), "decision": "in the brief"},
         {"input": "Asian markets at 08:30 IST (Nikkei, Hang Seng, Kospi)", "have": "no", "source": "no free intraday feed; previous closes only (stooq)", "status": "-", "decision": "left out: a stale close adds little; revisit if a free feed appears"},
-        {"input": "GIFT Nifty", "have": "no", "source": "no free source", "status": "-", "decision": "left out; the opening update at 10:20 IST says what the open did"},
+        {"input": "GIFT Nifty", "have": "yes (added 9 Nov)", "source": "Zerodha quotes and one-minute bars for NSEIX:GIFT NIFTY, with the morning sign-in", "status": "read at 08:30 and 09:09 IST",
+         "decision": "in the brief as the indicated gap, read against its own level at the last NSE close; nothing trades on it"},
         {"input": "Crude and the dollar", "have": "yes, lagged", "source": "FRED (Brent 2 days, dollar index and rupee about 6 days)", "status": st("market context: DCOILBRENTEU"), "decision": "in the context with its lag said; same-day rupee from the RBI reference rate"},
         {"input": "Institutions' flows (FII/DII)", "have": "yes", "source": "NSE daily, evening", "status": st("market context: flows"), "decision": "in the brief"},
         {"input": "India VIX", "have": "yes", "source": "Kite index day file, evening", "status": st("market context: india_vix"), "decision": "in the brief"},
@@ -236,7 +272,8 @@ def gaps() -> dict:
         {"input": "Live option chain before the open", "have": "no", "source": "Kite quotes exist only from 09:15 (the recorder)", "status": "-", "decision": "left out before the open; the options line reads live quotes from 09:15"},
         {"input": "Results calendar and announcements", "have": "yes (flag added 30 Oct)", "source": "NSE announcements (bronze daily): board meetings scheduled for the session to consider results, and results published since the close", "status": st("announcements"), "decision": "in the brief: results today and results published, held names first (manifests/results_today.json)"},
         {"input": "F&O ban list", "have": "yes (added 30 Oct)", "source": "NSE fo_secban.csv, free, each evening for the next session", "status": (bn.get("words") or "not fetched")[:80], "decision": "in the brief; the paper book should not enter a banned name's F&O (it trades cash only, so a note)"},
-        {"input": "Pre-open indicative (09:00-09:08 IST)", "have": "no", "source": "NSE site only; Kite stock quotes in pre-open possible, the index indicative is not", "status": "-", "decision": "left out; the opening update covers the open"},
+        {"input": "Pre-open indicative (09:00-09:08 IST)", "have": "yes (5 Nov; sent to the phone from 9 Nov)", "source": "Zerodha index quotes at 09:09 IST: on 6 and 9 Nov they matched the official open", "status": "read at 09:09 IST",
+         "decision": "sent to the phone with what changed since the 08:30 view and the options line's plan for that open"},
         {"input": "Yesterday's practice book and the scorecard", "have": "yes", "source": "marks, forecasts ledger, daily call", "status": "ok", "decision": "in the brief ('our chances, honestly')"},
         {"input": "The holdings' grades and the allocation", "have": "yes", "source": "allocation ledger (autonomous)", "status": "ok", "decision": "in the brief"},
         {"input": "Which findings apply today", "have": "partly", "source": "the read model's indicator knowledge and the one map", "status": "ok", "decision": "the brief names the filters in force; per-pick 'which rule' is the decision journal"},
@@ -263,7 +300,7 @@ if __name__ == "__main__":
     elif cmd == "results":
         print(json.dumps(results(sys.argv[2] if len(sys.argv) > 2 else None), indent=1))
     elif cmd == "all":
-        for fn in (chain, ban, results, gaps):
+        for fn in (chain, ban, announcements, results, gift, calendar, gaps):
             try:
                 r = fn()
                 print(fn.__name__, (r.get("status") or r.get("words") or r.get("summary")))

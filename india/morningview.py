@@ -30,7 +30,7 @@ from pathlib import Path
 
 from india import paths
 
-RULES = "morningview-v1-2026-10-23"
+RULES = "morningview-v2-2026-11-09"      # v2: holdings first, GIFT Nifty, the options line's plan, the one calendar; the fixed odds and the open-interest line are gone
 REG = Path(__file__).parent / "registrations"
 PAGE = REG / "morningview.md"
 REF_POLICY = "hold_20d"
@@ -174,6 +174,11 @@ def setup(session: str, plan: dict, rm: dict) -> dict:
         events["recent"] = [{"title": r.title, "category": r.category, "session": str(r.fts)} for r in rows.itertuples()][-5:]
     except Exception:  # noqa: BLE001
         pass
+    try:                                   # 9 Nov 2026: the one calendar (india/calendar_ahead.py), the same rows the voice reads
+        from india import calendar_ahead
+        events["calendar"] = calendar_ahead.for_session(session)
+    except Exception:  # noqa: BLE001
+        pass
     return {"status": "ok" if m else "missing", "trend_state": m.get("trend_state"), "nifty_prev_close": prev, "nifty_vs_sma50": m.get("nifty_vs_sma50"), "nifty_vs_sma200": m.get("nifty_vs_sma200"),
             "breadth_200d": m.get("breadth_200d_liquid"), "breadth_50d": m.get("breadth_50d_liquid"), "vix": m.get("vix_close"), "vix_vs_sma50": m.get("vix_vs_sma50"),
             "scenarios": {"bull": fc.get("bull"), "bear": fc.get("bear"), "neutral": fc.get("neutral")}, "scenario_text": plan.get("scenarios_text") or {},
@@ -203,6 +208,17 @@ def plan_today(session: str, rm: dict) -> dict:
     opt = {"signed_in": signed_in, "plan_written": sp1_plan is not None,
            "words": ("The options line decides between 09:15 and 10:15 Indian time: a Nifty or Bank Nifty option, one lot, only if the opening move clears the option's cost." if signed_in or sp1_plan
                      else "The options line cannot trade today: the morning sign-in to Zerodha is missing, so it has no live prices.")}
+    # 9 Nov 2026 (Madhav: "yes, lets complete", the readiness review's fix 2): the line's own plan for this open was written at 07:30 IST and
+    # nothing read it. It is said here: what it does for each way the market can open, the inputs it was planned with, and any that were stale.
+    try:
+        from india import sp1plan
+        gf = _load(_data() / "manifests" / "premarket_gift.json", {}) or {}
+        ind = {"NIFTY": gf.get("change_pct")} if gf.get("change_pct") is not None and str(gf.get("taken_at") or "")[:10] == session else None
+        pw = sp1plan.words(sp1plan.load(session), ind)
+        if pw.get("ready"):
+            opt.update({"plan": {k: pw.get(k) for k in ("made_at", "by_index", "inputs", "missing", "row", "short")}, "words": pw["words"]})
+    except Exception as e:  # noqa: BLE001  the general sentence stands
+        opt["plan_note"] = f"the plan could not be read: {e.__class__.__name__}"
     av = _load(_paper() / "allocation_view.json", {}) or {}
     sug = [{"symbol": s.get("symbol"), "action": s.get("action"), "why": s.get("why")} for s in (av.get("suggestions") or [])[:4]]
     ab = _load(_paper() / "account" / "view.json", {}) or {}
@@ -355,14 +371,19 @@ def premarket_inputs() -> dict:
     return {"results_today": {k: rs.get(k) for k in ("session", "results_today", "results_published_since_close", "held_with_results_today", "held_with_results_published", "words")},
             "option_chain": {k: {kk: v.get(kk) for kk in ("nearest_expiry", "pcr_oi", "max_pain", "call_walls", "put_walls", "words")} for k, v in (ch.get("indices") or {}).items()},
             "option_chain_day": ch.get("day"), "option_chain_note": ch.get("note"),
-            "ban_list": {"symbols": bn.get("symbols"), "words": bn.get("words"), "fetched_at": bn.get("fetched_at")}}
+            "ban_list": {"symbols": bn.get("symbols"), "words": bn.get("words"), "fetched_at": bn.get("fetched_at")},
+            "gift": _load(_data() / "manifests" / "premarket_gift.json", {}) or {}}
 
 
-def blind_spots(us_date: str) -> str:
+def blind_spots(us_date: str, gift: dict | None = None) -> str:
     """What the morning view cannot see before the open, said every day."""
-    return ((f"What Ananta cannot see: the US close on file is for {us_date}" if us_date else "What Ananta cannot see: no US close is on file")
-            + "; there is no GIFT Nifty and no live Asian feed, so anything that moved overnight shows only at the 09:15 IST open; "
-            "crude, the dollar and the rupee readings lag several days.")
+    us = f"the US close on file is for {us_date}" if us_date else "no US close is on file"
+    if gift and gift.get("words"):
+        return (f"What Ananta cannot see: {us}; the only overnight read is GIFT Nifty above (no live Asian markets); "
+                "crude, the dollar and the rupee readings lag several days. At 09:09 IST the pre-open's matched prices are sent to your phone.")
+    why = f" ({gift['error']})" if gift and gift.get("error") else ""
+    return (f"What Ananta cannot see: {us}; GIFT Nifty could not be read this morning{why} and there is no live Asian feed, so anything that moved "
+            "overnight shows first in the 09:09 IST pre-open read; crude, the dollar and the rupee readings lag several days.")
 
 
 def lines(f: dict) -> dict:
@@ -386,11 +407,13 @@ def lines(f: dict) -> dict:
     fl = ov.get("flows") or {}
     if fl:
         view.append("Yesterday " + " and ".join(f"{k} {'bought' if (x.get('net_crore') or 0) >= 0 else 'sold'} ₹{abs(x.get('net_crore') or 0):,.0f} crore" for k, x in fl.items()) + ".")
-    sc_ = s.get("scenarios") or {}
-    if sc_.get("bull") is not None:
-        lv = s.get("scenario_levels") or {}
-        view.append(f"Odds for today, from how Nifty has behaved since 2005: up {100 * sc_['bull']:.0f}% (a close above {lv.get('up_above'):,.0f}), down {100 * sc_['bear']:.0f}% (below {lv.get('down_below'):,.0f}), flat {100 * sc_['neutral']:.0f}%. "
-                    "These are base rates, not a read of today.")
+    pm = f.get("premarket") or {}
+    gift = pm.get("gift") or {}
+    if gift.get("words") and str(gift.get("taken_at") or "")[:10] == str(f.get("session")):
+        view.append(gift["words"])
+    # 9 Nov 2026 (the strip list): "Odds for today: up 40%, down 33%, flat 27%" was the same sentence every morning (the 2005-2023 base
+    # rates); it is gone from the view. The base rates stay in the facts as the baseline every forecast is scored against.
+    hold = list((f.get("holdings_news") or {}).get("lines") or [])
     plan = []
     picks = p.get("picks") or []
     if picks:
@@ -406,6 +429,13 @@ def lines(f: dict) -> dict:
     mb = p.get("managed_book") or {}          # 30 Oct: the managed book acts on those suggestions on paper and buys replacements
     if mb.get("brief"):
         plan.append("The managed book (your holdings with the cuts replaced, on paper): " + mb["brief"])
+    # 9 Nov 2026 (Madhav: "adjust itself ... without sticking to old decisions"): a plan written from the last close is older than anything a
+    # company filed after it. When a name in today's managed-book plan has filed since, that is said beside the plan; the rule itself is unchanged.
+    named = set(mb.get("cuts") or []) | {b.get("symbol") for b in mb.get("buys") or []}
+    late = sorted(r["symbol"] for r in (f.get("holdings_news") or {}).get("rows") or [] if r.get("symbol") in named)
+    if late:
+        plan.append(f"Newer than that plan: {', '.join(late)} {'has' if len(late) == 1 else 'have'} filed since the close it was written from (see your holdings above). "
+                    "The managed book's rules do not read filings, so its plan did not take this in.")
     chances = [sc.get("words", "")]
     watch = []
     ex = s.get("expiry") or {}
@@ -413,25 +443,26 @@ def lines(f: dict) -> dict:
         watch.append(f"Expiry day for {', '.join(ex['today'])} options: moves can be sharp in the last hour.")
     elif ex.get("next"):
         watch.append(f"Next options expiry: {_dw(ex['next']['date'])} ({', '.join(ex['next']['symbols'][:3])}{', monthly' if ex['next'].get('monthly') else ''}).")
-    if (s.get("events") or {}).get("scheduled_today"):
+    cal = (s.get("events") or {}).get("calendar") or {}
+    for e in cal.get("during") or []:
+        watch.append("Today: " + e["words"])
+    for e in cal.get("first_session_for") or []:
+        watch.append("Out since the last close, and today is the first session to trade it: " + e["words"].split(";")[0] + ".")
+    for e in cal.get("after_close") or []:
+        watch.append("After today's close: " + e["words"])
+    if (s.get("events") or {}).get("scheduled_today") and not cal.get("during"):
         watch.append("A scheduled event (policy, budget or results) falls today: the first hour can move on it.")
     for e in ((s.get("events") or {}).get("recent") or [])[-2:]:
         watch.append(f"Recent event: {e['title']} ({_dw(e['session'])}).")
+    if cal.get("next") and not (cal.get("during") or cal.get("after_close")):
+        watch.append("Next on the calendar: " + cal["next"]["words"])
     lv = s.get("scenario_levels") or {}
     if lv.get("up_above"):
         stale_lines = n.get("plan_date") and lv.get("set_from_date") and str(lv["set_from_date"]) < str(n.get("date"))
         watch.append(f"The lines that decide the day's label: above {lv['up_above']:,.0f} is an up day, below {lv['down_below']:,.0f} a down day"
                      + (f" (set when the day's forecast was written, from the {_dw(lv['set_from_date'])} close of {lv['set_from_close']:,.0f}, not the newer {_dw(n.get('date'))} close)." if stale_lines else "."))
-    pm = f.get("premarket") or {}
-    oc = pm.get("option_chain") or {}
-    if oc:
-        bits = []
-        for sym, v in oc.items():
-            if v.get("pcr_oi") is not None:
-                bits.append(f"{'Nifty' if sym == 'NIFTY' else 'Bank Nifty'}: puts/calls open {v['pcr_oi']:.2f}, max pain {v['max_pain']:,.0f}, "
-                            f"biggest call wall {v['call_walls'][0]['strike']:,.0f}, put wall {v['put_walls'][0]['strike']:,.0f}")
-        if bits:
-            watch.append("Option chain at yesterday's close (context only; no edge found in it): " + "; ".join(bits) + ".")
+    # 9 Nov 2026 (the strip list): the open-interest line (puts/calls open, max pain, the walls) is gone from the view: F03 found no edge
+    # in it and it read as a signal. The numbers stay in the facts (premarket.option_chain) for a question about them.
     rt = pm.get("results_today") or {}
     if rt.get("results_today"):
         names = rt["results_today"]
@@ -447,13 +478,14 @@ def lines(f: dict) -> dict:
         watch.append("F&O ban list today: empty.")
     # 3 Nov (outside trader grade): the view must say what it cannot see overnight (no GIFT Nifty, a day-old US close, lagging crude and rupee)
     us_d = max((str(v.get("date") or "") for v in (ov.get("us") or {}).values()), default="")
-    watch.append(blind_spots(us_d))
+    watch.append(blind_spots(us_d, gift if str(gift.get("taken_at") or "")[:10] == str(f.get("session")) else None))
     watch.append("Guardrails: a 5% loss stops the day; 22% below the peak pauses new buys.")
     yest = []
     if y.get("lessons"):
         yest = y["lessons"][:4]
-    return {"view": view, "plan": plan, "chances": chances, "watch": watch, "yesterday": yest,
-            "headline": (view[1] if len(view) > 1 else (view[0] if view else "No market reading yet.")) + " " + (plan[0] if plan else "")}
+    nifty_line = next((x for x in view if x.startswith("Nifty closed")), view[0] if view else "No market reading yet.")
+    return {"holdings": hold, "view": view, "plan": plan, "chances": chances, "watch": watch, "yesterday": yest,
+            "headline": nifty_line + " " + (plan[0] if plan else "")}
 
 
 # ------------------------------------------------------------------------------------------------------------------------------ build
@@ -492,6 +524,11 @@ def build(session: str | None = None) -> dict:
          "overnight": overnight(plan, session), "setup": setup(session, plan, rm), "plan": plan_today(session, rm), "scorecard": scorecard(rm), "yesterday": yesterday(rm)}
     f["lessons_for_writer"] = lessons_for_writer(f["scorecard"], f["yesterday"])
     f["premarket"] = premarket_inputs()   # 30 Oct (Phase 4.1): the option chain's end-of-day shape and the F&O ban list, context only
+    try:                                  # 9 Nov 2026 (fix 3, holdings first): what each stock in the account has filed since the last close
+        from india import desk
+        f["holdings_news"] = desk.holdings_news()
+    except Exception as e:  # noqa: BLE001
+        f["holdings_news"] = {"lines": [], "note": f"the holdings' filings could not be read: {e.__class__.__name__}"}
     fg = ((f["overnight"].get("india") or {}).get("fear gauge")) or {}
     if fg.get("close") is not None and fg.get("date") and str(fg["date"]) > str(f.get("data_through") or ""):      # the setup's VIX is never older than the view's
         f["setup"]["vix"], f["setup"]["vix_vs_sma50"] = fg["close"], fg.get("vs_sma50")
@@ -511,7 +548,7 @@ def build(session: str | None = None) -> dict:
 
 def page(f: dict) -> str:
     L = [f"# Morning view, session {_dw(f['session'])} (built {f['built_at'][:16]}Z)", "", f["lines"]["headline"], ""]
-    for title, key in (("The view", "view"), ("What Ananta is doing today", "plan"), ("Our chances, honestly", "chances"), ("Watch today", "watch"), ("Yesterday's scorecard", "yesterday")):
+    for title, key in (("Your holdings since the last close", "holdings"), ("The view", "view"), ("What Ananta is doing today", "plan"), ("Our chances, honestly", "chances"), ("Watch today", "watch"), ("Yesterday's scorecard", "yesterday")):
         L += [f"## {title}"] + [f"- {x}" for x in f["lines"].get(key) or ["- nothing to say"]] + [""]
     if f.get("words"):
         L += ["## Ananta's note", f["words"], ""]

@@ -85,7 +85,11 @@ def scheduled_dates() -> set[dt.date]:
     b = ev[cal & (ev["status"] == "DUPLICATE") & (ev["known_beforehand"] == "scheduled")]
     b = b[[(c, d) in era_ok for c, d in zip(b["category"], b["ed"])]]
     c = ev[~cal & ok & (ev["known_beforehand"] == "scheduled")]
-    return set(a["fts"]) | set(b["fts"]) | set(c["fts"])
+    # 9 Nov 2026 (Madhav: "yes, lets complete", the readiness review's fix 4): the registry holds what has happened (a date past the trading
+    # calendar is rejected), so on the day itself a live session was never an event day. The published dates ahead (official RBI decision,
+    # Budget and counting days; india/registrations/calendar_ahead.json) are added: the spec's "scheduled flag from the published calendars".
+    from india import calendar_ahead
+    return set(a["fts"]) | set(b["fts"]) | set(c["fts"]) | calendar_ahead.scheduled_ahead()
 
 
 def build(src: dict | None = None, out_file: Path | None = None, from_date: dt.date | None = None) -> dict:

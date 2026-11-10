@@ -9,7 +9,7 @@ v1 contents, honestly limited:
   logged paper_context purpose) and the last published FII/DII cash figures (NSE, saved daily to bronze/fiidii, which also starts that history)
 - the forecast: CLIMATOLOGY only, the share of up / flat / down Nifty sessions 2005-2023 with a +/-0.3% neutral band. It has no skill by
   design: it is the baseline every later forecast (analogues, event types, playbooks) must beat in the ledger's scores.
-- no GIFT Nifty (no free source wired yet); scheduled events join once the event registry's calendars are loaded.
+- GIFT Nifty (india/giftnifty.py) and the calendar ahead (india/calendar_ahead.py) are read by the morning view since 9 Nov 2026, not by this forecast.
 """
 from __future__ import annotations
 
@@ -119,7 +119,7 @@ def run() -> dict:
                         kind="pre_open", notes="day plan v1")
     plan = {"session": str(s), "written_at": fc["made_at"], "overnight": snap, "forecast_id": fc["forecast_id"], "forecast": p,
             "scenarios_text": {"bull": "Nifty closes more than 0.3% up", "bear": "Nifty closes more than 0.3% down", "neutral": "within +/-0.3%"},
-            "limits": ["no GIFT Nifty", "no event calendar yet", "climatology forecast only"]}
+            "limits": ["climatology forecast only", "GIFT Nifty and the event calendar are read by the morning view, not by this forecast"]}
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(plan, indent=1, default=str))
     return {"session": str(s), "forecast_id": fc["forecast_id"], "forecast": {k: round(v, 3) for k, v in p.items()}, "path": str(out)}

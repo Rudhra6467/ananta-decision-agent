@@ -1,0 +1,18 @@
+{
+ "version": 1,
+ "what": "The one calendar of dated events ahead (9 Nov 2026; Madhav: 'yes, lets complete' to the outsider readiness review, fix 4). The voice, the morning view and the options line's event flag all read this file through india/calendar_ahead.py. Each row comes from its owner's published schedule; times are Indian time. kind rbi_policy, union_budget and election with status official are the scheduled events of the options line's spec (sp1_v2.json: 'scheduled event today'); a row marked expected does not set that flag. Add the next dates before these run out (the FOMC's 2027 dates, the RBI's after February 2027, the Budget day once the government names it).",
+ "rows": [
+  {"date": "2026-11-10", "time_ist": "19:00", "kind": "release", "what": "US inflation (CPI) for October", "source": "BLS release schedule 2026 (bls.gov/schedule/2026)"},
+  {"date": "2026-11-12", "time_ist": "16:00", "kind": "release", "what": "India inflation (CPI) for October", "time_note": "MoSPI's usual time, after the close", "source": "MoSPI advance release calendar 2026-27 (Sept 2026 update)"},
+  {"date": "2026-11-28", "kind": "release", "what": "India industrial production (IIP) for October", "time_note": "MoSPI; a Saturday", "source": "MoSPI advance release calendar 2026-27"},
+  {"date": "2026-11-30", "time_ist": "16:00", "kind": "release", "what": "India GDP for July-September (Q2 FY27)", "time_note": "MoSPI's usual time, after the close", "source": "MoSPI advance release calendar 2026-27"},
+  {"date": "2026-12-04", "time_ist": "10:00", "kind": "rbi_policy", "status": "official", "what": "RBI monetary policy decision (the MPC meets 2-4 Dec)", "time_note": "usually announced about 10:00 IST, during the session", "source": "RBI press release of 23 Mar 2026, Meeting Schedule of the Monetary Policy Committee for 2026-2027", "url": "https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=62422"},
+  {"date": "2026-12-04", "time_ist": "19:00", "kind": "release", "what": "US jobs report for November", "source": "BLS release schedule 2026"},
+  {"date": "2026-12-10", "time_ist": "00:30", "kind": "release", "what": "US Federal Reserve rate decision (FOMC 8-9 Dec; 2 pm in Washington on the 9th)", "source": "federalreserve.gov, December 2026 calendar"},
+  {"date": "2026-12-10", "time_ist": "19:00", "kind": "release", "what": "US inflation (CPI) for November", "source": "BLS release schedule 2026"},
+  {"date": "2026-12-12", "kind": "release", "what": "India inflation (CPI) for November", "time_note": "MoSPI; a Saturday", "source": "MoSPI advance release calendar 2026-27"},
+  {"date": "2027-01-07", "kind": "release", "what": "India GDP first advance estimate for FY27", "time_note": "MoSPI", "source": "MoSPI advance release calendar 2026-27"},
+  {"date": "2027-02-01", "time_ist": "11:00", "kind": "union_budget", "status": "expected", "what": "Union Budget", "time_note": "by convention on 1 Feb from about 11:00 IST; the government confirms the date nearer the time", "source": "convention since 2017; not yet announced"},
+  {"date": "2027-02-05", "time_ist": "10:00", "kind": "rbi_policy", "status": "official", "what": "RBI monetary policy decision (the MPC meets 3-5 Feb)", "time_note": "usually announced about 10:00 IST, during the session", "source": "RBI press release of 23 Mar 2026, Meeting Schedule of the Monetary Policy Committee for 2026-2027", "url": "https://www.rbi.org.in/Scripts/BS_PressReleaseDisplay.aspx?prid=62422"}
+ ]
+}

@@ -15,4 +15,7 @@ def test_the_chances_speak_only_the_daily_call():
 def test_the_morning_view_says_what_it_cannot_see_overnight():
     # 3 Nov (outside trader grade): no GIFT Nifty, a day-old US close, lagging crude and rupee
     w = mv.blind_spots("2026-11-02")
-    assert "US close on file is for 2026-11-02" in w and "no GIFT Nifty" in w and "09:15 IST open" in w
+    assert "US close on file is for 2026-11-02" in w and "GIFT Nifty could not be read" in w and "09:09 IST pre-open read" in w
+    # 9 Nov: with GIFT Nifty read, the view no longer says it has no overnight read
+    g = mv.blind_spots("2026-11-09", {"words": "GIFT Nifty ... is up 0.4%"})
+    assert "could not be read" not in g and "GIFT Nifty above" in g and "no live Asian markets" in g

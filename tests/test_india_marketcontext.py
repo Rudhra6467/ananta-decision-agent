@@ -85,8 +85,8 @@ def test_build_says_it_explains_and_never_predicts(lake, monkeypatch):
     _future(lake)
     monkeypatch.setattr(mc, "india_vix", lambda: {"label": "India VIX (fear gauge)", "status": "ok", "as_of": "2026-10-26", "lag_days": 0, "value": 17.16, "change_1": 0.018})
     out = mc.build()
-    assert out["status"] == "ok" and "none of these readings predicts" in out["tested"] and "GIFT Nifty: no free source" in out["words"]
-    assert out["gift_nifty"]["status"] == "missing" and "never to trade" in out["tested"]
+    assert out["status"] == "ok" and "none of these readings predicts" in out["tested"] and "GIFT Nifty: read live through Zerodha" in out["words"]
+    assert out["gift_nifty"]["status"] == "live" and "never to trade" in out["tested"]          # 9 Nov 2026: read live (india/giftnifty.py)
     assert json.loads((lake / "manifests" / "market_context.json").read_text())["rules"] == mc.RULES
     assert mc.section()["words"] == out["words"]
 

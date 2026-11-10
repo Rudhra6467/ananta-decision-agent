@@ -64,7 +64,9 @@ ALLOWED_REFS = {
     # 3 Nov 2026, Madhav: "Yes for all" (morning review item 1): the files built on 2 Nov for the never-again order (agent bd6f044, 4bded18, 912a475)
     ("jarvis/india/livesession.py", r"ananta_data/india"): "the Ask's today-block reads the SP1 ledger, the paper book and the read model (read-only; it writes nothing there)",
     ("jarvis/india/livesession.py", r"ananta-records"): "the today-block puts the records checkout on the path to import its GET-only Kite client",
-    ("jarvis/india/livesession.py", r"from india\b"): "imports india.kite, the records repo's GET-only client, for read-only quotes; it never prints or returns the token (token_surface checks this)",
+    ("jarvis/india/livesession.py", r"from india\b"): ("imports india.kite, the records repo's GET-only client, for read-only quotes; it never prints or returns the token "
+                                                       "(token_surface checks this); and, from 9 Nov 2026, india.giftnifty (GIFT Nifty against its own level at the last close) "
+                                                       "and india.sp1plan (the options line's plan in words): each fact's one owner, read-only"),
     ("jarvis/india/views.py", r"from india\b"): "imports india.readmodel.sp1 to show the SP1 line for the session the read model is built through (read-only)",
     ("jarvis/india/factmap.py", r"ananta_data/india"): "the fact map lists which India files reach the Ask (read-only); it writes only under the agent's docs/repair_shop/factmap",
     ("jarvis/india/factmap.py", r"ananta-records"): "the fact map reads the records checkout's build modules to see which files they read (read-only)",

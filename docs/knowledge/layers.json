@@ -1,6 +1,6 @@
 {
  "version": "layers.v1",
- "updated": "2026-11-05",
+ "updated": "2026-11-10",
  "meaning": {
   "layer": "0 = highest authority. A lower number overrides a higher one; data errors (1) poison everything above them.",
   "status": {
@@ -872,6 +872,8 @@
     "jarvis/service/needs.py",
     "jarvis/service/officer.py",
     "jarvis/service/surfaces.py",
+    "jarvis/service/places.py",
+    "jarvis/placekit.py",
     "jarvis/service/exam.py",
     "jarvis/service/nightcheck.py",
     "jarvis/service/openlist.py",
@@ -1676,6 +1678,7 @@
     "jarvis/india/service.py",
     "jarvis/india/views.py",
     "jarvis/india/surfaces.py",
+    "jarvis/india/places.py",
     "jarvis/india/livesession.py",
     "jarvis/india/neveragain.py",
     "jarvis/india/factmap.py",

@@ -350,15 +350,14 @@ def test_the_surfaces_only_read():
 
 
 def test_the_app_draws_crypto_the_way_it_draws_india():
+    # 10 Nov 2026 (the redesign): Today, Money and Proof became places drawn by one renderer for both markets (src/place.tsx); the charts
+    # ride in the payload, so crypto and India draw the same way by construction
     charts = (APP / "src" / "newcharts.tsx").read_text()
     assert '"/v3/surface/chart"' in charts and all(f'key: "{k}"' in charts for k in ("BTC", "ETH", "SOL", "NIFTY", "BANKNIFTY"))
-    assert "d?.lines" in charts and "d?.x_labels" in charts
-    today = (APP / "app" / "new" / "today.tsx").read_text()
-    assert "chartFor(p.label, mk, p.coin)" in today and "market={mk}" in today
-    assert "openMoney(p.focus); }" not in today                              # crypto's boxes no longer skip the chart
-    proof = (APP / "app" / "new" / "proof.tsx").read_text()
-    assert "ex?.title ||" in proof
-    assert "d.under_check" in (APP / "app" / "new" / "money.tsx").read_text()
+    place = (APP / "src" / "place.tsx").read_text()
+    assert 'case "chart"' in place and "<Spark" in place and "useMarket" in place
+    assert not (APP / "app" / "new" / "today.tsx").exists() and not (APP / "app" / "new" / "money.tsx").exists()
+    assert 'm.get("under_check")' in (ROOT / "jarvis" / "service" / "places.py").read_text()
 
 
 # ---------------------------------------------------------------------------------------------------------------- the outsider's review, 10 Nov

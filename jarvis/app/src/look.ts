@@ -8,13 +8,14 @@ import { Platform } from "react-native";
 export type Look = "classic" | "new";
 const KEY = "ananta_look";
 // 8 Nov 2026 (the TestFlight build): the iPhone app starts in the new look, the one Madhav uses; the website keeps classic as its default
-let current: Look = Platform.OS === "web" ? "classic" : "new";
+// 10 Nov 2026 (the redesign, "one look at the end"): the owner sees the redesign on every device; the classic tabs stay only for guests
+let current: Look = "new";
 let loaded = false;
 const subs = new Set<() => void>();
 
 export async function loadLook(): Promise<Look> {
   if (loaded) return current;
-  try { const v = await SecureStore.getItemAsync(KEY); if (v === "new" || v === "classic") current = v; } catch { /* */ }
+  current = "new";
   loaded = true;
   return current;
 }
@@ -35,4 +36,4 @@ export function useLook(): Look {
   }, []);
   return l;
 }
-export const newHome = "/new/today";
+export const newHome = "/new/home";

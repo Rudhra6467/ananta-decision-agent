@@ -43,7 +43,7 @@ export function HomeScreenHint() {
         </Text>
         <View style={{ flexDirection: "row", gap: 10 }}>
           {!ios ? (
-            <Pressable onPress={canInstall ? install : full} style={{ flex: 1, backgroundColor: C.accent, borderRadius: 10, padding: 9, alignItems: "center" }}>
+            <Pressable onPress={canInstall ? install : full} style={{ flex: 1, backgroundColor: C.gold, borderRadius: 10, padding: 9, alignItems: "center" }}>
               <Text style={{ color: C.onInk, fontWeight: "700" }}>{canInstall ? "Install" : "Full screen"}</Text>
             </Pressable>
           ) : null}

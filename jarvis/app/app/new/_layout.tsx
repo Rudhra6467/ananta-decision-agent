@@ -1,57 +1,60 @@
-// The new look's shell (31 Oct 2026, gate 1): five surfaces on a bottom bar - Today, Money, (Ask as the orb), Proof, People - each
-// answering one question. The classic tabs (app/(tabs)) stay untouched; More › "New look" switches between them (src/look.ts).
-import SwipeTabs from "expo-router/js-top-tabs";        // 9 Nov 2026 (Madhav, TestFlight): swipe left / right between the tabs, as the classic look does
+// The redesign's five places (Madhav, 10 Nov 2026: "yes for all your recommendations"): Home · Markets · Ask (the orb) · Activity · More,
+// on one floating bar (block 12 of the design canvas). The old new look's Today, Money, Proof and People moved down a level: Money is the
+// account page opened from Home, Proof and People sit under More; nothing was removed (jarvis/service/places.py and jarvis/india/places.py
+// write every place). Swiping left and right between the places stays (9 Nov, TestFlight).
+import SwipeTabs from "expo-router/js-top-tabs";
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "../../src/theme";
-import { CheckIcon2, DollarIcon, G, Orb, PeopleIcon, RupeeIcon, SunIcon, TY } from "../../src/newui";
-import { useMarket } from "../../src/market";
+import { Orb } from "../../src/newui";
+import { Icon } from "../../src/place";
 import { ScreenError } from "../../src/safe";
 import { pressOrb, useTyping } from "../../src/once";
 
 export const ErrorBoundary = ScreenError;
 
-const TABS: { name: string; label: string; Icon: any }[] = [
-  { name: "today", label: "TODAY", Icon: SunIcon }, { name: "money", label: "MONEY", Icon: RupeeIcon }, { name: "ask", label: "", Icon: null },
-  { name: "proof", label: "PROOF", Icon: CheckIcon2 }, { name: "people", label: "PEOPLE", Icon: PeopleIcon },
+const TABS: { name: string; label: string }[] = [
+  { name: "home", label: "Home" }, { name: "markets", label: "Markets" }, { name: "ask", label: "" }, { name: "activity", label: "Activity" }, { name: "more", label: "More" },
 ];
 
 function Bar({ state, navigation }: any) {
   useThemeVersion();
   const ins = useSafeAreaInsets();
   const active = state.routes[state.index]?.name;
-  const mk = useMarket();
   const typing = useTyping();
-  // Madhav, 3 Nov: while he types in Ask the bar (and its raised orb) steps aside, so the typing box is never covered
-  if (typing && active === "ask") return null;
+  if (typing && active === "ask") return null;             // 3 Nov: while he types in Ask the bar steps aside
   return (
-    <View style={{ backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.line, paddingBottom: Math.max(ins.bottom, 10), paddingTop: 10, paddingHorizontal: 8, flexDirection: "row", justifyContent: "space-around" }}>
-      {TABS.map((t) => {
-        if (!t.Icon) {
-          return (
-            <View key={t.name} style={{ width: 64, alignItems: "center", marginTop: active === "ask" ? -14 : -34 }}>
-              {/* 7 Nov (Madhav): first press opens Ask; on Ask already, the same press starts the voice */}
-              <Orb mic={active === "ask"} label={active === "ask" ? "Talk to Ananta" : "Ask Ananta"} onPress={() => { if (active === "ask") pressOrb(); else navigation.navigate("ask"); }} />
-            </View>
-          );
-        }
-        const on = active === t.name;
-        const col = on ? G.gold() : C.dim;
-        const Icon = t.name === "money" && mk === "crypto" ? DollarIcon : t.Icon;   // 1 Nov: crypto's money is in dollars
-        return (
-          <Pressable key={t.name} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: on }}
-            onPress={() => {
-              // 7 Nov (Madhav): the tab's own button, pressed while on that tab, takes the page back to the top (the screens listen with
-              // useScrollToTop); the event is the one React Navigation's bar would send, so a screen can also prevent the switch
-              const route = state.routes.find((r: any) => r.name === t.name);
-              const ev = navigation.emit({ type: "tabPress", target: route?.key, canPreventDefault: true });
-              if (!on && !ev.defaultPrevented) navigation.navigate(t.name);
-            }} style={{ width: 64, alignItems: "center", gap: 4, minHeight: 44 }}>
-            <Icon color={col} />
-            <Text style={[TY.tab, { color: col }]}>{t.label}</Text>
-          </Pressable>
-        );
-      })}
+    <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: Math.max(ins.bottom, 12), alignItems: "center" }}>
+      <View accessibilityRole="tablist" style={{ width: "100%", maxWidth: 520, paddingHorizontal: 16 }}>
+        <View style={{ height: 64, borderRadius: 32, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, flexDirection: "row", alignItems: "center",
+          shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}>
+          {TABS.map((t) => {
+            if (!t.label) {
+              return (
+                <View key={t.name} style={{ flex: 1, alignItems: "center", marginTop: -26 }}>
+                  {/* 7 Nov (Madhav): first press opens Ask; on Ask already, the same press starts the voice */}
+                  <Orb size={56} mic={active === "ask"} label={active === "ask" ? "Talk to Ananta" : "Ask Ananta"}
+                    onPress={() => { if (active === "ask") pressOrb(); else navigation.navigate("ask"); }} />
+                </View>
+              );
+            }
+            const on = active === t.name;
+            const col = on ? C.text : C.dim;
+            return (
+              <Pressable key={t.name} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: on }}
+                onPress={() => {
+                  // 7 Nov: the place's own button, pressed while on it, takes the page back to the top (useScrollToTop)
+                  const route = state.routes.find((r: any) => r.name === t.name);
+                  const ev = navigation.emit({ type: "tabPress", target: route?.key, canPreventDefault: true });
+                  if (!on && !ev.defaultPrevented) navigation.navigate(t.name);
+                }} style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 48 }}>
+                <Icon name={t.name} size={24} color={col} />
+                <Text style={{ color: col, fontSize: 11, lineHeight: 14, fontWeight: "700" }}>{t.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
     </View>
   );
 }
@@ -59,13 +62,13 @@ function Bar({ state, navigation }: any) {
 export default function NewLayout() {
   useThemeVersion();
   return (
-    <SwipeTabs tabBarPosition="bottom" initialRouteName="today" tabBar={(p: any) => <Bar {...p} />}
+    <SwipeTabs tabBarPosition="bottom" initialRouteName="home" tabBar={(p: any) => <Bar {...p} />}
       screenOptions={{ lazy: true, swipeEnabled: true, animationEnabled: true, sceneStyle: { backgroundColor: C.bg } } as any}>
-      <SwipeTabs.Screen name="today" />
-      <SwipeTabs.Screen name="money" />
+      <SwipeTabs.Screen name="home" />
+      <SwipeTabs.Screen name="markets" />
       <SwipeTabs.Screen name="ask" />
-      <SwipeTabs.Screen name="proof" />
-      <SwipeTabs.Screen name="people" />
+      <SwipeTabs.Screen name="activity" />
+      <SwipeTabs.Screen name="more" />
     </SwipeTabs>
   );
 }

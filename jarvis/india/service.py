@@ -161,6 +161,7 @@ def index() -> str:
 # ---- the app's own /v3 contract, filled with Indian data (jarvis/india/views.py): the crypto screens render these unchanged ----
 from jarvis.india import views as india_views  # noqa: E402
 from jarvis.india import surfaces as _india_surfaces  # noqa: E402,F401  (31 Oct: registers today, money, proof, people in ROUTES)
+from jarvis.india import places as _india_places  # noqa: E402,F401  (10 Nov: registers the redesign's places, /v3/place/<name>, in ROUTES)
 
 
 # ---- Ask Ananta, Indian market (jarvis/india/ask.py): the same routes the chat screen calls on the crypto service ----

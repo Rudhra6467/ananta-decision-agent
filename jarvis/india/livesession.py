@@ -314,7 +314,12 @@ def index_now(clk: dict, fetch=None) -> dict:
         if fb:
             return fb | {"error": q["error"]}
         return {"live": False, "error": q["error"], "words": "I could not reach the live prices from Kite just now (" + q["error"][:60] + "); say so, do not guess."}
-    if clk["state"] == "no_session":
+    # 10 Nov 2026 (found while building the redesign): after midnight IST, before the next open, Kite rolls the day over and gives the last
+    # close against itself (Nifty "0 (0.0%)" on Today, and "flat" in the voice); the closing bars on file have the real day change, as on a holiday
+    flat = clk["state"] in ("before_open", "pre_open") and all(
+        isinstance((q["rows"].get(s) or {}).get("last"), (int, float)) and abs((q["rows"][s]["last"] or 0) - ((q["rows"][s].get("prev_close") or 0))) < 0.005
+        for s in (INDEX["NIFTY 50"], INDEX["NIFTY BANK"]))
+    if clk["state"] == "no_session" or flat:
         # 8 Nov 2026 (the outside audit): on a weekend or holiday Kite's row is the last close against itself (0.0%), or, on a Muhurat day,
         # the special hour's print; neither is "the close of the last session". The closing bars on file are, with their own day change.
         fb = _closing_bars(clk)
@@ -508,7 +513,9 @@ def holdings_today(clk: dict, positions: list[dict], fetch=None) -> dict:
     dn = [f"{x['symbol']} {x['change_pct']:+.1f}%" for x in rows[:3] if x["move_inr"] < 0]
     when = ("so far today" if clk["state"] == "open" else "today" if clk["latest_session"] == clk["today_india"] else f"on {clk['latest_session_words']}")
     sp = clk.get("special_session")
-    if clk["state"] == "no_session":
+    # 10 Nov 2026: before the next open Kite's day has rolled over and every holding shows 0.0%; the quotebook has the last session's move
+    rolled = clk["state"] in ("before_open", "pre_open") and bool(rows) and all(abs(x.get("change_pct") or 0) < 0.005 for x in rows)
+    if clk["state"] == "no_session" or rolled:
         # 8 Nov 2026 (the outside audit): on a Muhurat day Kite's move is the Muhurat hour's against Friday's close, and on a plain weekend
         # it is 0.0%; the last regular session's own move comes from the quotebook's day change, and is what "on Friday" means
         qb = _quotebook_day_move(positions)

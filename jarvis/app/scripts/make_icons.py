@@ -4,36 +4,41 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-def shapes() -> dict:
-    """The mark's shapes and colours, read from src/logo.tsx (the one place they live; 9 Nov 2026: Shiva's trishul in forged steel, the
-    lattice gone, the emblem on its own near-black disc)."""
+def mark2() -> dict:
+    """10 Nov 2026 (the redesign, Icon A): the forged-bronze mark's shapes and colours, read from src/logo.tsx (MARK2, the one place they live)."""
     import json
-    import re
     src = (ROOT / "src" / "logo.tsx").read_text()
-    block = src[src.index("MARK-SHAPES-START"):src.index("MARK-SHAPES-END")]
-    tri = json.loads(re.sub(r",\s*\]", "]", re.search(r"export const TRISHUL\s*=\s*(\[.*?\]);\n", block, re.S).group(1)))
-    a = re.search(r'export const LETTER_A = "([^"]+)"', block).group(1)
-    col = json.loads(re.search(r"export const MARK_COLORS = (\{.*?\});", block, re.S).group(1))
-    return {"trishul": tri, "a": a, "colors": col}
+    block = src[src.index("MARK2-START"):src.index("MARK2-END")]
+    return json.loads(block[block.index("{"):block.rindex("}") + 1])
 
 
-D = shapes()["colors"]["disc"]          # the page behind the mark in every icon: the emblem's own near-black
+D = mark2()["icon_bg"]                  # the page behind the mark in every icon: the emblem's own near-black
 
 
-def svg(pad: float) -> str:
-    """The mark in a 100 x 100 box, shrunk by `pad` around the centre (maskable icons need a safe margin)."""
-    s = shapes()
-    c = s["colors"]
-    k = 1 - pad
-    tri = "".join(f'<path d="{d}"/>' for d in s["trishul"])
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024"><rect width="100" height="100" fill="{c["disc"]}"/>
-<defs><linearGradient id="st" gradientUnits="userSpaceOnUse" x1="0" y1="4" x2="0" y2="94"><stop offset="0" stop-color="{c["steelTop"]}"/><stop offset="0.5" stop-color="{c["steelMid"]}"/><stop offset="1" stop-color="{c["steelBottom"]}"/></linearGradient></defs>
-<g transform="translate(50 50) scale({k}) translate(-50 -50)">
-<circle cx="50" cy="50" r="48" fill="{c["disc"]}"/><circle cx="50" cy="50" r="46.6" fill="none" stroke="{c["ring"]}" stroke-width="4.4"/>
-<circle cx="50" cy="50" r="42.6" fill="none" stroke="{c["gold"]}" stroke-width="1.1" opacity="0.6"/>
-<g fill="url(#st)">{tri}</g>
-<path fill-rule="evenodd" d="{s["a"]}" fill="{c["gold"]}" stroke="{c["disc"]}" stroke-width="2.4" stroke-linejoin="round"/>
-</g></svg>'''
+def mark_svg(full: bool) -> str:
+    """The mark's inner drawing in a 100 x 100 box (the same as AnantaMark in src/logo.tsx)."""
+    m = mark2()
+    c = m["full" if full else "small"]
+    fac = "".join(f'<path d="{m["facets"][k]}" fill="{c[k]}"/>' for k in ("lo", "li", "ri", "ro", "bt", "bb"))
+    eng = ""
+    if full:
+        blades = "".join(f'<path d="{d}"/>' for d in m["blades"])
+        eng = (f'<clipPath id="h"><path clip-rule="evenodd" d="{m["hull"]}"/></clipPath><g clip-path="url(#h)"><g transform="{m["engraving_transform"]}" '
+               f'fill="{m["engraving"]["fill"]}" stroke="{m["engraving"]["stroke"]}" stroke-width="0.45" stroke-linejoin="round">{blades}</g></g>')
+    return (f'<defs><radialGradient id="d" cx="50" cy="42" r="52" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="{m["disc"][0]}"/><stop offset="1" stop-color="{m["disc"][1]}"/></radialGradient>'
+            f'<linearGradient id="s" gradientUnits="userSpaceOnUse" x1="20" y1="4" x2="80" y2="96"><stop offset="0" stop-color="{m["steel"][0]}"/><stop offset="0.45" stop-color="{m["steel"][1]}"/><stop offset="1" stop-color="{m["steel"][2]}"/></linearGradient>'
+            f'<linearGradient id="b" gradientUnits="userSpaceOnUse" x1="20" y1="8" x2="80" y2="92"><stop offset="0" stop-color="{m["bronze"][0]}"/><stop offset="0.5" stop-color="{m["bronze"][1]}"/><stop offset="1" stop-color="{m["bronze"][2]}"/></linearGradient></defs>'
+            f'<circle cx="50" cy="50" r="48" fill="url(#d)"/><circle cx="50" cy="50" r="46.4" fill="none" stroke="url(#s)" stroke-width="{3 if full else 3.6}"/>'
+            f'<circle cx="50" cy="50" r="43.2" fill="none" stroke="url(#b)" stroke-width="{1.1 if full else 1.6}"/>{eng}'
+            f'<g transform="{m["a_transform"]}">{fac}<path d="M50 12 L16 86" stroke="{c["edge"]}" stroke-width="0.875" stroke-linecap="round" fill="none" opacity="0.85"/>'
+            f'<path d="M50 27.2 L76.8 86" stroke="{c["edge"]}" stroke-width="0.5" fill="none" opacity="0.35"/></g>')
+
+
+def svg(pad: float, full: bool = False) -> str:
+    """The mark on its own near-black square, shrunk by `pad` around the centre (maskable icons need a safe margin). Icon A: the small mark."""
+    k = (1 - pad) * (1 if full else mark2()["icon_scale"] if pad == 0.1 else 1)
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024"><rect width="100" height="100" fill="{D}"/>'
+            f'<g transform="translate(50 50) scale({k:.4f}) translate(-50 -50)">{mark_svg(full)}</g></svg>')
 
 
 def _render_mac(svg_text: str, n: int, png: Path) -> None:
@@ -69,10 +74,11 @@ if __name__ == "__main__":
     (ROOT / "assets").mkdir(exist_ok=True)
     jobs += [(ROOT / "assets" / "icon.png", 1024, 0.1), (ROOT / "assets" / "splash-icon.png", 1024, 0.0)]
     for png, n, pad in jobs:
+        text = svg(pad, full=png.name == "splash-icon.png")       # 10 Nov: the splash shows the full mark, every icon the small one (Icon A)
         if platform.system() == "Darwin":
-            _render_mac(svg(pad), n, png)
+            _render_mac(text, n, png)
         else:
-            _render_chromium(svg(pad), n, png, out)
+            _render_chromium(text, n, png, out)
         if png.name == "icon.png" and platform.system() == "Darwin":      # the App Store refuses an icon with an alpha channel
             jpg = png.with_suffix(".jpg")
             subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "best", str(png), "--out", str(jpg)], check=True, capture_output=True)

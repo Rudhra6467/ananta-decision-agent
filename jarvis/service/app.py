@@ -1581,6 +1581,24 @@ def surface(name: str, who: str = Depends(owner)) -> dict:
     return getattr(surfaces, name)(_main())
 
 
+@app.get("/v3/place/{name:path}")
+def place(name: str, m: str = "crypto", who: str = Depends(owner)) -> dict:
+    """The redesign's places for crypto (Madhav, 10 Nov 2026): home, markets, activity, more and the pages under them, each a short list of
+    parts drawn by the app (jarvis/service/places.py). needs, notices and openlist answer for either market (?m=india): the open list lives
+    here. Read-only."""
+    from jarvis.service import places
+
+    market = "india" if m == "india" else "crypto"
+    if is_guest(who) and name not in ("people", "more", "needs", "notices", "openlist", "why", "proof") and not name.startswith("coin:"):
+        return {"ready": False, "kind": "place", "name": name, "words": "This page shows Madhav's account. A guest's own book is on the practice screens."}
+    if is_guest(who) and name in ("needs", "notices", "openlist"):
+        return {"ready": True, "market": market, "count": 0, "rows": [], "kind": "page", "title": "Notices", "parts": [{"t": "line", "text": "Nothing needs you here: only Madhav decides."}]}
+    try:
+        return places.get(_main(), name, is_owner=not is_guest(who), market=market)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=f"No such place: {name}") from e
+
+
 @app.get("/v3/surface/chart/{name}")
 def surface_chart(name: str, who: str = Depends(owner)) -> dict:
     """The new look's charts for crypto (Madhav, 10 Nov 2026): BTC, ETH and SOL (daily closes with the dial's two averages) and PORTFOLIO

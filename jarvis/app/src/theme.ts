@@ -16,7 +16,9 @@ const LIGHT = {
   ok: "#2952CC", ema20: "#2952CC", ema50: "#98A2B3", level: "#5B7083", level2: "#8A6D3B",
   shades: ["#2952CC", "#4A6FD6", "#6B8BDF", "#8CA6E8", "#ADC1F0", "#C6D4F5", "#D7E1F8", "#E3EAFA", "#EDF2FC", "#F3F6FD"],
   // the redesign's tokens (31 Oct, the Ananta design system): gold is Ananta's own colour in both themes, the twin's blue, the orb's glow
-  gold: "#7A5E0F", goldSoft: "#FBF3D6", onGold: "#FFFFFF", twin: "#4A6FD6", glow: "#7A5E0F22",
+  // 10 Nov 2026 (the redesign): bronze replaces the soft gold as Ananta's one colour (the mark, the one action, the bell's count)
+  gold: "#8A5A2B", goldSoft: "#F5ECE2", onGold: "#FFFFFF", twin: "#4A6FD6", glow: "#8A5A2B22",
+  bronzeTint: "#F5ECE2", blueTint: "#E8EEFC", blue: "#2952CC", violetTint: "#F0EBFB", violet: "#6B4FC4", line2: "#D5DAE1", overlay: "#10182866",
   bar: "dark" as "dark" | "light",
 };
 export type Palette = typeof LIGHT;
@@ -31,7 +33,8 @@ const BAT: Palette = {
   ink: "#ECEAE6", onInk: "#141518", inkDim: "#4B4F57", inkBtn: "#CBC8C2",
   ok: "#F2CF66", ema20: "#F2CF66", ema50: "#7E828A", level: "#8C96A3", level2: "#B59A62",
   shades: ["#F2CF66", "#D9BA5E", "#BFA457", "#A68F4F", "#8C7A47", "#73653F", "#5E5437", "#4A4430", "#3A3628", "#2E2B22"],
-  gold: "#F2CF66", goldSoft: "#3A331C", onGold: "#141518", twin: "#8CA6E8", glow: "#F2CF6633",
+  gold: "#C2925F", goldSoft: "#2E251B", onGold: "#141518", twin: "#8CA6E8", glow: "#C2925F33",
+  bronzeTint: "#2E251B", blueTint: "#1F2636", blue: "#8CA6E8", violetTint: "#2A2438", violet: "#B7A0EA", line2: "#2B2E33", overlay: "#000000A6",
   bar: "light",
 };
 

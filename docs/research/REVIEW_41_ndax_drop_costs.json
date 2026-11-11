@@ -1,0 +1,343 @@
+{
+ "what": "NDAX top-of-book spread (ask-bid)/mid at the first minute of each fall of 2% or more in 15 minutes, one per coin per hour",
+ "from": "worker Mac minute quotes, ~/ananta_worker_data/l1_*.sqlite, 2026-10-11 to 2026-11-10 (costs only; nothing after a drop was read)",
+ "fee_each_side": 0.002,
+ "default_spread_if_under_5_drops": 0.025,
+ "coins": {
+  "A": {
+   "drops": 276,
+   "spread_at_drop_median": 0.07739,
+   "spread_median": 0.09725
+  },
+  "AAVE": {
+   "drops": 12,
+   "spread_at_drop_median": 0.01061,
+   "spread_median": 0.00879
+  },
+  "ADA": {
+   "drops": 13,
+   "spread_at_drop_median": 0.00586,
+   "spread_median": 0.00543
+  },
+  "ALGO": {
+   "drops": 14,
+   "spread_at_drop_median": 0.01182,
+   "spread_median": 0.01022
+  },
+  "APT": {
+   "drops": 67,
+   "spread_at_drop_median": 0.02469,
+   "spread_median": 0.025
+  },
+  "ARB": {
+   "drops": 26,
+   "spread_at_drop_median": 0.01087,
+   "spread_median": 0.00915
+  },
+  "ASTER": {
+   "drops": 21,
+   "spread_at_drop_median": 0.01403,
+   "spread_median": 0.01205
+  },
+  "ATOM": {
+   "drops": 14,
+   "spread_at_drop_median": 0.01196,
+   "spread_median": 0.01138
+  },
+  "AVAX": {
+   "drops": 15,
+   "spread_at_drop_median": 0.0087,
+   "spread_median": 0.00766
+  },
+  "AVNT": {
+   "drops": 30,
+   "spread_at_drop_median": 0.01703,
+   "spread_median": 0.01683
+  },
+  "AXS": {
+   "drops": 20,
+   "spread_at_drop_median": 0.0138,
+   "spread_median": 0.01361
+  },
+  "BERA": {
+   "drops": 38,
+   "spread_at_drop_median": 0.01297,
+   "spread_median": 0.01242
+  },
+  "BONK": {
+   "drops": 18,
+   "spread_at_drop_median": 0.01336,
+   "spread_median": 0.01192
+  },
+  "BTC": {
+   "drops": 1,
+   "spread_at_drop_median": 0.00176,
+   "spread_median": 0.00432
+  },
+  "CC": {
+   "drops": 26,
+   "spread_at_drop_median": 0.03055,
+   "spread_median": 0.02194
+  },
+  "CELO": {
+   "drops": 88,
+   "spread_at_drop_median": 0.0548,
+   "spread_median": 0.04367
+  },
+  "COMP": {
+   "drops": 15,
+   "spread_at_drop_median": 0.01336,
+   "spread_median": 0.01167
+  },
+  "CRV": {
+   "drops": 23,
+   "spread_at_drop_median": 0.01193,
+   "spread_median": 0.01105
+  },
+  "DOGE": {
+   "drops": 9,
+   "spread_at_drop_median": 0.00556,
+   "spread_median": 0.00609
+  },
+  "DOT": {
+   "drops": 19,
+   "spread_at_drop_median": 0.01634,
+   "spread_median": 0.01409
+  },
+  "ENA": {
+   "drops": 37,
+   "spread_at_drop_median": 0.0138,
+   "spread_median": 0.01086
+  },
+  "ETH": {
+   "drops": 5,
+   "spread_at_drop_median": 0.00447,
+   "spread_median": 0.00435
+  },
+  "FARTCOIN": {
+   "drops": 35,
+   "spread_at_drop_median": 0.01217,
+   "spread_median": 0.01086
+  },
+  "FET": {
+   "drops": 23,
+   "spread_at_drop_median": 0.01296,
+   "spread_median": 0.01143
+  },
+  "FIL": {
+   "drops": 25,
+   "spread_at_drop_median": 0.01191,
+   "spread_median": 0.01101
+  },
+  "GALA": {
+   "drops": 242,
+   "spread_at_drop_median": 0.05761,
+   "spread_median": 0.07035
+  },
+  "GRAM": {
+   "drops": 59,
+   "spread_at_drop_median": 0.03011,
+   "spread_median": 0.0286
+  },
+  "GRT": {
+   "drops": 21,
+   "spread_at_drop_median": 0.0118,
+   "spread_median": 0.01173
+  },
+  "HBAR": {
+   "drops": 11,
+   "spread_at_drop_median": 0.00747,
+   "spread_median": 0.00648
+  },
+  "HYPE": {
+   "drops": 10,
+   "spread_at_drop_median": 0.00976,
+   "spread_median": 0.00885
+  },
+  "ICP": {
+   "drops": 20,
+   "spread_at_drop_median": 0.01122,
+   "spread_median": 0.01036
+  },
+  "INJ": {
+   "drops": 29,
+   "spread_at_drop_median": 0.01042,
+   "spread_median": 0.00983
+  },
+  "IO": {
+   "drops": 58,
+   "spread_at_drop_median": 0.01216,
+   "spread_median": 0.0117
+  },
+  "JASMY": {
+   "drops": 46,
+   "spread_at_drop_median": 0.01371,
+   "spread_median": 0.01353
+  },
+  "LINK": {
+   "drops": 9,
+   "spread_at_drop_median": 0.00713,
+   "spread_median": 0.00675
+  },
+  "LTC": {
+   "drops": 6,
+   "spread_at_drop_median": 0.00891,
+   "spread_median": 0.00734
+  },
+  "MANA": {
+   "drops": 14,
+   "spread_at_drop_median": 0.01327,
+   "spread_median": 0.01209
+  },
+  "MOODENG": {
+   "drops": 25,
+   "spread_at_drop_median": 0.01368,
+   "spread_median": 0.01276
+  },
+  "MORPHO": {
+   "drops": 40,
+   "spread_at_drop_median": 0.04128,
+   "spread_median": 0.04057
+  },
+  "NEAR": {
+   "drops": 32,
+   "spread_at_drop_median": 0.01016,
+   "spread_median": 0.00893
+  },
+  "ONDO": {
+   "drops": 18,
+   "spread_at_drop_median": 0.01079,
+   "spread_median": 0.00946
+  },
+  "OP": {
+   "drops": 27,
+   "spread_at_drop_median": 0.01379,
+   "spread_median": 0.01258
+  },
+  "PENGU": {
+   "drops": 24,
+   "spread_at_drop_median": 0.02679,
+   "spread_median": 0.02024
+  },
+  "PEPE": {
+   "drops": 34,
+   "spread_at_drop_median": 0.01015,
+   "spread_median": 0.00861
+  },
+  "PNUT": {
+   "drops": 49,
+   "spread_at_drop_median": 0.01268,
+   "spread_median": 0.01172
+  },
+  "POL": {
+   "drops": 15,
+   "spread_at_drop_median": 0.01832,
+   "spread_median": 0.01223
+  },
+  "PYTH": {
+   "drops": 54,
+   "spread_at_drop_median": 0.02476,
+   "spread_median": 0.02148
+  },
+  "QNT": {
+   "drops": 31,
+   "spread_at_drop_median": 0.02628,
+   "spread_median": 0.02336
+  },
+  "RENDER": {
+   "drops": 30,
+   "spread_at_drop_median": 0.01123,
+   "spread_median": 0.01036
+  },
+  "S": {
+   "drops": 55,
+   "spread_at_drop_median": 0.02381,
+   "spread_median": 0.02335
+  },
+  "SAND": {
+   "drops": 251,
+   "spread_at_drop_median": 0.37247,
+   "spread_median": 0.29764
+  },
+  "SEI": {
+   "drops": 25,
+   "spread_at_drop_median": 0.0091,
+   "spread_median": 0.00816
+  },
+  "SHIB": {
+   "drops": 8,
+   "spread_at_drop_median": 0.01204,
+   "spread_median": 0.00972
+  },
+  "SOL": {
+   "drops": 8,
+   "spread_at_drop_median": 0.0055,
+   "spread_median": 0.00558
+  },
+  "STX": {
+   "drops": 55,
+   "spread_at_drop_median": 0.01239,
+   "spread_median": 0.01143
+  },
+  "SUI": {
+   "drops": 14,
+   "spread_at_drop_median": 0.00891,
+   "spread_median": 0.00802
+  },
+  "TAO": {
+   "drops": 50,
+   "spread_at_drop_median": 0.01245,
+   "spread_median": 0.012
+  },
+  "TIA": {
+   "drops": 81,
+   "spread_at_drop_median": 0.01544,
+   "spread_median": 0.01128
+  },
+  "TLM": {
+   "drops": 191,
+   "spread_at_drop_median": 0.34409,
+   "spread_median": 0.13659
+  },
+  "UNI": {
+   "drops": 19,
+   "spread_at_drop_median": 0.00903,
+   "spread_median": 0.008
+  },
+  "VET": {
+   "drops": 40,
+   "spread_at_drop_median": 0.01245,
+   "spread_median": 0.01185
+  },
+  "VIRTUAL": {
+   "drops": 29,
+   "spread_at_drop_median": 0.0916,
+   "spread_median": 0.08483
+  },
+  "WIF": {
+   "drops": 20,
+   "spread_at_drop_median": 0.01122,
+   "spread_median": 0.01101
+  },
+  "XDC": {
+   "drops": 11,
+   "spread_at_drop_median": 0.01002,
+   "spread_median": 0.00981
+  },
+  "XLM": {
+   "drops": 6,
+   "spread_at_drop_median": 0.00654,
+   "spread_median": 0.0063
+  },
+  "XPL": {
+   "drops": 35,
+   "spread_at_drop_median": 0.01487,
+   "spread_median": 0.01476
+  },
+  "XRP": {
+   "drops": 5,
+   "spread_at_drop_median": 0.00462,
+   "spread_median": 0.005
+  }
+ }
+}

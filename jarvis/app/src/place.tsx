@@ -9,23 +9,24 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, PanResponder, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, G, Path, Rect } from "react-native-svg";
+import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
 import { C, NUM, setTheme, themeName } from "./theme";
 import { AnantaMark } from "./logo";
 import { goTab } from "./context";
 import { useMarket } from "./market";
 import { useData } from "./useData";
+import { soft, tap } from "./haptics";
 
 // ---------------------------------------------------------------------------------------------------- where a tap goes
-export type To = { tab?: string; place?: string; page?: any; sheet?: any; ask?: string; route?: string; action?: string; as?: string } | null | undefined;
+export type To = { tab?: string; place?: string; page?: any; sheet?: any; ask?: string; route?: string; action?: string; as?: string; peek?: any } | null | undefined;
 const PAGES = new Map<string, any>();
 let nextId = 1;
 export const pageOf = (id: string) => PAGES.get(id);
 
 export function go(to: To) {
   if (!to) return;
-  if (to.place && to.as === "sheet") { openSheet({ place: to.place }); return; }     // a place drawn in a tall sheet over this screen
+  if (to.place && to.as === "sheet") { openSheet({ place: to.place, peek: to.peek }); return; }   // a place drawn in a tall sheet over this screen
   if (to.tab || to.place || to.page) closeSheet();                                  // leaving for a tab or a page closes an open sheet
   if (to.tab) { goTab(`/new/${to.tab}`); return; }
   if (to.place) { router.push({ pathname: "/page", params: { place: to.place } } as any); return; }
@@ -149,12 +150,12 @@ const SIGNED_USD = /([+−-])\s?\$\d[\d,]*(?:\.\d+)?/g;
 export const maskMoney = (v: any) => (typeof v === "string" ? v.replace(MONEY, "$1$2••••").replace(SIGNED_USD, "$1$$••••") : v);
 const same = (v: any) => v;
 export function useMask() { const [h] = useHidden(); return h ? maskMoney : same; }
-export function HideButton() {
+export function HideButton({ round }: { round?: boolean } = {}) {
   const [h, toggle] = useHidden();
   return (
     <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel={h ? "Show the amounts" : "Hide the amounts"} accessibilityState={{ selected: h }}
-      style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-      <Icon name={h ? "eyeoff" : "eye"} size={24} color={C.text} />
+      hitSlop={round ? 6 : undefined} style={round ? ROUND() : { width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+      <Icon name={h ? "eyeoff" : "eye"} size={round ? 19 : 24} color={C.text} />
     </Pressable>
   );
 }
@@ -761,7 +762,7 @@ export function SheetHost() {
   useEffect(() => { const f = () => bump((n) => n + 1); sheetSubs.add(f); return () => { sheetSubs.delete(f); }; }, []);
   if (!sheet) return null;
   const s = sheet;
-  if (s.place) return <PlaceSheet key={s.place} name={s.place} />;
+  if (s.place) return <PlaceSheet key={s.place} name={s.place} peek={s.peek} />;
   return (
     <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
       <Pressable onPress={closeSheet} accessibilityLabel="Close" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: C.overlay }} />
@@ -790,67 +791,138 @@ export function SheetHost() {
   );
 }
 
-// Madhav, 10 Nov 22:12: a number on Home opens in a sheet over Home, "up to 75-80% of screen ... easy to close or swipe down to continue
-// using in the same screen". It draws the same place as its page (/v3/place/<name>). It closes with a swipe down on its top (the handle
-// row), a pull down past the top of its content (iPhone), a tap on the dimmed Home above it, or the X; Ask and the portfolio close it too.
+// Madhav, 10 Nov 22:12: a number on Home opens in a sheet over the screen, "up to 75-80% of screen ... easy to close or swipe down to
+// continue using in the same screen"; 22:23: Markets' boxes too, and "make sure the design of those sheets looks premium and feel premium".
+// The screen behind steps back (as the iPhone's own sheets do) while the sheet springs up. It follows the finger, gives a little at the top,
+// ticks as it passes the point where letting go closes it, and closes on a swipe or a fling down, a pull down past the top of its page
+// (iPhone), a tap on the dimmed screen, the X, or Escape on the web. The box's number shows at once while the page loads; a page seen
+// before opens from memory. It draws the same place as its page (/v3/place/<name>); Ask, a tab or "Show the portfolio" close it.
 const NATIVE = Platform.OS !== "web";
-function PlaceSheet({ name }: { name: string }) {
+const SHEET_Y = new Animated.Value(1);                 // 0: the sheet is up; 1: it is gone. The sheet, the dim and the screen behind follow it.
+const SHEET_CACHE = new Map<string, any>();
+const LIFT = 48;                                       // the sheet runs on below the screen, so a spring's overshoot never shows a gap
+const ROUND = () => ({ width: 36, height: 36, borderRadius: 18, alignItems: "center" as const, justifyContent: "center" as const, backgroundColor: C.card2 });
+const OPEN = { stiffness: 240, damping: 26, mass: 1 };
+const BACK = { stiffness: 280, damping: 26, mass: 1 };
+
+// The screen behind a tall sheet: it steps back a little, with rounded corners, on black.
+export function SheetStage({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => { const f = () => setOpen(!!(sheet && sheet.place)); sheetSubs.add(f); return () => { sheetSubs.delete(f); }; }, []);
+  const scale = SHEET_Y.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1], extrapolate: "clamp" });
+  return (
+    <View style={{ flex: 1, backgroundColor: open ? "#000" : C.bg }}>
+      <Animated.View style={[{ flex: 1, backgroundColor: C.bg, transform: [{ scale }] }, open ? { borderRadius: 22, overflow: "hidden" } : null]}>{children}</Animated.View>
+    </View>
+  );
+}
+
+function Shimmer({ h }: { h: number }) {
+  const o = useRef(new Animated.Value(0.45)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([Animated.timing(o, { toValue: 0.8, duration: 700, useNativeDriver: NATIVE }),
+                                                  Animated.timing(o, { toValue: 0.45, duration: 700, useNativeDriver: NATIVE })]));
+    loop.start();
+    return () => loop.stop();
+  }, []);
+  return <Animated.View style={[card(), { height: h, opacity: o }]} />;
+}
+
+function Fade() {
+  return (
+    <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: -28, height: 28 }}>
+      <Svg width="100%" height={28}>
+        <Defs><LinearGradient id="sheetFade" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={C.bg} stopOpacity={0} /><Stop offset="1" stopColor={C.bg} stopOpacity={1} /></LinearGradient></Defs>
+        <Rect x="0" y="0" width="100%" height={28} fill="url(#sheetFade)" />
+      </Svg>
+    </View>
+  );
+}
+
+function PlaceSheet({ name, peek }: { name: string; peek?: any }) {
   const { height } = useWindowDimensions();
   const ins = useSafeAreaInsets();
   const H = Math.round(Math.min(height * 0.78, height - ins.top - 8));
+  const mk = useMarket();
+  const key = `${mk}:${name}`;
   const got = usePlace(name);
   const needs = useNeeds();
-  const data = got.data;
-  const y = useRef(new Animated.Value(H)).current;
-  const fade = useRef(new Animated.Value(0)).current;
+  if (got.data) SHEET_CACHE.set(key, got.data);
+  const data = got.data ?? SHEET_CACHE.get(key);
+  const shown = useRef(new Animated.Value(data ? 1 : 0)).current;
   const leaving = useRef(false);
-  useEffect(() => {
-    Animated.parallel([Animated.timing(y, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: NATIVE }),
-                       Animated.timing(fade, { toValue: 1, duration: 260, useNativeDriver: NATIVE })]).start();
-  }, []);
-  const dismiss = () => {
+  const past = useRef(false);
+  const dismiss = (v = 0) => {
     if (leaving.current) return;
     leaving.current = true;
-    Animated.parallel([Animated.timing(y, { toValue: H, duration: 200, easing: Easing.in(Easing.cubic), useNativeDriver: NATIVE }),
-                       Animated.timing(fade, { toValue: 0, duration: 200, useNativeDriver: NATIVE })]).start(() => closeSheet());
+    Animated.spring(SHEET_Y, { toValue: 1, velocity: v, stiffness: 320, damping: 34, mass: 1, overshootClamping: true, restDisplacementThreshold: 0.01,
+                               restSpeedThreshold: 0.05, useNativeDriver: NATIVE }).start(() => closeSheet());
   };
   const keep = useKeepRef({ dismiss, H });
+  useEffect(() => {
+    SHEET_Y.setValue(1);
+    tap();
+    Animated.spring(SHEET_Y, { toValue: 0, ...OPEN, useNativeDriver: NATIVE }).start();
+    const esc = (e: any) => { if (e.key === "Escape") keep.current.dismiss(0); };
+    const web = !NATIVE && typeof window !== "undefined";
+    if (web) window.addEventListener("keydown", esc);
+    return () => { if (web) window.removeEventListener("keydown", esc); SHEET_Y.stopAnimation(); SHEET_Y.setValue(1); };
+  }, []);
+  useEffect(() => { if (got.data) Animated.timing(shown, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: NATIVE }).start(); }, [!!got.data]);
   const pan = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_e, g) => g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
-    onPanResponderMove: (_e, g) => y.setValue(Math.max(0, g.dy)),
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 3 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderGrant: () => { SHEET_Y.stopAnimation(); past.current = false; },
+    onPanResponderMove: (_e, g) => {
+      const h = keep.current.H;
+      SHEET_Y.setValue((g.dy >= 0 ? g.dy : -Math.min(LIFT - 12, Math.sqrt(-g.dy) * 4)) / h);   // up: a little give, then no more
+      const over = g.dy > h * 0.22;
+      if (over !== past.current) { past.current = over; soft(); }                            // a tick at the point where letting go closes it
+    },
     onPanResponderRelease: (_e, g) => {
-      if (g.dy > keep.current.H * 0.18 || g.vy > 0.8) keep.current.dismiss();
-      else Animated.spring(y, { toValue: 0, bounciness: 4, useNativeDriver: NATIVE }).start();
+      const h = keep.current.H;
+      if (g.dy > h * 0.22 || g.vy > 0.75) keep.current.dismiss((g.vy * 1000) / h);
+      else Animated.spring(SHEET_Y, { toValue: 0, velocity: (g.vy * 1000) / h, ...BACK, useNativeDriver: NATIVE }).start();
     },
     onPanResponderTerminationRequest: () => false,
-    onPanResponderTerminate: () => Animated.spring(y, { toValue: 0, bounciness: 4, useNativeDriver: NATIVE }).start(),
+    onPanResponderTerminate: () => Animated.spring(SHEET_Y, { toValue: 0, ...BACK, useNativeDriver: NATIVE }).start(),
   })).current;
+  const dim = SHEET_Y.interpolate({ inputRange: [0, 1], outputRange: [1, 0], extrapolate: "clamp" });
+  const y = SHEET_Y.interpolate({ inputRange: [0, 1], outputRange: [0, H + LIFT] });
   return (
     <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
-      <Animated.View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, opacity: fade }}>
-        <Pressable onPress={dismiss} accessibilityLabel="Close" style={{ flex: 1, backgroundColor: C.overlay }} />
+      <Animated.View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, opacity: dim }}>
+        <Pressable onPress={() => dismiss(0)} accessibilityLabel="Close" style={{ flex: 1, backgroundColor: C.overlay }} />
       </Animated.View>
-      <Animated.View accessibilityViewIsModal style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: H, transform: [{ translateY: y }],
-        borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: C.bg, borderTopWidth: 1, borderColor: C.line, overflow: "hidden",
-        maxWidth: 720, alignSelf: "center", width: "100%" }}>
-        <View {...pan.panHandlers} style={[{ flexDirection: "row", alignItems: "center", height: 52, paddingHorizontal: 8 },
-          NATIVE ? null : ({ userSelect: "none", cursor: "grab", touchAction: "none" } as any)]}>
-          <View style={{ width: 88 }} />
-          <View style={{ flex: 1, alignItems: "center" }}><View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: C.faint }} /></View>
-          <HideButton />
-          <Pressable onPress={dismiss} accessibilityRole="button" accessibilityLabel="Close" style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-            <Icon name="close" size={22} color={C.text} />
-          </Pressable>
+      <Animated.View style={{ position: "absolute", left: 0, right: 0, bottom: -LIFT, height: H + LIFT, transform: [{ translateY: y }], maxWidth: 720, marginHorizontal: "auto",
+        width: "100%", borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: C.bg, shadowColor: "#000", shadowOpacity: 0.45, shadowRadius: 28, shadowOffset: { width: 0, height: -6 }, elevation: 24 }}>
+        <View accessibilityViewIsModal style={{ flex: 1, paddingBottom: LIFT, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: "hidden", backgroundColor: C.bg,
+          borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.line }}>
+          <View {...pan.panHandlers} style={[{ height: 58, paddingTop: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 10 },
+            NATIVE ? null : ({ userSelect: "none", cursor: "grab", touchAction: "none" } as any)]}>
+            <View pointerEvents="none" style={{ position: "absolute", top: 8, left: 0, right: 0, alignItems: "center" }}>
+              <View style={{ width: 36, height: 5, borderRadius: 3, backgroundColor: C.faint, opacity: 0.7 }} />
+            </View>
+            <HideButton round />
+            <Pressable onPress={() => dismiss(0)} accessibilityRole="button" accessibilityLabel="Close" hitSlop={6} style={ROUND()}>
+              <Icon name="close" size={17} color={C.text} stroke={2} />
+            </Pressable>
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 2, paddingBottom: 28, gap: 16 }} showsVerticalScrollIndicator={false}
+            scrollEventThrottle={16} onScrollEndDrag={(e) => { if (e.nativeEvent.contentOffset.y < -64) dismiss(0); }}>
+            {data && data.ready !== false ? (
+              <Animated.View style={{ gap: 16, opacity: shown }}><Parts data={data} needs={needs.data} /></Animated.View>
+            ) : data && data.ready === false ? (
+              <Text style={{ color: C.text, fontSize: 15, lineHeight: 22 }}>{data.words}</Text>
+            ) : (
+              <View style={{ gap: 16 }}>
+                {peek ? <Hero p={peek} /> : null}
+                {got.err ? <Text style={{ color: C.dim, fontSize: 15, lineHeight: 22 }}>{got.err}</Text> : <><Shimmer h={300} /><Shimmer h={120} /></>}
+              </View>
+            )}
+          </ScrollView>
+          <View style={{ paddingBottom: Math.max(ins.bottom, 8) }}><Fade /><Pinned p={data?.pinned} /></View>
         </View>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 16, gap: 16 }}
-          scrollEventThrottle={16} onScrollEndDrag={(e) => { if (e.nativeEvent.contentOffset.y < -64) dismiss(); }}>
-          {got.err && !data ? <Text style={{ color: C.text, fontSize: 15, lineHeight: 22 }}>{got.err}</Text> : null}
-          {data && data.ready === false ? <Text style={{ color: C.text, fontSize: 15, lineHeight: 22 }}>{data.words}</Text> : null}
-          {data && data.ready !== false ? <Parts data={data} needs={needs.data} /> : null}
-          {!data && !got.err ? <Text style={{ color: C.dim, fontSize: 15 }}>Loading…</Text> : null}
-        </ScrollView>
-        <View style={{ paddingBottom: Math.max(ins.bottom, 8) }}><Pinned p={data?.pinned} /></View>
       </Animated.View>
     </View>
   );
@@ -891,8 +963,9 @@ function Search({ s }: { s: any }) {
 }
 
 // ---------------------------------------------------------------------------------------------------- the parts, in order
-const sheetTo = (to: any) => (to && to.place ? { ...to, as: "sheet" } : to);
-const inSheet = (b: any) => ({ ...b, to: sheetTo(b.to), pages: b.pages ? b.pages.map((x: any) => ({ ...x, to: sheetTo(x.to) })) : b.pages });
+const SHEET_PLACES = ["home", "markets"];
+const sheetTo = (to: any, b: any) => (to && to.place ? { ...to, as: "sheet", peek: { label: b.label, value: b.value, change: b.change, tone: b.tone, since: b.since } } : to);
+const inSheet = (b: any) => ({ ...b, to: sheetTo(b.to, b), pages: b.pages ? b.pages.map((x: any) => ({ ...x, to: sheetTo(x.to, x) })) : b.pages });
 export function Parts({ data, needs }: { data: any; needs?: any }) {
   const parts: any[] = data?.parts || [];
   const chipPart = parts.find((p) => p.t === "chips");
@@ -912,11 +985,11 @@ export function Parts({ data, needs }: { data: any; needs?: any }) {
       case "hero": out.push(<Hero key={k} p={p} />); break;
       case "today": out.push(<TodayCard key={k} p={p} />); break;
       case "boxes": {
-        const overHome = data?.name === "home";          // Madhav, 10 Nov 22:12: Home's two boxes open each number in a tall sheet over Home
+        const overHome = SHEET_PLACES.includes(data?.name);   // Madhav, 10 Nov 22:12: Home's two boxes open each number in a tall sheet over Home
         out.push(<View key={k} style={{ flexDirection: "row", gap: 12 }}>{(p.items || []).map((b: any, j: number) => <Box key={j} b={overHome ? inSheet(b) : b} tall={(p.items || []).some((x: any) => x.pages && x.pages.length > 1)} />)}</View>);
         break;
       }
-      case "peek": out.push(<Peek key={k} p={p} />); break;
+      case "peek": out.push(<Peek key={k} p={SHEET_PLACES.includes(data?.name) ? { ...p, items: (p.items || []).map(inSheet) } : p} />); break;   // 22:23: Markets' boxes too
       case "rows": {
         const rows = chipPart && on !== first && !p.tags ? (p.rows || []).filter((r: any) => r.tag === on) : p.rows;
         out.push(<Section key={k} p={p} rows={rows} />);

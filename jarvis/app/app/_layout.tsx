@@ -10,7 +10,7 @@ import { getVoiceApi, goTab, tourCommand, useHere, useNarrating, useTour, useVoi
 import * as TTS from "../src/tts";
 import { C, deviceTheme, setTheme, useThemeVersion } from "../src/theme";
 import { ScreenError } from "../src/safe";
-import { SheetHost } from "../src/place";
+import { SheetHost, SheetStage } from "../src/place";
 
 // 28 Oct (flag 49): a drawing error anywhere shows "Reload conversation" instead of a blank screen (expo-router's route error boundary)
 export const ErrorBoundary = ScreenError;
@@ -41,7 +41,7 @@ export default function Root() {
   return (
     <View key={v} style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar style={C.bar} />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} />
+      <SheetStage><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }} /></SheetStage>
       <VoicePill />
       <TourBar />
       <Toast />

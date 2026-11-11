@@ -19,6 +19,7 @@ from pathlib import Path
 import requests
 
 from jarvis.india import answerguide, appmap, askwords, clarify, knowledgemap, lookup, marketcontext, mind, schedule, speaker, technicals, views, voiceid
+from jarvis.service import requests_log
 
 # "my mom asks ...", "she wants to know ...": Madhav relaying for the guest, so his voice does not end the handover
 RELAY = re.compile(r"\b(?:my (?:mom|mother|amma|dad|father|nanna|pinni)|she|he|they|the grader)\s+(?:asks?|is asking|wants to know|says|said)\b", re.I)
@@ -669,7 +670,8 @@ def _managed_book() -> dict:
                               f"{schedule.at('com.ananta.india.paper')}: the research book records the session's practice picks and the daily call, and the "
                               "reconstruction replays the day like a coach (what it held, missed, and what to look into)",
                               f"{schedule.at('com.ananta.india.morningview')}: the morning view with the plan, the levels to watch and the managed book's brief; "
-                              "09:15-09:45 IST: the options line decides one index lot",
+                              f"{askwords.POINTS['D0']}-{askwords.POINTS['D3']} IST: the options line decides at most one lot per index "
+                              f"(at {askwords.window_words()} IST)",
                               f"{schedule.at('com.ananta.india.replay')}: the nightly exam re-asks the day's questions",
                               "nothing is placed from chat at any step; all books are paper"],
             "plan_vs_cut_list": ("two different lists, say them apart: cut_list (REDUCE or TRIM on the holdings) is the evening's advice; the managed plan's cuts are "
@@ -2805,7 +2807,7 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
         _set_pending(thread, None)
         which = " and ".join(f"fix {k}" for k in picks)
         title = "; ".join(str((pend["options"][k - 1] or {}).get("title")) for k in picks)
-        name = j.get("label") or f"flag {pend['num'] - 81}"
+        name = j.get("label") or requests_log.label(pend["num"])
         if state in ("queued", "plan"):                 # the time it needs, said straight away (Madhav, 25 Oct), and the phone note when done
             a = f"Done, sir: {which} for {name} ({title}) {'is queued' if state == 'queued' else 'goes to a plan first'}. {j.get('eta_words') or ''}".strip()
         else:
@@ -2877,7 +2879,7 @@ def fix_flow(text: str, thread: str, token: str | None, context: dict | None, po
             return _reply(f"I could not file that, sir: {str(j.get('detail') or j)[:120]}", [], [])
         # 2 Nov 2026 (Madhav): "lets set it back to where just ananta notes it. and we here work on it. it can add a comment if i ask it to."
         # The flag is noted in his words, no fix menu and no repair worker; it is worked on with Claude outside the app
-        name = j.get("label") or f"flag {j['num'] - 81}"
+        name = j.get("label") or requests_log.label(j["num"])
         q = other_question(text)
         if q:                                        # 26 Oct: a question in the same message is answered after the note
             return {"_then": q, "_prefix": f"Noted as {name}, sir.", "_note": j}
@@ -2901,8 +2903,15 @@ def comment_flow(text: str, thread: str, token: str | None, post=None, get=None)
     get = get or (lambda url: requests.get(url, headers=H, timeout=30))
     words = (m.group("words") or "").strip().strip('"')
     num = None
-    if m.group("n"):
-        num = int(m.group("n")) + 81                 # he says the Flag number (as My flags shows it); the board keeps the request number
+    if m.group("n"):                                 # he says the flag number (as My flags shows it); the board keeps the stored number
+        want = int(m.group("n"))
+        try:                                         # 11 Nov 2026 (R-026): the board says which stored number has that flag number
+            r0 = get(f"{JARVIS_URL}/v3/flags")
+            j0 = r0.json() if hasattr(r0, "json") else r0
+            hit = [f for f in (j0.get("flags") or []) if f.get("no") == want]
+        except Exception:  # noqa: BLE001
+            hit = []
+        num = int(hit[0]["num"]) if hit else requests_log.num_of_flag(want)
     else:
         for x in reversed(thread_messages(thread)[-12:]):
             f = (x.get("flag") or {}) if isinstance(x.get("flag"), dict) else {}

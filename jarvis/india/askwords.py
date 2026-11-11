@@ -32,6 +32,12 @@ VERDICTS = {"VALIDATED": "held up", "CONDITIONAL": "held up, weaker in one perio
 VERBS = {"VALIDATED": "held up", "CONDITIONAL": "held up, but weaker in one period", "REJECTED": "did not hold",
          "OPPOSITE": "came out the opposite way", "INCONCLUSIVE": "had too little data to judge"}
 POINTS = {"D0": "09:15", "D1": "09:30", "D2": "09:45", "D3": "10:15"}
+
+
+def window_words() -> str:
+    """The options line's decision times in one phrase, from POINTS (11 Nov 2026, R-024: the window was said three ways)."""
+    t = list(POINTS.values())
+    return ", ".join(t[:-1]) + " and " + t[-1]
 EXITS = {"ATRSTOP": "a stop at the usual daily swing", "T1515": "the 15:15 exit", "NEXTOPEN": "the next morning's open", "EOD": "the close",
          # 28 Oct outside round 3: "exit ORSTOP" reached an answer
          "ORSTOP": "a stop at the other side of the first 15 minutes' range", "T1130": "the 11:30 exit", "TRAIL": "a trailing stop"}

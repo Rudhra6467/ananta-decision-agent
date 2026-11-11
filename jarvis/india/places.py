@@ -633,7 +633,8 @@ def index_page(slug: str, full: bool = True) -> dict:
         last, pct = c.get("last"), c.get("change_pct")
         hero = K.hero(name, f"{last:.2f}" if isinstance(last, (int, float)) and not c.get("fell_back") else (_vix_now(t) or "—"),
                       change=_pct(pct) if isinstance(pct, (int, float)) and not c.get("fell_back") else None,
-                      since="the swing traders expect over 30 days")
+                      since="on the day" if isinstance(pct, (int, float)) and not c.get("fell_back") else None)   # 11 Nov (board 190): it read
+                      # "-5.63% the swing traders expect over 30 days", the day's change beside what the gauge means
         pts = ["The fear gauge measures how much traders expect the Nifty to swing over the next 30 days, as a yearly percentage",
                "Higher means traders expect bigger swings; lower means calm",
                {"text": "Ananta reads it before the open: a high reading makes the options line more careful", "icon": "info"}]

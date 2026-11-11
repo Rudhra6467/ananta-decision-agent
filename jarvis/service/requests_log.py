@@ -41,6 +41,12 @@ def label(num) -> str:
     return f"flag {n - RESET_AFTER}" if n > RESET_AFTER else f"request {n}"
 
 
+def num_of_flag(no) -> int:
+    """The stored number of a flag number as My flags shows it ("flag 15" is request 96). 11 Nov 2026 (R-026): every reader uses this or
+    label(), so a change of numbering is made here once."""
+    return int(no) + RESET_AFTER
+
+
 def flag_no(num) -> int | None:
     try:
         n = int(num)

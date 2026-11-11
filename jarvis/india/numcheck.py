@@ -4,6 +4,10 @@ In the 3 Nov re-test Ananta said a Bank Nifty lot's premium was "about Rs 53,500
 own arithmetic. Fixing that one field did not fix the class, so every rupee amount and every number of 100 or more in an answer is looked
 for in the facts the answer was given (and the question). A figure counts as found when a fact number is within 2% of it, or when it is
 a round figure (to the nearest 10, 50, 100 or 1,000) of a fact number. Times (09:15), dates and years are not checked.
+11 Nov 2026 (R-042): "the index rose 624 points" passed, because a points figure was looked for among every number in the facts. A move
+said in points (10 or more) is now looked for only among the moves the facts hold: the differences between an index row's own levels (last,
+close, open, high, low, previous close), the numbers kept under a move-like key (expected_move_points, change, range) and the figures the
+facts write before "points"; within 1% or 2 points, or rounded to the nearest 10.
 
   check(answer, facts, question)  -> list of problem lines (empty when every figure is found)
   scrub(answer, figures)          -> the answer without the sentences that carry an unfound figure
@@ -39,6 +43,45 @@ def _wanted(answer: str) -> list[tuple[str, float]]:
             continue
         out.append((m.group(0).strip(), v))
     return out
+
+
+POINTS = re.compile(r"\s*(?:points?|pts)\b", re.I)
+POINTS_TXT = re.compile(r"(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?\s*(?:points?|pts)\b", re.I)
+LEVELS = ("last", "close", "open", "high", "low", "prev_close")
+
+
+POINT_KEY = re.compile(r"point|move|swing|range|atr|gap|change", re.I)
+
+
+def point_pool(facts) -> list[float]:
+    """The index moves in points that the facts hold: level differences, numbers under a move-like key, figures written before "points"."""
+    out: set[float] = set()
+
+    def walk(o, key=""):
+        if isinstance(o, dict):
+            lv = [float(o[k]) for k in LEVELS if isinstance(o.get(k), (int, float)) and not isinstance(o.get(k), bool)]
+            out.update(round(abs(a - b), 2) for a in lv for b in lv if a != b)
+            for k, v in o.items():
+                walk(v, str(k))
+        elif isinstance(o, list):
+            for v in o:
+                walk(v, key)
+        elif isinstance(o, (int, float)) and not isinstance(o, bool):
+            if POINT_KEY.search(key):
+                out.add(abs(float(o)))
+        elif isinstance(o, str):
+            for m in POINTS_TXT.finditer(o):
+                out.add(float(m.group(1).replace(",", "") + ("." + m.group(2) if m.group(2) else "")))
+    walk(facts)
+    return sorted(x for x in out if x)
+
+
+def _found_points(v: float, pool: list[float]) -> bool:
+    return any(abs(v - p) <= max(2.0, 0.01 * p) or (v % 10 == 0 and abs(v - p) < 10) for p in pool)
+
+
+def _points_wanted(answer: str) -> list[tuple[str, float]]:
+    return [(m.group(0).strip(), _val(m)) for m in NUM.finditer(answer or "") if _val(m) >= 10 and POINTS.match(answer[m.end():m.end() + 8])]
 
 
 def _found(v: float, pool: list[float]) -> bool:
@@ -83,10 +126,17 @@ def check(answer: str, facts: dict, question: str = "") -> list[str]:
     pool = [abs(x) for x in allnums if x]
     rpool = sorted(rupee_pool(facts) | {abs(x) for x in numbers_in(question)})
     bad = []
+    pts = _points_wanted(answer)
+    said_in_points = {w for w, _ in pts}
     for w, v in _wanted(answer):
+        if w in said_in_points:
+            continue
         rupee = bool(re.match(r"(?:rs\.?|₹)", w, re.I))
         if not _found(v, rpool if rupee else pool):
             bad.append(w)
+    if pts:
+        ppool = sorted(set(point_pool(facts)) | {abs(x) for x in numbers_in(question)})
+        bad += [w for w, v in pts if not _found_points(v, ppool)]
     return [f"the figure {w} is not in the facts (Ananta may not work numbers out itself; quote a fact or leave it out)" for w in dict.fromkeys(bad)]
 
 

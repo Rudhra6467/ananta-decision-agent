@@ -1168,7 +1168,7 @@ def decisions_recent(n: int = 10) -> dict:
 
 
 def sp1_live(rm: dict | None = None) -> dict:
-    """The options line read from its own ledger and book at call time (2 Nov fact map: the line decides and books during the session, 09:15-09:45
+    """The options line read from its own ledger and book at call time (2 Nov fact map: the line decides and books during the session, 09:15-10:15
     IST, but the screens and the Ask read it from the nightly read model, so all day they showed the previous session). Falls back to the read model."""
     rm = rm if rm is not None else readmodel()
     try:

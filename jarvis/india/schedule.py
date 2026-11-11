@@ -22,6 +22,8 @@ import sys
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from jarvis.india import askwords
+
 IST = ZoneInfo("Asia/Kolkata")
 TOR = ZoneInfo("America/Toronto")
 AGENTS = Path(os.path.expanduser("~/Library/LaunchAgents"))
@@ -183,7 +185,7 @@ def day_words() -> str:
     parts = [f"{at(job)}: {what}" for job, what in DAY if at(job)]
     return ("When things land (Toronto time, read from the jobs themselves): live index and stock prices from Zerodha any time during the "
             "session (09:15-15:30 IST) and the closing prices minutes after the close; " + "; ".join(parts) + ". The options line decides live at "
-            "09:15, 09:30 and 09:45 IST, in its ledger the moment it decides.")
+            f"{askwords.window_words()} IST, in its ledger the moment it decides.")
 
 
 def main() -> int:

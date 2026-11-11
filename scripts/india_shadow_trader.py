@@ -53,7 +53,7 @@ def _post(url: str, body: dict, headers: dict | None = None, timeout: int = 30) 
         return json.loads(r.read().decode())
 
 
-def claude(prompt: str, model: str, max_tokens: int = 1500) -> str:
+def claude(prompt: str, model: str, max_tokens: int = 3000) -> str:     # 11 Nov 2026 (board 191): 1,500 cut the answer off
     key = os.getenv("ANTHROPIC_API_KEY", "")
     if not key:
         raise RuntimeError("no model key")
@@ -122,7 +122,7 @@ def main() -> int:
     raw = claude(PROMPT.format(facts=_facts_text(f)), MODEL)
     plan = _parse(raw)
     if plan is None:
-        raw = claude(PROMPT.format(facts=_facts_text(f)) + "\n\nReply with one valid JSON object and nothing else.", MODEL)
+        raw = claude(PROMPT.format(facts=_facts_text(f)) + "\n\nReply with one valid JSON object and nothing else, under 350 words in all.", MODEL)
         plan = _parse(raw)
     if plan is None:
         plan = {"take": None, "stance": "stand_down", "stance_why": "the model's answer could not be read", "watch": [], "blind_spot": "", "silent": True}

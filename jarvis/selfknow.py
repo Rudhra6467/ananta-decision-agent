@@ -32,7 +32,10 @@ AREAS = ("voice", "ask", "app", "today_screen", "options", "stocks", "managed_bo
          "other")
 STATUSES = ("live", "built", "parked", "reverted", "decided")
 KEYS = ("date", "market", "area", "words", "why", "status", "checked", "commits", "source")
-OPTIONAL_KEYS = ("closes",)     # 10 Nov 2026: the open-list items this change closes: stored numbers, or {"num", "how", "done", "quiet"} (openlist.apply_closes)
+OPTIONAL_KEYS = ("closes", "plain", "before_after")
+# closes (10 Nov 2026): the open-list items this change closes: stored numbers, or {"num", "how", "done", "quiet"} (openlist.apply_closes).
+# plain (11 Nov 2026): the change in one to three short sentences for the app's change page ("In short"); words stay the full record.
+# before_after (11 Nov 2026): what a screen or a number said before and after, [{"label", "before", "after"}], drawn side by side.
 MARKET_WORDS = {"india": "India", "crypto": "crypto", "both": "both markets"}
 STATUS_WORDS = {"live": "", "built": " (built, not running yet)", "parked": " (parked)", "reverted": " (undone)", "decided": " (your decision)"}
 MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()

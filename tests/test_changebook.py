@@ -25,6 +25,13 @@ def test_every_line_is_well_formed_and_in_date_order():
         assert set(r) - set(selfknow.OPTIONAL_KEYS) == set(selfknow.KEYS), r
         for e in r.get("closes") or []:                       # 10 Nov 2026: the open-list items a change closes (stored numbers)
             assert isinstance(e, int) or (isinstance(e, dict) and isinstance(e.get("num"), int) and set(e) <= {"num", "how", "done", "quiet", "by"}), r
+        if "plain" in r:                                      # 11 Nov 2026: the change page's In short, one to three short sentences
+            assert isinstance(r["plain"], list) and 1 <= len(r["plain"]) <= 3 and all(isinstance(x, str) and 3 <= len(x.split()) <= 40 for x in r["plain"]), r
+        if "before_after" in r:                               # 11 Nov 2026: what a screen or a number said before and after
+            assert isinstance(r["before_after"], list) and 1 <= len(r["before_after"]) <= 4, r
+            for x in r["before_after"]:
+                assert set(x) == {"label", "before", "after"} and all(isinstance(v, str) and 1 <= len(v.split()) <= 14 for v in x.values()), r
+                assert len(x["label"].split()) <= 8, r
         assert re.fullmatch(r"2026-\d\d-\d\d", r["date"]), r
         assert r["market"] in selfknow.MARKETS and r["area"] in selfknow.AREAS and r["status"] in selfknow.STATUSES, r
         assert 20 <= len(r["words"]) <= 600 and isinstance(r["commits"], list), r

@@ -5,7 +5,7 @@ from pathlib import Path
 
 APP = Path(__file__).resolve().parents[1] / "jarvis" / "app"
 PLACE = (APP / "src" / "place.tsx").read_text()
-BODY = PLACE.split("function PlaceSheet(", 1)[1].split("\nexport function MainButton(", 1)[0]
+BODY = PLACE.split("function PlaceSheet(", 1)[1].split("\nfunction ", 1)[0]          # the tall sheet only (11 Nov: the item sheet follows it)
 
 
 def test_home_and_markets_boxes_open_their_numbers_in_a_tall_sheet():
@@ -36,7 +36,8 @@ def test_the_sheet_looks_and_feels_premium():
     assert "tap();" in BODY and "soft();" in BODY, "a light tap when it opens, a tick at the closing point"
     assert "{peek ? <Hero p={peek} /> : null}" in BODY and "<Shimmer h={300} />" in BODY, "the number shows at once while the page loads"
     assert "SHEET_CACHE.get(key)" in BODY, "a page seen before opens from memory"
-    assert "<HideButton round />" in BODY and "style={ROUND()}" in BODY, "soft round buttons"
+    assert "style={ROUND()}" in BODY, "a soft round X"
+    assert "<HideButton" not in BODY, "11 Nov 07:51 (Madhav: \"Only in home tab\"): the eye is on Home, not on the sheet"
     assert "shadowRadius: 28" in BODY and "<Fade />" in BODY, "a shadow, and a fade above the buttons"
 
 
@@ -47,8 +48,8 @@ def test_leaving_the_sheet_closes_it():
 
 def test_he_answers_in_the_needs_you_sheet_and_can_clear_notifications():
     # Madhav, 10 Nov 22:33: a Yes in the sheet ("get approved straight away"), and a way to clear notifications that keeps the item on the list
-    assert "function AnswerButtons(" in PLACE and '"/v3/openlist/answer", { key: s.key, answer: id }' in PLACE
-    assert "{s.key && s.answers && s.answers.length ? <AnswerButtons s={s} /> : (" in PLACE, "an older payload keeps the old buttons"
+    assert "function AnswerList(" in PLACE and '"/v3/openlist/answer", a.due ? { key: s.key, answer: a.id, due: a.due } : { key: s.key, answer: a.id }' in PLACE
+    assert "const talk = s.primary ? [" in PLACE and "s.key && Array.isArray(s.answers) ? s.answers : []" in PLACE, "a sheet with no answers still offers Ask"
     assert 'if (to.action === "clear_needs") { clearNeeds(); return; }' in PLACE and '{ key: "all", answer: "later" }' in PLACE
     assert "refreshPlaces();" in PLACE, "the bell and the places read again after an answer"
     assert '"/v3/openlist"' in (APP / "src" / "api.ts").read_text(), "the open list lives with the sign-in service for both markets"

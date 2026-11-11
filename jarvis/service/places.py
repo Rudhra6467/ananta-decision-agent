@@ -51,6 +51,81 @@ def _rest(line, title: str) -> str:
     return s
 
 
+KIND_WORDS = {"YOU": ("Needs you", "Waiting for your yes"), "WORK": ("Work to do", "Ananta's work to do"),
+              "DATE": ("Waiting for a date", "Waiting for its date"), "PARKED": ("Parked", "Parked on purpose")}
+
+
+def _board(j, num) -> dict:
+    from jarvis.service import requests_log
+    try:
+        return requests_log.get(j, f"request {int(num)}") or {}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def item_sheet_parts(it: dict, row: dict | None = None, today=None) -> dict:
+    """11 Nov 2026 (Madhav, 07:51, with the Usage sheet as the example): where an open-list item stands, said plainly, as a status line and
+    small cards: how long it has been open, when it comes back (a dated one), its latest step, and a progress bar when its note says
+    "N of M"."""
+    import datetime as dt
+    row = row or {}
+    kind = str(it.get("kind") or row.get("waits") or "WORK").upper()
+    short, long_ = KIND_WORDS.get(kind, ("Open", "Open"))
+    d0 = today or dt.date.today()
+    try:
+        since = dt.date.fromisoformat(str(it.get("since") or "")[:10])
+    except ValueError:
+        since = None
+    days = (d0 - since).days if since else None
+    cards = []
+    if since:
+        cards.append({"label": "Open since", "value": S._dw(since), "sub": ("today" if days == 0 else "1 day" if days == 1 else f"{days} days")})
+    due = it.get("due") or row.get("due")
+    if kind == "DATE" and due:
+        try:
+            dd = dt.date.fromisoformat(str(due)[:10])
+            left = (dd - d0).days
+            cards.append({"label": "Comes back", "value": S._dw(dd), "sub": "today" if left <= 0 else ("tomorrow" if left == 1 else f"in {left} days")})
+        except ValueError:
+            pass
+    note = re.sub(r"^(First answer[^:]*:|Morning review[^:]*:|Advice:)\s*", "", str(row.get("note") or ""), flags=re.I).strip()
+    note = re.sub(r"\s*\((?:[0-9a-f]{7,40}|commit [0-9a-f]{7,40})\)", "", note)          # a commit's code is for the record, not the sheet
+    note = note.split(" | ")[0].strip()                                                     # the newest step comes first; older ones are history
+    when = re.match(r"^(\d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\s*[:,]\s*", note)
+    if when:
+        note = note[when.end():]
+    m = re.search(r"\b(\d+) of (\d+) (?:parts?|steps?)\b", note)
+    step = S._sentences(note)[0] if note else ""
+    if step:
+        card = {"label": "Latest", "value": K.clip(step[:1].upper() + step[1:], 40, 240), "sub": when.group(1) if when else None}
+        if m and int(m.group(2)) > 0:
+            card["progress"] = [int(m.group(1)), int(m.group(2))]
+        cards.append({k: v for k, v in card.items() if v is not None})
+    status = {"YOU": "It waits for your answer.", "WORK": "Ananta is working on it. Nothing is needed from you.",
+              "DATE": (f"It waits until {S._dw(due)}. That day it is due again." if due else "It waits for its date."),
+              "PARKED": "Parked on purpose. Nothing happens until someone opens it again."}.get(kind, "")
+    return {"label": short, "status": status, "cards": cards}
+
+
+def _item_sheet(j, it: dict, icon: str, today=None) -> dict:
+    from jarvis.service import openlist
+    t, _sub = K.title_sub(it.get("line") or "")
+    num = it.get("num")
+    row = _board(j, num) if num and str(num).isdigit() else {}
+    parts = item_sheet_parts(it, row, today)
+    adv = str(it.get("advice") or "")
+    answers = None
+    key = None
+    if str(it.get("kind")) != "YOU" and num and str(num).isdigit() and it.get("source") == "board":
+        key = f"item:{int(num)}"
+        answers = openlist.item_answers(today, after=it.get("due") if str(it.get("kind")) == "DATE" else None)
+    full = " ".join(str(row.get("line") or "").split()) or openlist.plain(row.get("text") or it.get("line") or "", 420)   # the sheet has room for all of it
+    return K.sheet(t, _rest(full, t), advice=(adv[:1].upper() + adv[1:]) if adv else None, icon=icon,
+                   primary={"label": "Ask Ananta about it", "to": K.ask(f"Tell me about {it.get('id')} on the open list."),
+                            "explain": "Opens Ask with this item, so you can ask what it is, where it stands and what happens next."},
+                   key=key, answers=answers, status=parts["status"], label=f"{parts['label']} · {it.get('id')}", cards=parts["cards"])
+
+
 def you_rows(col: dict, market: str = "crypto") -> list[dict]:
     """The open list's "needs your yes" as rows; a tap opens a bottom sheet with the whole line, the advice and his answers (Yes, No, Not
     now: 11 Nov 2026). What he cleared from his notifications is left out here (the bell, Home, Notices) and stays on the open list page."""
@@ -64,25 +139,32 @@ def you_rows(col: dict, market: str = "crypto") -> list[dict]:
         t, sub = K.title_sub(it.get("line") or "")
         adv = str(it.get("advice") or "")
         step = "step" in adv.lower() or "your step" in str(it.get("line") or "").lower()
-        ans = [{"id": a, "label": openlist.ANSWER_LABEL[a]} for a in openlist.answers_for(it.get("key"), step)]
+        ans = openlist.answer_rows(it.get("key"), step, it.get("on_yes"))
+        parts = item_sheet_parts(it)
         out.append(K.row(t, sub, right="Your step" if step else "Your yes", icon="you", tint="bronze", tag="you",
                          to=K.sheet(t, _rest(it.get("line"), t), advice=(adv[:1].upper() + adv[1:]) if adv else None, icon="you",
-                                    primary={"label": "Talk to Ananta about it", "to": K.ask(f"About {it.get('id')}: {t}. What do I need to do, and what happens after?")},
-                                    key=it.get("key"), answers=ans)))
+                                    primary={"label": "Talk to Ananta about it", "to": K.ask(f"About {it.get('id')}: {t}. What do I need to do, and what happens after?"),
+                                             "explain": "Opens Ask with this, so you can ask what it means and what happens after each answer."},
+                                    key=it.get("key"), answers=ans, status=parts["status"], label=f"{'Your step' if step else 'Needs you'} · {it.get('id')}",
+                                    cards=parts["cards"])))
     return out
 
 
 def openlist_page(j, c: dict | None = None, market: str = "crypto") -> dict:
     from jarvis.service import openlist
     col = (c or {}).get("list") or S._safe(openlist.collect, j, default={}) or {}
+    you = you_rows({**col, "quiet": []}, market)
+
     def sec(title, key, right):
         items = [x for x in col.get(key) or [] if x.get("market") in (market, "both", None)]
         rs = []
         for it in items[:40]:
             t, sub = K.title_sub(it.get("line") or "")
+            if key == "you":                       # his answers live in the Needs-you rows' sheets
+                rs.append(next((r for r in you if r.get("title") == t), None) or K.row(t, sub, right=str(it.get("id") or ""), icon=right))
+                continue
             rs.append(K.row(t, sub, right=(S._dm(it["due"]) if it.get("due") else str(it.get("id") or "")), icon=right,
-                            to=K.sheet(t, _rest(it.get("line"), t), advice=str(it.get("advice") or "")[:1].upper() + str(it.get("advice") or "")[1:] if it.get("advice") else None, icon=right,
-                                       primary={"label": "Ask Ananta about it", "to": K.ask(f"Tell me about {it.get('id')} on the open list.")})))
+                            to=_item_sheet(j, it, right)))
         return K.rows(title, rs, count=len(items)) if rs else None
     n = col.get("counts") or {}
     parts = [K.hero("The open list", f"{n.get('YOU', 0)} need you", since=f"{n.get('WORK', 0)} to do · {n.get('DATE', 0)} wait for a date · {n.get('PARKED', 0)} parked"),
@@ -224,6 +306,116 @@ def _calm(s: str) -> str:
     return re.sub(r"\s{2,}", " ", s).strip()
 
 
+LEAD = re.compile(r"^(Decided( on Madhav's yes( to)?)?|Fixed|Repaired|Corrected|A fix)\s*[:,]?\s*", re.I)
+MONTHS = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+
+
+def _in_short(ch: dict, words: str) -> list[str]:
+    """The change in one to three short sentences: the line's own plain words when it has them, else its first two sentences."""
+    pl = ch.get("plain")
+    pl = [pl] if isinstance(pl, str) else [str(x) for x in (pl or []) if str(x).strip()]
+    if pl:
+        return pl[:3]
+    ss = S._sentences(words)
+    if not ss:
+        return [words] if words else []
+    first = LEAD.sub("", ss[0]).strip() or ss[0]
+    return [first[:1].upper() + first[1:]] + ss[1:2]
+
+
+def _why_points(why: str) -> list[str]:
+    """The change book's why as the page says it (11 Nov 2026): his own words first, quoted, with the day he said them; then the rest in
+    short points. Register and board numbers are left to the full record."""
+    why, out = str(why or "").strip(), []
+    m = re.match(r'\s*Madhav[^"]{0,40}?(\d{1,2} ' + MONTHS + r')[^"]*?:\s*(?:"([^"]{3,400})"|\'(.{3,400}?)\'(?=[\s.,;)]|$))\s*(.*)$', why, re.S)
+    if m:
+        said, why = f"You said on {m.group(1)}: \u201c{(m.group(2) or m.group(3)).strip().rstrip('.')}\u201d", m.group(4).lstrip(" .;,")
+        pm = re.match(r"\(([^)]{3,160})\)\.?\s*(.*)$", why, re.S)
+        if pm:
+            said, why = f"{said} ({pm.group(1).strip()})", pm.group(2)
+        out.append(said)
+    else:                                                   # "Madhav, 2 Nov: yes", "Madhav, 1 Nov", "Madhav, 3 Nov: clarity over features"
+        ss = S._sentences(why)
+        m2 = re.match(r"\s*Madhav,?\s*(?:on\s+)?(\d{1,2} " + MONTHS + r")(?:\s+\d{1,2}:\d\d(?:\s+Toronto)?)?\s*(?::\s*(.+?))?\s*[.;]?\s*$", ss[0]) if ss else None
+        if m2:
+            said = (m2.group(2) or "").strip()
+            out.append(f"Your yes on {m2.group(1)}." if said.lower().rstrip(".") == "yes" else
+                       f"You said on {m2.group(1)}: {said}." if said else f"You asked for it on {m2.group(1)}.")
+            why = " ".join(ss[1:])
+    why = re.sub(r"\s*\b(?:Register|Open list board|Board)\s+[A-Z]?-?\d+[^.]*\.?", "", why)
+    for s in S._sentences(why):
+        for part in re.split(r";\s+", s):
+            part = _calm(part).strip(" .")
+            if len(part.split()) >= 3:
+                out.append(part[:1].upper() + part[1:] + ".")
+    return out[:3]
+
+
+def _split_top(text: str, sep: str = ";") -> list[str]:
+    """Split at sep, but not inside brackets."""
+    out, depth, cur = [], 0, ""
+    for c in str(text or ""):
+        depth += (c == "(") - (c == ")")
+        if c == sep and depth <= 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += c
+    return [x.strip() for x in out + [cur] if x.strip()]
+
+
+def _checked_points(text) -> list[str]:
+    """How a change was checked, as points: a test file says what it checks (its brackets); a bare test file and a path on the Mac are
+    left out of the words, and a change checked only by tests says so once."""
+    out, tests = [], 0
+    for part in _split_top(text):
+        m = re.match(r"tests/[\w/.-]+\.py\s*(?:\((.+)\))?$", part, re.S)
+        if m:
+            tests += 1
+            if m.group(1):
+                out.append(f"A test: {_calm(m.group(1)).strip(' .')}")
+            continue
+        part = re.sub(r"\s*\(?~/[^\s)]+\)?", "", part)
+        part = _calm(part).strip(" .;,")
+        while part.count(")") > part.count("(") and ")" in part:            # a bracket opened inside a file name that was left out
+            i = part.rfind(")")
+            part = (part[:i] + part[i + 1:]).strip(" .;,")
+        if len(part.split()) >= 3:
+            out.append(part[:1].upper() + part[1:])
+    if tests and not any(x.startswith("A test") for x in out):
+        out.insert(0, "A test of the change" if tests == 1 else f"{tests} tests of the change")
+    return out[:4]
+
+
+def change_page(ch: dict) -> dict:
+    """One change, the way Madhav asked on 11 Nov 2026 (07:51, "simple language, simple points ... or any other structures"): In short,
+    Before and after when a number or a screen changed, Why in his own words, and the full record one tap down."""
+    words = _calm(S._plain(str(ch.get("words") or "")))
+    title = str(ch.get("title") or AREA.get(ch.get("area"), "A change"))
+    day = S._dw(ch.get("date"))
+    ba = [K.barow(x.get("label"), x.get("before"), x.get("after")) for x in (ch.get("before_after") or []) if isinstance(x, dict)]
+    why = _why_points(ch.get("why"))
+    commits = [str(c) for c in ch.get("commits") or [] if c]
+    full = K.page("The full record", [
+        K.heading(title),
+        K.points(S._sentences(words)),
+        K.points(_checked_points(ch.get("checked")), title="How it was checked") if _checked_points(ch.get("checked")) else None,
+        K.points([_calm(x) for x in S._sentences(str(ch.get("why") or ""))], title="Why, in full") if ch.get("why") else None,
+        K.kv([K.kvrow("Day", day), K.kvrow("Market", {"india": "India", "crypto": "Crypto", "both": "Both"}.get(ch.get("market"), str(ch.get("market")))),
+              K.kvrow("Status", STATUS.get(ch.get("status"), str(ch.get("status") or ""))), K.kvrow("Commits", ", ".join(commits)) if commits else None],
+             title="The record"),
+        K.trust("Word for word from the change book, the record Ananta reads about itself.")],
+        ask_q=f"Tell me everything about this change of {day}: {K.clip(words, 16, 110)}")
+    return K.page(title, [K.pill(f"{STATUS.get(ch.get('status'), str(ch.get('status') or ''))} · {day}", icon="check"), K.heading(title),
+                          K.points([{"text": x, "icon": "dot"} for x in _in_short(ch, words)], title="In short"),
+                          K.ba(ba, title="Before and after") if ba else None,
+                          K.points([{"text": x, "icon": "person" if x.startswith(("You said", "Your yes", "You asked")) else "info"} for x in why],
+                                   title="Why") if why else None,
+                          K.link("The full record", K.to_page(full)),
+                          K.trust(f"From the change book · {day}")],
+                  ask_q=f"Tell me about this change of {day}: {K.clip(words, 16, 110)}")
+
+
 def change_rows(market: str, since: str) -> list[tuple]:
     from jarvis import selfknow
     out = []
@@ -233,15 +425,10 @@ def change_rows(market: str, since: str) -> list[tuple]:
         words = _calm(S._plain(str(ch.get("words") or "")))
         fix = bool(re.match(r"(?i)\s*(fixed|repaired|corrected|a fix)\b", words))
         title = str(ch.get("title") or AREA.get(ch.get("area"), "A change"))
-        pg = K.page(title, [K.pill(STATUS.get(ch.get("status"), str(ch.get("status") or "")), icon="check"), K.heading(title),
-                            K.points(S._sentences(words)),
-                            K.points([_calm(x) for x in S._sentences(str(ch.get("why") or ""))[:3]], title="Why") if ch.get("why") else None,
-                            K.trust(f"From the change book · {S._dw(ch.get('date'))}")],
-                    ask_q=f"Tell me about this change of {S._dw(ch.get('date'))}: {K.clip(words, 16, 110)}")
-        gist = re.sub(r"^(Decided( on Madhav's yes( to)?)?|Fixed|Repaired|Corrected|A fix)\s*[:,]?\s*", "", words, flags=re.I).strip() or words
+        gist = _in_short(ch, words)[0] if ch.get("plain") else (LEAD.sub("", words).strip() or words)
         out.append((str(ch.get("date")), 1 - i / 100000.0, K.row(title, K.clip(gist[:1].upper() + gist[1:], 8, 46), right="Fixed" if fix and ch.get("status") == "live" else STATUS.get(ch.get("status")),
                                                                 icon="pencil" if fix else "check",
-                                                                tag="fix" if fix else "change", to=K.to_page(pg))))
+                                                                tag="fix" if fix else "change", to=K.to_page(change_page(ch)))))
     return out
 
 

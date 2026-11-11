@@ -155,7 +155,9 @@ def test_every_box_opens_its_own_page():
 def test_the_app_hides_the_amounts_next_to_the_bell():
     place = (APP / "place.tsx").read_text()
     screen = (APP / "placescreen.tsx").read_text()
-    assert "<HideButton /><Bell count={count} />" in screen and "<HideButton />\n        </View>" in screen
+    # 11 Nov 2026 (Madhav, 07:51: "Only in home tab I believe?"): the eye sits beside the bell on Home only; what it hides stays hidden
+    assert '{name === "home" ? <HideButton /> : null}<Bell count={count} />' in screen
+    assert "<HideButton" not in screen.split("export function PageScreen(", 1)[1]
     assert 'const HKEY = "ananta_hide_money"' in place and "export function useMask()" in place
     for comp in ("function Hero(", "function BoxBody(", "export function Row(", "function KV(", "function Points(", "function Split("):
         body = place.split(comp, 1)[1][:200]

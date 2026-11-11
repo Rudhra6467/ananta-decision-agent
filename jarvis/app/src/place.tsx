@@ -6,7 +6,7 @@
 // them, so a wording fix never needs a new app build. A tap ("to") goes to a tab, a place, a page that rode in with the payload, a bottom
 // sheet, a question for Ask, or an older screen. Colours come from C (the theme) so dark and light both work; bronze is the one accent.
 import { useEffect, useRef, useState } from "react";
-import { Animated, Easing, PanResponder, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
+import { Animated, Easing, LayoutAnimation, PanResponder, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from "react-native-svg";
@@ -109,7 +109,8 @@ const ICONS: Record<string, string> = {
   dot: "M12 10a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", chev: "M9 6l6 6-6 6", back: "M15 6l-6 6 6 6", close: "M6 6l12 12M18 6L6 18",
   search: "M11 5a6 6 0 1 0 0 12a6 6 0 1 0 0-12zM20 20l-4.5-4.5", swap: "M7 8h11l-3-3M17 16H6l3 3", home: "M4 11l8-7 8 7M6 10v9h12v-9",
   markets: "M4 19h16M5 15l4-4 3 3 6-7", activity: "M12 4a8 8 0 1 0 0 16a8 8 0 1 0 0-16zM12 8v4l3 2", more: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
-  lock: "M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3", plus: "M12 6v12M6 12h12",
+  lock: "M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3", plus: "M12 6v12M6 12h12", arrow: "M5 12h14M13 6l6 6-6 6", chevdown: "M6 9l6 6 6-6", chevup: "M6 15l6-6 6 6",
+  ask: "M5 5h14v10h-7l-4 4v-4H5z",
   eyeoff: "M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6zM12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5zM4 4l16 16",
 };
 export function Icon({ name, size = 22, color, stroke = 1.75 }: { name: string; size?: number; color?: string; stroke?: number }) {
@@ -145,7 +146,8 @@ function Badge({ n }: { n: number }) {
 // ---------------------------------------------------------------------------------------------------- hide the amounts
 // Madhav, 10 Nov 2026 19:09: "A hide button next to bell symbol, to hide portfolio numbers from being visible to others". The eye beside the
 // bell hides every amount in rupees or Canadian dollars (the account's money) and every signed US-dollar amount (a trade's result), on every
-// screen; market prices and percentages stay. This device remembers the choice.
+// screen; market prices and percentages stay. This device remembers the choice. 11 Nov 07:51 ("Only in home tab I believe?"): the eye sits
+// on Home only; what it hides stays hidden on every screen until he shows it again there.
 const HKEY = "ananta_hide_money";
 let hiddenNow: boolean | null = null;
 const hiddenSubs = new Set<(v: boolean) => void>();
@@ -543,6 +545,36 @@ function Split({ p }: { p: any }) {
     </View>
   );
 }
+// Before and after (11 Nov 2026: "simple points, graphs or any other structures"): what a screen or a number said, and what it says now.
+function BeforeAfter({ p }: { p: any }) {
+  const m = useMask();
+  const rows: any[] = p.rows || [];
+  if (!rows.length) return null;
+  return (
+    <View style={{ gap: 4 }}>
+      {p.title ? <Text style={[T.section, { color: C.text, minHeight: 32 }]}>{p.title}</Text> : null}
+      <View style={[card(), { paddingHorizontal: 14, paddingVertical: 2 }]}>
+        {rows.map((r: any, i: number) => (
+          <View key={i} accessibilityLabel={`${r.label ? r.label + ": " : ""}before, ${r.before}; after, ${r.after}`}
+            style={{ paddingVertical: 12, gap: 8, borderBottomWidth: i === rows.length - 1 ? 0 : 1, borderBottomColor: C.line2 }}>
+            {r.label ? <Text style={[T.meta, { color: C.dim }]}>{r.label}</Text> : null}
+            <View style={{ flexDirection: "row", alignItems: "stretch", gap: 6 }}>
+              <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: C.card2, gap: 2 }}>
+                <Text style={[T.small, { color: C.dim }]}>Before</Text>
+                <Text style={[T.body, { color: C.dim, ...NUM }]}>{m(r.before)}</Text>
+              </View>
+              <View style={{ justifyContent: "center" }}><Icon name="arrow" size={18} color={C.faint} /></View>
+              <View style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: C.bronzeTint, gap: 2 }}>
+                <Text style={[T.small, { color: C.gold }]}>After</Text>
+                <Text style={[T.body, { color: C.text, fontWeight: "600", ...NUM }]}>{m(r.after)}</Text>
+              </View>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
 function Chart({ p }: { p: any }) {
   const m = useMask();
   const [w, setW] = useState(0);
@@ -788,34 +820,7 @@ export function SheetHost() {
   if (!sheet) return null;
   const s = sheet;
   if (s.place) return <PlaceSheet key={s.place} name={s.place} peek={s.peek} />;
-  return (
-    <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
-      <Pressable onPress={closeSheet} accessibilityLabel="Close" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: C.overlay }} />
-      <View accessibilityViewIsModal style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingTop: 10, paddingHorizontal: 16, paddingBottom: 28, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        backgroundColor: C.card, borderTopWidth: 1, borderColor: C.line, gap: 16, maxWidth: 720, alignSelf: "center", width: "100%" }}>
-        <View style={{ alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: C.faint }} />
-        <IconTile name={s.icon === "you" ? "you" : s.icon || "you"} tint="bronze" size={48} />
-        <View style={{ gap: 8 }}>
-          <Text style={{ color: C.text, fontSize: 22, lineHeight: 28, fontWeight: "700", letterSpacing: -0.2 }} accessibilityRole="header">{s.title}</Text>
-          <Text style={[T.body, { color: C.dim }]}>{s.text}</Text>
-        </View>
-        {s.advice ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 16, backgroundColor: C.card2 }}>
-            <AnantaMark size={32} />
-            <Text style={{ color: C.text, fontSize: 14, lineHeight: 20, flex: 1 }}><Text style={{ fontWeight: "600" }}>Ananta's advice: </Text>{s.advice}</Text>
-          </View>
-        ) : null}
-        {s.key && s.answers && s.answers.length ? <AnswerButtons s={s} /> : (
-          <View style={{ gap: 4 }}>
-            {s.primary ? <MainButton label={s.primary.label} onPress={() => { const t = s.primary.to; closeSheet(); go(t); }} /> : null}
-            <Pressable onPress={closeSheet} accessibilityRole="button" style={{ height: 48, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>{s.secondary || "Not now"}</Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
-    </View>
-  );
+  return <ItemSheet key={String(s.key || s.title || "")} s={s} />;
 }
 
 // Madhav, 10 Nov 22:12: a number on Home opens in a sheet over the screen, "up to 75-80% of screen ... easy to close or swipe down to
@@ -930,7 +935,6 @@ function PlaceSheet({ name, peek }: { name: string; peek?: any }) {
             <View pointerEvents="none" style={{ position: "absolute", top: 8, left: 0, right: 0, alignItems: "center" }}>
               <View style={{ width: 36, height: 5, borderRadius: 3, backgroundColor: C.faint, opacity: 0.7 }} />
             </View>
-            <HideButton round />
             <Pressable onPress={() => dismiss(0)} accessibilityRole="button" accessibilityLabel="Close" hitSlop={6} style={ROUND()}>
               <Icon name="close" size={17} color={C.text} stroke={2} />
             </Pressable>
@@ -955,35 +959,216 @@ function PlaceSheet({ name, peek }: { name: string; peek?: any }) {
   );
 }
 
+// Madhav, 11 Nov 2026 07:51, with Claude's Usage sheet as the example: "Notification sheets like this ... where you can drag up or down
+// and also tells the same structurally the same", and on the open list: "I couldn't get to know their status or. Mark it done or postpone
+// it." One item at a time: a small label (what kind it is), its name, a status line, small cards (how long it has been open, when it comes
+// back, its latest step with a bar when that step says "N of M"), Ananta's advice, and his choices as rows (AnswerList). It opens at the
+// height it needs, at most 75% of the screen (his "75-80%" of 10 Nov). Drag the top up to see all of it, down to make it smaller, further down or a fling to close;
+// the X, a tap outside, a pull down past the top and Escape close it too.
+function SheetCards({ cards }: { cards: any[] }) {
+  const m = useMask();
+  const small = (c: any) => !c.progress && String(c.value || "").length <= 16;
+  const rows: any[][] = [];
+  cards.forEach((c) => {
+    const last = rows[rows.length - 1];
+    if (small(c) && last && last.length === 1 && small(last[0])) last.push(c);
+    else rows.push([c]);
+  });
+  return (
+    <View style={{ gap: 10 }}>
+      {rows.map((r, i) => (r.length === 1 && small(r[0]) ? (
+        <View key={i} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 48, paddingVertical: 10,
+          paddingHorizontal: 14, borderRadius: 16, backgroundColor: C.card2 }}>
+          <Text style={[T.meta, { color: C.dim }]}>{r[0].label}</Text>
+          <Text style={[T.row, { color: C.text, flexShrink: 1, textAlign: "right" }]}>{m(r[0].value)}
+            {r[0].sub ? <Text style={[T.meta, { color: C.dim, fontWeight: "500" }]}>{`  ·  ${r[0].sub}`}</Text> : null}</Text>
+        </View>
+      ) : (
+        <View key={i} style={{ flexDirection: "row", gap: 10 }}>
+          {r.map((c: any, j: number) => {
+            const [d, n] = Array.isArray(c.progress) ? c.progress : [0, 0];
+            const f = n ? Math.max(0, Math.min(1, d / n)) : 0;
+            return (
+              <View key={j} style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16, backgroundColor: C.card2, gap: 6 }}>
+                <Text style={[T.meta, { color: C.dim }]}>{c.label}</Text>
+                <Text style={[T.row, { color: C.text }]}>{m(c.value)}</Text>
+                {n ? (
+                  <View accessibilityLabel={`${d} of ${n} done`} style={{ height: 6, borderRadius: 3, backgroundColor: C.line, marginTop: 2 }}>
+                    {f > 0 ? <View style={{ width: `${Math.round(100 * f)}%`, height: 6, borderRadius: 3, backgroundColor: C.gold }} /> : null}
+                  </View>
+                ) : null}
+                {n || c.sub ? <Text style={[T.small, { color: C.dim }]}>{n ? `${d} of ${n} done${c.sub ? ` · ${c.sub}` : ""}` : c.sub}</Text> : null}
+              </View>
+            );
+          })}
+        </View>
+      )))}
+    </View>
+  );
+}
+
+function ItemSheet({ s }: { s: any }) {
+  const { height } = useWindowDimensions();
+  const ins = useSafeAreaInsets();
+  const maxH = Math.round(height - ins.top - 8);
+  const restCap = Math.round(Math.min(height * 0.75, maxH));
+  const [natural, setNatural] = useState(0);                 // the sheet's own height with nothing cut
+  const size = useRef({ head: 56, body: 0 }).current;
+  const want = natural ? Math.min(natural, maxH) : restCap;
+  const rest = Math.min(want, restCap);
+  const Y = useRef(new Animated.Value(maxH + LIFT)).current;   // how far below its place the sheet is, in points (native driver)
+  const HA = useRef(new Animated.Value(rest)).current;         // its height, in points (JS driver: a height cannot run natively)
+  const big = useRef(false);
+  const opened = useRef(false);
+  const leaving = useRef(false);
+  const past = useRef(false);
+  const keep = useKeepRef({ want, rest, maxH });
+  const measure = () => {
+    const n = Math.round(size.head + size.body);
+    setNatural((o) => (Math.abs(n - o) > 2 ? n : o));
+  };
+  const open = () => {
+    if (opened.current) return;
+    opened.current = true;
+    tap();
+    Animated.spring(Y, { toValue: 0, ...OPEN, useNativeDriver: NATIVE }).start();
+  };
+  const dismiss = (v = 0) => {
+    if (leaving.current) return;
+    leaving.current = true;
+    Animated.spring(Y, { toValue: keep.current.maxH + LIFT, velocity: v, stiffness: 320, damping: 34, mass: 1, overshootClamping: true,
+                         restDisplacementThreshold: 0.5, restSpeedThreshold: 5, useNativeDriver: NATIVE }).start(() => closeSheet());
+  };
+  const keepDismiss = useKeepRef(dismiss);
+  useEffect(() => {
+    if (!opened.current) { HA.setValue(rest); if (natural) open(); return; }
+    Animated.spring(HA, { toValue: big.current ? want : rest, ...BACK, useNativeDriver: false }).start();
+  }, [rest, want, natural]);
+  useEffect(() => {
+    const t = setTimeout(open, 160);                           // a sheet that could not measure itself still opens
+    const esc = (e: any) => { if (e.key === "Escape") keepDismiss.current(0); };
+    const web = !NATIVE && typeof window !== "undefined";
+    if (web) window.addEventListener("keydown", esc);
+    return () => { clearTimeout(t); if (web) window.removeEventListener("keydown", esc); Y.stopAnimation(); HA.stopAnimation(); };
+  }, []);
+  const settle = (goBig: boolean) => {
+    big.current = goBig;
+    Animated.spring(HA, { toValue: goBig ? keep.current.want : keep.current.rest, ...BACK, useNativeDriver: false }).start();
+    Animated.spring(Y, { toValue: 0, ...BACK, useNativeDriver: NATIVE }).start();
+  };
+  const shape = (dy: number) => {                              // the finger moved dy: the height changes first, then the sheet slides
+    const { want: w, rest: r } = keep.current;
+    let h = (big.current ? w : r) - dy;
+    let t = 0;
+    if (h > w) { t = -Math.min(LIFT - 12, Math.sqrt(h - w) * 4); h = w; }   // past its full height: a little give, then no more
+    else if (h < r) { t = r - h; h = r; }
+    return { h, t };
+  };
+  const pan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 3 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderGrant: () => { Y.stopAnimation(); HA.stopAnimation(); past.current = false; },
+    onPanResponderMove: (_e, g) => {
+      const { h, t } = shape(g.dy);
+      HA.setValue(h);
+      Y.setValue(t);
+      const over = t > keep.current.rest * 0.25;
+      if (over !== past.current) { past.current = over; soft(); }      // a tick where letting go closes it
+    },
+    onPanResponderRelease: (_e, g) => {
+      const { want: w, rest: r } = keep.current;
+      const { h, t } = shape(g.dy);
+      if (t > r * 0.25 || (t > 0 && g.vy > 0.75)) { keepDismiss.current(g.vy * 1000); return; }
+      settle(w > r + 8 && (g.vy < -0.3 || (Math.abs(g.vy) <= 0.3 && h > (r + w) / 2)));
+    },
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderTerminate: () => settle(big.current),
+  })).current;
+  const dim = Y.interpolate({ inputRange: [0, maxH], outputRange: [1, 0], extrapolate: "clamp" });
+  return (
+    <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
+      <Animated.View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, opacity: dim }}>
+        <Pressable onPress={() => dismiss(0)} accessibilityLabel="Close" style={{ flex: 1, backgroundColor: C.overlay }} />
+      </Animated.View>
+      <Animated.View style={{ position: "absolute", left: 0, right: 0, bottom: -LIFT, transform: [{ translateY: Y }], maxWidth: 720, marginHorizontal: "auto", width: "100%",
+        shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 24, shadowOffset: { width: 0, height: -6 }, elevation: 24 }}>
+        <Animated.View accessibilityViewIsModal style={{ height: Animated.add(HA, LIFT), paddingBottom: LIFT, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden",
+          backgroundColor: C.card, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.line }}>
+          <View {...pan.panHandlers} style={[{ height: 56, paddingHorizontal: 16, paddingTop: 10, flexDirection: "row", alignItems: "center", gap: 10 },
+            NATIVE ? null : ({ userSelect: "none", cursor: "grab", touchAction: "none" } as any)]}>
+            <View pointerEvents="none" style={{ position: "absolute", top: 8, left: 0, right: 0, alignItems: "center" }}>
+              <View style={{ width: 36, height: 5, borderRadius: 3, backgroundColor: C.faint, opacity: 0.7 }} />
+            </View>
+            <Text style={[T.meta, { color: C.dim, flex: 1 }]} numberOfLines={1}>{s.label || ""}</Text>
+            <Pressable onPress={() => dismiss(0)} accessibilityRole="button" accessibilityLabel="Close" hitSlop={6} style={ROUND()}>
+              <Icon name="close" size={17} color={C.text} stroke={2} />
+            </Pressable>
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: Math.max(ins.bottom, 14) + 10, gap: 14 }}
+            showsVerticalScrollIndicator={false} scrollEventThrottle={16} onContentSizeChange={(_w, h) => { size.body = h; measure(); }}
+            onScrollEndDrag={(e) => { if (e.nativeEvent.contentOffset.y < -64) { if (big.current && keep.current.want > keep.current.rest + 8) settle(false); else dismiss(0); } }}>
+            {!s.label ? <IconTile name={s.icon || "you"} tint="bronze" size={48} /> : null}
+            <Text style={{ color: C.text, fontSize: 22, lineHeight: 28, fontWeight: "700", letterSpacing: -0.2 }} accessibilityRole="header">{s.title}</Text>
+            {s.text ? <Text style={[T.body, { color: C.dim }]}>{s.text}</Text> : null}
+            {s.status ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <IconTile name={s.icon || "dot"} tint={s.icon === "you" ? "bronze" : undefined} size={32} />
+                <Text style={[T.body, { color: C.text, flex: 1 }]}>{s.status}</Text>
+              </View>
+            ) : null}
+            {s.cards && s.cards.length ? <SheetCards cards={s.cards} /> : null}
+            {s.advice ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 16, backgroundColor: C.card2 }}>
+                <AnantaMark size={32} />
+                <Text style={{ color: C.text, fontSize: 14, lineHeight: 20, flex: 1 }}><Text style={{ fontWeight: "600" }}>Ananta's advice: </Text>{s.advice}</Text>
+              </View>
+            ) : null}
+            <AnswerList s={s} onDone={() => dismiss(0)} />
+          </ScrollView>
+        </Animated.View>
+      </Animated.View>
+    </View>
+  );
+}
+
 // Madhav, 10 Nov 22:33: "after reading I can click on that, like it's get approved straight away instead of only asking Ananta", and
-// "Even if I click no, like not now, it is still there in the notification": his answer right in the sheet. Yes (or Done for his own
-// step), No, Not now. Not now clears it from his notifications for a week and it stays on the open list; every answer is logged
-// (/v3/openlist/answer, jarvis/service/openlist.py). Talking to Ananta about it stays one tap away.
-function AnswerButtons({ s }: { s: any }) {
-  const ids: string[] = (s.answers || []).map((a: any) => a.id);
-  const label = (id: string) => (s.answers || []).find((a: any) => a.id === id)?.label || id;
+// "Even if I click no, like not now, it is still there in the notification": his answer right in the sheet; every answer is logged
+// (/v3/openlist/answer, jarvis/service/openlist.py). 11 Nov 08:13, with YouTube's "Ask about this video" sheet: "every notification ...
+// gives me the options like this, and upon clicking, I can select any action, or ... have an explanation of the action ... a down arrow
+// towards the end". So each choice is a full-width row: tap the row to do it; tap the arrow at its end to read, in a few plain words, what
+// it does (nothing happens until the row itself is tapped). Asking Ananta is the last row. An open-list item's postpone days are rows too.
+function AnswerList({ s, onDone }: { s: any; onDone?: () => void }) {
+  const ans: any[] = s.key && Array.isArray(s.answers) ? s.answers : [];
+  const talk = s.primary ? [{ id: "talk", label: s.primary.label, icon: "ask", to: s.primary.to,
+                              explain: s.primary.explain || "Opens Ask with this, so you can ask what it means and what happens next." }] : [];
+  const rows: any[] = [...ans, ...talk];
+  const [open, setOpen] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [said, setSaid] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const send = async (id: string) => {
+  const rid = (a: any) => `${a.id}:${a.due || ""}`;
+  const act = async (a: any) => {
     if (busy || said) return;
-    setBusy(id);
+    if (a.id === "talk") { const t = a.to; closeSheet(); go(t); return; }
+    setBusy(rid(a));
     setErr(null);
     try {
-      const r: any = await api("/v3/openlist/answer", { key: s.key, answer: id });
+      const r: any = await api("/v3/openlist/answer", a.due ? { key: s.key, answer: a.id, due: a.due } : { key: s.key, answer: a.id });
       tap();
       setSaid(r?.words || "Saved.");
       refreshPlaces();
-      setTimeout(() => closeSheet(), 1500);
+      setTimeout(() => (onDone ? onDone() : closeSheet()), 1600);
     } catch (e: any) {
       setErr(e?.message || "That did not save. Try again.");
     } finally {
       setBusy(null);
     }
   };
-  const main = ids.find((x) => x === "yes" || x === "done");
-  const side = ids.filter((x) => x === "no" || x === "later");
-  const talk = s.primary ? () => { const t = s.primary.to; closeSheet(); go(t); } : null;
+  const toggle = (id: string) => {
+    soft();
+    if (Platform.OS !== "web") LayoutAnimation.configureNext(LayoutAnimation.create(180, "easeInEaseOut", "opacity"));
+    setOpen((o) => (o === id ? null : id));
+  };
   if (said) {
     return (
       <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 16, backgroundColor: C.card2 }}>
@@ -992,26 +1177,40 @@ function AnswerButtons({ s }: { s: any }) {
       </View>
     );
   }
+  if (!rows.length) return null;
   return (
-    <View style={{ gap: 10 }}>
-      {main ? <MainButton label={busy === main ? "Saving…" : label(main)} onPress={() => send(main)} /> : talk ? <MainButton label={s.primary.label} onPress={talk} /> : null}
-      {side.length ? (
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          {side.map((x) => (
-            <Pressable key={x} onPress={() => send(x)} accessibilityRole="button" disabled={!!busy}
-              style={({ pressed }) => ({ flex: 1, height: 48, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? C.card : C.card2,
-                                         alignItems: "center", justifyContent: "center" })}>
-              <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>{busy === x ? "Saving…" : label(x)}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
+    <View style={{ gap: 8, paddingTop: 2 }}>
+      {rows.map((a, i) => {
+        const id = rid(a);
+        const isOpen = open === id;
+        const lead = i === 0 && (a.id === "yes" || a.id === "done");
+        return (
+          <View key={id} style={{ borderRadius: 16, borderWidth: 1, borderColor: isOpen ? C.line2 : C.line, backgroundColor: C.card, overflow: "hidden" }}>
+            <View style={{ flexDirection: "row", alignItems: "stretch" }}>
+              <Pressable onPress={() => act(a)} disabled={!!busy} accessibilityRole="button" accessibilityLabel={a.label}
+                style={({ pressed }) => ({ flex: 1, minHeight: 56, flexDirection: "row", alignItems: "center", gap: 14, paddingLeft: 16, paddingRight: 10,
+                                           backgroundColor: pressed ? C.card2 : C.card })}>
+                <Icon name={a.icon || "dot"} size={22} color={lead ? C.gold : C.text} />
+                <Text style={{ flex: 1, color: C.text, fontSize: 16, lineHeight: 22, fontWeight: lead ? "600" : "500" }}>{busy === id ? "Saving…" : a.label}</Text>
+              </Pressable>
+              {a.explain ? (
+                <Pressable onPress={() => toggle(id)} accessibilityRole="button" accessibilityState={{ expanded: isOpen }}
+                  accessibilityLabel={isOpen ? `Hide what ${a.label} does` : `What does ${a.label} do?`}
+                  style={({ pressed }) => ({ width: 52, alignItems: "center", justifyContent: "center", borderLeftWidth: 1, borderLeftColor: C.line,
+                                             backgroundColor: pressed ? C.card2 : C.card })}>
+                  <Icon name={isOpen ? "chevup" : "chevdown"} size={20} color={C.dim} />
+                </Pressable>
+              ) : null}
+            </View>
+            {isOpen ? (
+              <View style={{ paddingLeft: 52, paddingRight: 16, paddingBottom: 14, paddingTop: 2, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
+                <Text style={{ color: C.dim, fontSize: 14, lineHeight: 20, paddingTop: 10 }}>{a.explain}</Text>
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
       {err ? <Text style={{ color: C.bad, fontSize: 13, lineHeight: 18, textAlign: "center" }}>{err}</Text> : null}
-      {main && talk ? (
-        <Pressable onPress={talk} accessibilityRole="button" style={{ minHeight: 40, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: C.gold, fontSize: 15, fontWeight: "600" }}>{s.primary.label}</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
@@ -1095,6 +1294,7 @@ export function Parts({ data, needs }: { data: any; needs?: any }) {
       case "notices": out.push(<Notices key={k} p={p} />); break;
       case "bars": out.push(<Bars key={k} p={p} />); break;
       case "split": out.push(<Split key={k} p={p} />); break;
+      case "ba": out.push(<BeforeAfter key={k} p={p} />); break;
       case "chart": out.push(<Chart key={k} p={p} />); break;
       case "pricechart": out.push(<PriceChart key={`${k}${p.sym}`} p={p} />); break;
       case "counts": out.push(<Counts key={k} p={p} />); break;

@@ -18,11 +18,11 @@ import re
 OVERVIEWS = ("home", "markets", "more")          # rules 3 and 4 are for these first layers
 TONES = (None, "good", "bad", "warn")
 PART_TYPES = ("hero", "today", "boxes", "peek", "rows", "chips", "tiles", "pill", "heading", "line", "points", "trust", "kv", "notices",
-              "bars", "split", "chart", "link", "identity", "counts", "needs", "pricechart")     # needs: the app fills it from /v3/place/needs (the open list)
+              "bars", "split", "chart", "link", "identity", "counts", "needs", "pricechart", "ba")     # needs: the app fills it from /v3/place/needs (the open list)
 # word budgets (rule 2 to 4 and 8); the app's row is cut at one line anyway, the budget keeps the words whole
 MAX = {"row_title": 6, "row_sub": 9, "row_right": 4, "today_line": 9, "today_sub": 13, "notice": 11, "point_overview": 10, "points_overview": 3,
        "rows_overview": 3, "tile_label": 3, "tile_value": 4, "chip": 4, "box_label": 3, "box_caption": 6, "foot": 16, "page_line": 22,
-       "home_words": 150, "markets_words": 170, "more_words": 110}
+       "home_words": 150, "markets_words": 170, "more_words": 110, "ba_label": 8, "ba_value": 14, "ba_rows": 4}
 
 
 def nwords(s) -> int:
@@ -86,11 +86,13 @@ def to_page(p: dict | None) -> dict | None:
 
 
 def sheet(title: str, text: str, advice: str | None = None, icon: str = "you", primary: dict | None = None, secondary: str = "Not now",
-          key: str | None = None, answers: list | None = None) -> dict:
-    """answers (11 Nov 2026): what he can answer right there, [{"id": "yes"|"no"|"done"|"later", "label": ...}], sent with the item's key to
-    /v3/openlist/answer. An older app shows primary and secondary as before."""
+          key: str | None = None, answers: list | None = None, status: str | None = None, label: str | None = None, cards: list | None = None) -> dict:
+    """answers (11 Nov 2026): what he can answer right there, [{"id": "yes"|"no"|"done"|"later"|"postpone", "label": ..., "options": [...]}],
+    sent with the item's key to /v3/openlist/answer. status, label and cards (Madhav, 11 Nov 07:51, the Usage sheet): one plain line on where
+    it stands, the sheet's small top title, and cards [{"label", "value", "sub", "progress": [done, of]}]. An older app shows primary and
+    secondary as before."""
     return {"sheet": _drop({"icon": icon, "title": title, "text": text, "advice": advice, "primary": primary, "secondary": secondary, "key": key,
-                            "answers": answers or None})}
+                            "answers": answers or None, "status": status, "label": label, "cards": cards or None})}
 
 
 # ---- the parts
@@ -202,6 +204,15 @@ def pricechart(sym: str, name: str, kind: str = "candles", rng: str | None = Non
     """A chart the app fetches itself (/v3/candles/<sym>?range=&tf=) with its range and timeframe chips (jarvis/chartkit.py). kind: candles for
     a price, line for a history of the account; private: the amounts hide with the hide button."""
     return _drop({"t": "pricechart", "sym": sym, "name": name, "kind": kind, "range": rng, "tf": tf, "private": private or None, "caption": caption})
+
+
+def ba(rows, title=None) -> dict:
+    """Before and after (11 Nov 2026): rows of {"label", "before", "after"}, drawn as two short columns with an arrow between."""
+    return _drop({"t": "ba", "title": title, "rows": [_drop(r) for r in rows if r and r.get("before") and r.get("after")]})
+
+
+def barow(label, before, after) -> dict:
+    return {"label": label, "before": str(before), "after": str(after)}
 
 
 def link(label, to) -> dict:
@@ -339,6 +350,12 @@ def problems(name: str, payload: dict, _depth: int = 0) -> list[str]:
             for b in [x for it in p.get("items") or [] for x in (it.get("pages") or [it])]:
                 if nwords(b.get("label")) > MAX["box_label"] or nwords(b.get("caption")) > MAX["box_caption"]:
                     say("a box with too many words", f"{b.get('label')} / {b.get('caption')}")
+        if t == "ba":
+            if len(p.get("rows") or []) > MAX["ba_rows"]:
+                say("more than four before-and-after rows", len(p["rows"]))
+            for r in p.get("rows") or []:
+                if nwords(r.get("label")) > MAX["ba_label"] or max(nwords(r.get("before")), nwords(r.get("after"))) > MAX["ba_value"]:
+                    say("a before-and-after row with too many words", r.get("label"))
         if t == "line" and nwords(p.get("text")) > MAX["page_line"]:
             say("a page's one line is too long", p.get("text"))
     if over and words_on(payload) > MAX.get(name + "_words", 10 ** 6):

@@ -509,6 +509,7 @@ class NeedsIn(BaseModel):
 class AnswerIn(BaseModel):
     key: str
     answer: str
+    due: str | None = None                        # 11 Nov 2026: postpone to "tomorrow", "week" or a date
 
 
 @app.post("/v3/openlist/answer")
@@ -522,7 +523,7 @@ def openlist_answer(b: AnswerIn, who: str = Depends(owner)) -> dict:
     try:
         if b.key == "all" and b.answer == "later":
             return openlist.clear_all(_main())
-        return openlist.answer(_main(), b.key, b.answer)
+        return openlist.answer(_main(), b.key, b.answer, due=b.due)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

@@ -6,6 +6,7 @@ import { router, useScrollToTop } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "./theme";
 import { Bell, HideButton, Icon, MarketChip, Parts, Pinned, useNeeds, usePlace } from "./place";
+// 11 Nov 2026 (Madhav, 07:51: "there is no need of hide symbol in all the pages right? Only in home tab"): the eye is on Home only.
 
 function Problem({ err, words }: { err?: string | null; words?: string }) {
   return (
@@ -29,7 +30,7 @@ export function PlaceScreen({ name, title }: { name: string; title: string }) {
       refreshControl={<RefreshControl refreshing={!!loading && !!data} onRefresh={() => { reload(); needs.reload(); }} tintColor={C.dim} />}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 }}>
         {name === "home" ? <MarketChip /> : <Text accessibilityRole="header" style={{ color: C.text, fontSize: 24, lineHeight: 30, fontWeight: "700", letterSpacing: -0.2 }}>{title}</Text>}
-        <View style={{ flexDirection: "row", alignItems: "center" }}><HideButton /><Bell count={count} /></View>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>{name === "home" ? <HideButton /> : null}<Bell count={count} /></View>
       </View>
       {err && !data ? <Problem err={err} /> : null}
       {data && data.ready === false ? <Problem words={data.words} /> : null}
@@ -56,7 +57,7 @@ export function PageScreen({ page, place, onClose }: { page?: any; place?: strin
             <Icon name={isClose ? "close" : "back"} size={24} color={C.text} />
           </Pressable>
           {!isClose ? <Text style={{ flex: 1, textAlign: "center", color: C.text, fontSize: 15, fontWeight: "600" }} numberOfLines={1}>{data?.title || ""}</Text> : <View style={{ flex: 1 }} />}
-          <HideButton />
+          <View style={{ width: 44 }} />
         </View>
         {got.err && !data ? <Problem err={got.err} /> : null}
         {data && data.ready === false ? <Problem words={data.words} /> : null}

@@ -166,6 +166,7 @@ def collect(j, now: float | None = None) -> dict:
     low = lambda t: (t[:1].lower() + t[1:]) if str(t).lower().startswith(("flag ", "request ")) else t      # noqa: E731
     you = [{"id": low(x.get("title") or x["id"]), "key": x["id"], "kind": "YOU", "market": x.get("market") or "crypto", "line": plain(x.get("line") or x.get("title") or "", 190),
             "count": int(x.get("count") or 1), "source": {"drafts": "India research drafts", "needs": "crypto Needs you"}.get(x.get("kind"), "board"),
+            **({"on_yes": x["on_yes"]} if x.get("on_yes") else {}),
             **({"advice": (x.get("review") or {}).get("proposal")} if (x.get("review") or {}).get("proposal") else {})} for x in w["items"]]
     work = [x for x in board if x["kind"] == "WORK"]
     dated = sorted([x for x in board if x["kind"] == "DATE"] + [x for x in due if x["kind"] == "DATE"], key=lambda x: (x.get("due") or "9999", str(x["id"])))
@@ -287,7 +288,77 @@ def open_item(j, text: str, waits: str, market: str = "crypto", due: str | None 
 # Not now. Not now clears it from his notifications (the bell, Home's Needs you, the phone reminders) for QUIET_DAYS; it stays on the open
 # list and comes back once after that. Every answer is kept in owner_answers.
 QUIET_DAYS = 7
-ANSWER_LABEL = {"yes": "Yes", "no": "No", "done": "Done", "later": "Not now"}
+ANSWER_LABEL = {"yes": "Yes", "no": "No", "done": "Done", "later": "Not now", "postpone": "Postpone"}
+# 11 Nov 2026 (Madhav, 07:51: "I couldn't get to know their status or. Mark it done or postpone it. I couldn't do anything here"): every item
+# on the open list can be marked done or postponed from its sheet; a postponed item waits for its date and is due again that day. 14 Dec is
+# the day the crypto scorecard freeze ends, when the rule questions open again.
+POSTPONE = (("tomorrow", "Tomorrow", 1), ("week", "Next week", 7), ("2026-12-14", "On 14 Dec", None))
+
+
+def postpone_options(today=None) -> list[dict]:
+    import datetime as dt
+    d = today or dt.date.today()
+    return [{"id": i, "label": lab} for i, lab, days in POSTPONE if days is not None or str(d) < i]
+
+
+POSTPONE_ROW = {"tomorrow": "Postpone to tomorrow", "week": "Postpone a week", "2026-12-14": "Postpone to 14 Dec"}
+ANSWER_ICON = {"yes": "check", "no": "close", "done": "check", "later": "pause", "postpone": "clock"}
+
+
+def answer_words(said: str, kind: str = "ask", on_yes: str | None = None, due: str | None = None, today=None) -> str:
+    """What one answer does, in a few plain words, for the line under its row (Madhav, 11 Nov 2026, 08:13: "upon clicking, I can select
+    any action, or ... have an explanation of the action"). kind: ask (a board item waiting for him), needs (a crypto card), item (an
+    open-list item he marks done or postpones), drafts."""
+    import datetime as dt
+    if said == "yes":
+        if kind == "needs":
+            return "Ananta does what the card asks, on paper, as if you had said yes in Ask. Your yes is kept with the time."
+        return ("It closes as done. Your yes is kept with the time." if on_yes == "done" else
+                "Ananta goes ahead. It becomes work to do and stays on the open list until it is done. Your yes is kept with the time.")
+    if said == "no":
+        return "It closes with your no, and Ananta does nothing more about it. Your answer is kept with the time."
+    if said == "done":
+        return ("It comes off the open list as done, and Ananta does no more work on it. Your answer is kept with the time." if kind == "item"
+                else "Your step is marked done and the item closes. Your answer is kept with the time.")
+    if said == "later":
+        return (f"It leaves your notifications for {QUIET_DAYS} days: the bell, Home and the phone reminders. It stays on the open list "
+                f"and comes back once after the {QUIET_DAYS} days.")
+    if said == "postpone":
+        d = dt.date.fromisoformat(_postpone_to(due or "tomorrow", today))
+        end = " That is the day the crypto scorecard freeze ends." if d.isoformat() == "2026-12-14" else ""
+        return f"It waits on the open list until {d:%a} {d.day} {d:%b}, and that day it is due again. Nothing is lost.{end}"
+    return ""
+
+
+def answer_rows(key: str | None, step: bool = False, on_yes: str | None = None) -> list[dict]:
+    """A notification's answers as the sheet's rows: id, label, icon and what it does."""
+    kind = str(key or "").split(":", 1)[0]
+    return [{"id": a, "label": ANSWER_LABEL[a], "icon": ANSWER_ICON[a], "explain": answer_words(a, kind=kind, on_yes=on_yes)}
+            for a in answers_for(key, step)]
+
+
+def item_answers(today=None, after: str | None = None) -> list[dict]:
+    """An open-list item's answers as rows: Mark done, then each postpone day as its own row (one tap does it). after: the day a dated
+    item already waits for; a day not later than that is not offered."""
+    rows = [{"id": "done", "label": "Mark done", "icon": "check", "explain": answer_words("done", kind="item")}]
+    for o in postpone_options(today):
+        if after and _postpone_to(o["id"], today) <= str(after)[:10]:
+            continue
+        rows.append({"id": "postpone", "due": o["id"], "label": POSTPONE_ROW.get(o["id"], f"Postpone: {o['label']}"), "icon": "clock",
+                     "explain": answer_words("postpone", kind="item", due=o["id"], today=today)})
+    return rows
+
+
+def _postpone_to(when: str, today=None) -> str:
+    import datetime as dt
+    d = today or dt.date.today()
+    for i, _lab, days in POSTPONE:
+        if when == i and days is not None:
+            return (d + dt.timedelta(days=days)).isoformat()
+    x = dt.date.fromisoformat(str(when)[:10])                 # a date of his own
+    if x <= d:
+        raise ValueError("postpone to a day after today")
+    return x.isoformat()
 
 
 def _answer_tables(j) -> None:
@@ -326,13 +397,14 @@ def _when(now: float) -> str:
         return time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(now))
 
 
-def answer(j, key: str, said: str, by: str = "Madhav", now: float | None = None) -> dict:
+def answer(j, key: str, said: str, by: str = "Madhav", now: float | None = None, due: str | None = None) -> dict:
     """His answer to one waiting item (waiting.collect's id: "ask:<num>", "needs:<id>", ...). yes: a board item whose on_yes is "done" closes;
     any other turns into work to do with his yes written on it, so the work it allows stays on the list until it is done. no: closed with his
-    no. done: his own step, closed. later: cleared from his notifications for QUIET_DAYS. Every answer is logged."""
+    no. done: his own step, closed. later: cleared from his notifications for QUIET_DAYS. An open-list item ("item:<num>", 11 Nov 2026) takes
+    done (closed, by him) or postpone (dated: `due` is tomorrow, week or a day). Every answer is logged."""
     said = str(said or "").strip().lower()
     if said not in ANSWER_LABEL:
-        raise ValueError("the answer is yes, no, done or later")
+        raise ValueError("the answer is yes, no, done, later or postpone")
     _answer_tables(j)
     now = int(now or j.now())
     when = _when(now)
@@ -356,6 +428,24 @@ def answer(j, key: str, said: str, by: str = "Madhav", now: float | None = None)
             note = f"You said yes in the app ({when})" + (" | " + r["note"] if r.get("note") else "")
             j.db.execute("UPDATE owner_requests SET waits='WORK', note=?, updated_t=? WHERE id=?", (note[:400], now, r["id"]))
             out["words"] = "Saved: you said yes. It is now work to do, and stays on the list until it is done."
+    elif kind == "item" and ref.isdigit() and said in ("done", "postpone"):
+        num = int(ref)
+        r = _get(j, num)
+        if not r or r["status"] in ("DONE", "WONT"):
+            raise ValueError("that one is already closed")
+        if said == "done":
+            close(j, num, f"You marked it done in the app ({when}).", done=True, by=f"{by}, in the app", quiet=True)
+            out["words"] = "Saved: done. It is off the open list, and your answer is kept."
+        else:
+            import datetime as dt
+            from zoneinfo import ZoneInfo
+            d = _postpone_to(due or "tomorrow", dt.datetime.fromtimestamp(now, ZoneInfo("America/Toronto")).date())
+            dd = dt.date.fromisoformat(d)
+            set_kind(j, num, "DATE", due=d)
+            note = f"You postponed it to {dd:%a} {dd.day} {dd:%b} in the app ({when})" + (" | " + r["note"] if r.get("note") else "")
+            j.db.execute("UPDATE owner_requests SET note=?, updated_t=? WHERE id=?", (note[:400], now, r["id"]))
+            out["words"] = f"Saved: postponed to {dd:%a} {dd.day} {dd:%b}. It stays on the open list and is due again that day."
+            out["due"] = d
     elif kind == "needs" and said == "yes":
         from jarvis.service import needs
 

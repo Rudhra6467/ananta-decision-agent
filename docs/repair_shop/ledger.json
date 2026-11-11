@@ -1,6 +1,6 @@
 {
  "version": "repair_shop.ledger.v1",
- "updated": "2026-11-10",
+ "updated": "2026-11-11",
  "meaning": {
   "collected": "evidence the watches record by themselves (trades, shadows, sightings, looks)",
   "forwarded": "a question sent to the repair shop because the evidence pointed at a possible problem or opportunity",
@@ -605,6 +605,42 @@
     "docs/research/REVIEW_39_40_RESULTS.md",
     "docs/research/review39.json",
     "src/research/review39.py"
+   ]
+  },
+  {
+   "id": "R41",
+   "date": "2026-11-11",
+   "status": "DONE",
+   "verdict": "FAIL",
+   "title": "After an extreme 15-minute drop, does the price bounce enough to beat costs?",
+   "forwarded_because": "Madhav, 11 Nov 09:03: 'Is there any cutoff edge that we can find in these moments?' One-minute candles had never been used for bounces; earlier intraday studies looked at ordinary setups.",
+   "question": "On one-minute candles (2018 to Jul 2026, PIT30), after a coin's worst 1%, 0.2% or 0.05% of 15-minute moves, does a market buy held 15, 60 or 240 minutes beat the house cost and random entries in both periods?",
+   "result": "FAIL. The bounce is real before costs in all 9 cells and both periods (z 3.2 to 17.3; up to +1.55% a trade for the rarest drops held 4 hours), but every PIT30 cell loses after the house cost (about 1.4-1.6% a round trip). Beside: on PIT10 the rarest drops held 1-4 hours stayed positive after cost but failed the 2x-cost check.",
+   "changed": "Nothing live; no watch added. Named the next question: a resting limit order below the price (review 42).",
+   "files": [
+    "docs/research/REVIEW_41.md",
+    "docs/research/REVIEW_41_RESULTS.md",
+    "docs/research/REVIEW_41_ndax_drop_costs.json",
+    "src/research/review41.py"
+   ]
+  },
+  {
+   "id": "R42",
+   "date": "2026-11-11",
+   "status": "DONE",
+   "verdict": "PASS",
+   "title": "After an extreme drop, does a resting buy order below the price beat costs?",
+   "forwarded_because": "Review 41: the bounce is real before costs but a market buy pays the spread; a resting limit order pays the NDAX fee only. Madhav's yes, 11 Nov 09:20.",
+   "question": "With review 41's data and frozen cut-offs (worst 0.2% and 0.05%), does a limit buy a quarter or a half of the coin's drop size below the price, resting 60 minutes and sold 1 or 4 hours after the fill, beat costs and random orders in both periods on the coins NDAX lists (NDAX30)?",
+   "result": "PASS for one cell of 8: the rarest drops, half-depth order, 4-hour hold: +1.96% then +1.01% a trade after cost, 51% and 45% filled, 299 and 92 independent days, excess z 7.9 and 4.6, +0.21% at double cost in confirm. Designed after review 41 and filled at Binance's prices: not promoted.",
+   "changed": "Nothing live. A recording-only forward test on live paper from 12 Nov (src/research/review42_forward.py, weekly), NDAX's own quotes deciding, read once at 30 independent days (due list EV-R42, watch R42_FWD).",
+   "files": [
+    "docs/research/REVIEW_42.md",
+    "docs/research/REVIEW_42_RESULTS.md",
+    "docs/research/REVIEW_42_FORWARD.md",
+    "docs/research/REVIEW_42_FORWARD_universe.json",
+    "src/research/review42.py",
+    "src/research/review42_forward.py"
    ]
   }
  ],

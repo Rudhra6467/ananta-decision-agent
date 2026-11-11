@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View, type LayoutChangeEvent } from "react-native";
 import { router } from "expo-router";
-import Svg, { Circle, G, Path } from "react-native-svg";
+import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
 import { C, NUM, setTheme, themeName } from "./theme";
 import { AnantaMark } from "./logo";
@@ -81,6 +81,7 @@ const ICONS: Record<string, string> = {
   search: "M11 5a6 6 0 1 0 0 12a6 6 0 1 0 0-12zM20 20l-4.5-4.5", swap: "M7 8h11l-3-3M17 16H6l3 3", home: "M4 11l8-7 8 7M6 10v9h12v-9",
   markets: "M4 19h16M5 15l4-4 3 3 6-7", activity: "M12 4a8 8 0 1 0 0 16a8 8 0 1 0 0-16zM12 8v4l3 2", more: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
   lock: "M6 11h12v9H6zM9 11V8a3 3 0 0 1 6 0v3", plus: "M12 6v12M6 12h12",
+  eyeoff: "M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6zM12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5zM4 4l16 16",
 };
 export function Icon({ name, size = 22, color, stroke = 1.75 }: { name: string; size?: number; color?: string; stroke?: number }) {
   return (
@@ -112,6 +113,49 @@ function Badge({ n }: { n: number }) {
   );
 }
 
+// ---------------------------------------------------------------------------------------------------- hide the amounts
+// Madhav, 10 Nov 2026 19:09: "A hide button next to bell symbol, to hide portfolio numbers from being visible to others". The eye beside the
+// bell hides every amount in rupees or Canadian dollars (the account's money) and every signed US-dollar amount (a trade's result), on every
+// screen; market prices and percentages stay. This device remembers the choice.
+const HKEY = "ananta_hide_money";
+let hiddenNow: boolean | null = null;
+const hiddenSubs = new Set<(v: boolean) => void>();
+function readHidden(): Promise<string | null> {
+  if (Platform.OS === "web") { try { return Promise.resolve(window.localStorage.getItem(HKEY)); } catch { return Promise.resolve(null); } }
+  return SecureStore.getItemAsync(HKEY).catch(() => null);
+}
+function writeHidden(v: boolean) {
+  if (Platform.OS === "web") { try { window.localStorage.setItem(HKEY, v ? "1" : "0"); } catch { /* storage blocked */ } return; }
+  SecureStore.setItemAsync(HKEY, v ? "1" : "0").catch(() => {});
+}
+export function useHidden(): [boolean, () => void] {
+  const [h, setH] = useState<boolean>(!!hiddenNow);
+  useEffect(() => {
+    hiddenSubs.add(setH);
+    if (hiddenNow === null) {
+      hiddenNow = false;
+      readHidden().then((v) => { hiddenNow = v === "1"; hiddenSubs.forEach((f) => f(!!hiddenNow)); });
+    } else setH(hiddenNow);
+    return () => { hiddenSubs.delete(setH); };
+  }, []);
+  const toggle = () => { hiddenNow = !hiddenNow; writeHidden(hiddenNow); hiddenSubs.forEach((f) => f(!!hiddenNow)); };
+  return [h, toggle];
+}
+const MONEY = /([+−-]?\s?)(₹|C\$|US\$)\s?\d[\d,]*(?:\.\d+)?(?![\d,.]*\s?(?:cr\b|crore))/g;     // market flows in crore stay
+const SIGNED_USD = /([+−-])\s?\$\d[\d,]*(?:\.\d+)?/g;
+export const maskMoney = (v: any) => (typeof v === "string" ? v.replace(MONEY, "$1$2••••").replace(SIGNED_USD, "$1$$••••") : v);
+const same = (v: any) => v;
+export function useMask() { const [h] = useHidden(); return h ? maskMoney : same; }
+export function HideButton() {
+  const [h, toggle] = useHidden();
+  return (
+    <Pressable onPress={toggle} accessibilityRole="button" accessibilityLabel={h ? "Show the amounts" : "Hide the amounts"} accessibilityState={{ selected: h }}
+      style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+      <Icon name={h ? "eyeoff" : "eye"} size={24} color={C.text} />
+    </Pressable>
+  );
+}
+
 // 10 · the bell: its count is the open list's "needs your yes" (never red: red only ever means a loss)
 export function Bell({ count }: { count: number }) {
   return (
@@ -140,6 +184,7 @@ export function MarketChip() {
 
 // ---------------------------------------------------------------------------------------------------- 1 · hero number
 function Hero({ p }: { p: any }) {
+  const m = useMask();
   return (
     <View style={{ gap: 6, marginTop: 4 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
@@ -151,9 +196,9 @@ function Hero({ p }: { p: any }) {
           </View>
         ) : null}
       </View>
-      <Text style={[T.hero, { color: C.text }, String(p.value).length > 11 ? { fontSize: 32, lineHeight: 40 } : null]} numberOfLines={1} adjustsFontSizeToFit>{p.value}</Text>
+      <Text style={[T.hero, { color: C.text }, String(p.value).length > 11 ? { fontSize: 32, lineHeight: 40 } : null]} numberOfLines={1} adjustsFontSizeToFit>{m(p.value)}</Text>
       {p.change || p.since ? (
-        <Text style={[T.row, { color: toneColor(p.tone) ?? C.text }]}>{p.change ? p.change + " " : ""}<Text style={{ color: C.dim, fontWeight: "500" }}>{p.since}</Text></Text>
+        <Text style={[T.row, { color: toneColor(p.tone) ?? C.text }]}>{p.change ? m(p.change) + " " : ""}<Text style={{ color: C.dim, fontWeight: "500" }}>{p.since}</Text></Text>
       ) : null}
     </View>
   );
@@ -161,12 +206,13 @@ function Hero({ p }: { p: any }) {
 
 // the "Today" card: one line, one sentence, a chevron
 function TodayCard({ p }: { p: any }) {
+  const m = useMask();
   return (
     <Pressable onPress={() => go(p.to)} accessibilityRole="button" style={[card(), { padding: 16, gap: 6 }]}>
       <Text style={[T.meta, { color: C.gold }]}>{p.label}</Text>
-      <Text style={[T.today, { color: C.text }]}>{p.line}</Text>
+      <Text style={[T.today, { color: C.text }]}>{m(p.line)}</Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Text style={[T.body, { color: C.dim, flex: 1 }]}>{p.sub}</Text>
+        <Text style={[T.body, { color: C.dim, flex: 1 }]}>{m(p.sub)}</Text>
         {p.to ? <Chev /> : null}
       </View>
     </Pressable>
@@ -188,10 +234,11 @@ function Spark({ values, tone, w, h = 40 }: { values: number[]; tone?: string; w
   );
 }
 function BoxBody({ b, w }: { b: any; w: number }) {
+  const m = useMask();
   return (
     <>
       <Text style={[T.meta, { color: C.dim }]} numberOfLines={1}>{cap(b.label)}</Text>
-      <Text style={[T.box, { color: C.text }, String(b.value).length > 8 ? { fontSize: 20 } : null]} numberOfLines={1}>{b.value}</Text>
+      <Text style={[T.box, { color: C.text }, String(b.value).length > 8 ? { fontSize: 20 } : null]} numberOfLines={1}>{m(b.value)}</Text>
       {b.spark ? <Spark values={b.spark} tone={b.tone} w={w} /> : null}
       {b.bar ? (
         <View accessibilityLabel={`${Math.round(100 * ((b.bar[0] || 0) + (b.bar[1] || 0)))}% of the account`} style={{ height: 40, justifyContent: "center" }}>
@@ -200,8 +247,8 @@ function BoxBody({ b, w }: { b: any; w: number }) {
           </View>
         </View>
       ) : null}
-      {b.change ? <Text style={[T.meta, { color: toneColor(b.tone) ?? C.dim }]} numberOfLines={1}>{b.change} <Text style={{ color: C.dim, fontWeight: "500" }}>{b.since || ""}</Text></Text> : null}
-      {b.caption ? <Text style={[T.meta, { color: C.dim, fontWeight: "500" }]} numberOfLines={1}>{b.caption}</Text> : null}
+      {b.change ? <Text style={[T.meta, { color: toneColor(b.tone) ?? C.dim }]} numberOfLines={1}>{m(b.change)} <Text style={{ color: C.dim, fontWeight: "500" }}>{b.since || ""}</Text></Text> : null}
+      {b.caption ? <Text style={[T.meta, { color: C.dim, fontWeight: "500" }]} numberOfLines={1}>{m(b.caption)}</Text> : null}
     </>
   );
 }
@@ -274,19 +321,20 @@ function Peek({ p }: { p: any }) {
 
 // ---------------------------------------------------------------------------------------------------- 3 · row, 4 · section with a chevron
 export function Row({ r, last }: { r: any; last?: boolean }) {
+  const m = useMask();
   const left = r.icon ? <IconTile name={r.icon} tint={r.tint} /> : r.letter || r.grade ? <Letter ch={r.letter} grade={r.grade} /> : null;
   const body = (
     <>
       {left}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={[T.row, { color: C.text }]} numberOfLines={1}>{cap(r.title)}</Text>
-        {r.sub ? <Text style={[T.meta, { color: C.dim, fontWeight: "500" }]} numberOfLines={1}>{r.sub}</Text> : null}
+        <Text style={[T.row, { color: C.text }]} numberOfLines={1}>{m(cap(r.title))}</Text>
+        {r.sub ? <Text style={[T.meta, { color: C.dim, fontWeight: "500" }]} numberOfLines={1}>{m(r.sub)}</Text> : null}
       </View>
       {r.chip ? <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: C.line }}><Text style={[T.small, { color: C.dim, fontWeight: "600" }]}>{r.chip}</Text></View> : null}
       {r.right ? (
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={[r.right_tone || /[₹$\d]/.test(r.right) ? T.row : T.meta, { color: (r.right_sub ? undefined : toneColor(r.right_tone)) ?? (/[₹$\d]/.test(r.right) ? C.text : C.dim), ...NUM }]} numberOfLines={1}>{r.right}</Text>
-          {r.right_sub ? <Text style={[T.meta, { color: toneColor(r.right_tone) ?? C.dim }]}>{r.right_sub}</Text> : null}
+          <Text style={[r.right_tone || /[₹$\d]/.test(r.right) ? T.row : T.meta, { color: (r.right_sub ? undefined : toneColor(r.right_tone)) ?? (/[₹$\d]/.test(r.right) ? C.text : C.dim), ...NUM }]} numberOfLines={1}>{m(r.right)}</Text>
+          {r.right_sub ? <Text style={[T.meta, { color: toneColor(r.right_tone) ?? C.dim }]}>{m(r.right_sub)}</Text> : null}
         </View>
       ) : null}
       {r.to && !r.right && !r.chip ? <Chev /> : null}
@@ -339,6 +387,7 @@ function Chips({ p, on, set }: { p: any; on: string; set: (id: string) => void }
 
 // ---------------------------------------------------------------------------------------------------- 6 · tile grid (things not set up yet look quieter)
 function Tiles({ p, needs }: { p: any; needs?: any }) {
+  const m = useMask();
   const items = (p.items || []).map((x: any) => {
     if (x.t === "needs_tile") return { ...x, value: needs ? needs.list_value : "—" };
     if (x.t === "push_tile") return needs && !needs.push?.on ? { ...x, value: "Not set up yet", quiet: true, to: needs.push?.to } : { ...x, value: needs ? "On" : "—" };
@@ -362,7 +411,7 @@ function Tiles({ p, needs }: { p: any; needs?: any }) {
             </View>
             <View>
               <Text style={[T.meta, { color: C.text }]} numberOfLines={1}>{x.label}</Text>
-              {x.value ? <Text style={[T.small, { color: C.dim }]} numberOfLines={1}>{x.value}</Text> : null}
+              {x.value ? <Text style={[T.small, { color: C.dim }]} numberOfLines={1}>{m(x.value)}</Text> : null}
             </View>
           </Pressable>
         ))}
@@ -373,29 +422,32 @@ function Tiles({ p, needs }: { p: any; needs?: any }) {
 
 // ---------------------------------------------------------------------------------------------------- 7 · information page pieces, 8 · receipt
 function Pill({ p }: { p: any }) {
+  const m = useMask();
   const fg = toneColor(p.tone) ?? C.text;
   return (
     <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, height: 28, paddingHorizontal: 12, borderRadius: 999,
       backgroundColor: p.tone === "warn" ? C.warnSoft : p.tone === "good" ? C.goodSoft : p.tone === "bad" ? C.badSoft : C.card2 }}>
       {p.icon ? <Icon name={p.icon} size={14} color={fg} stroke={2.2} /> : null}
-      <Text style={[T.meta, { color: fg }]}>{p.text}</Text>
+      <Text style={[T.meta, { color: fg }]}>{m(p.text)}</Text>
     </View>
   );
 }
 function Points({ p }: { p: any }) {
+  const m = useMask();
   return (
     <View style={{ gap: 12 }}>
       {p.title ? <Text style={[T.section, { color: C.text }]}>{p.title}</Text> : null}
       {(p.items || []).map((x: any, i: number) => (
         <View key={i} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
           <Icon name={x.icon || (x.tone === "bad" ? "down" : x.tone === "good" ? "up" : "check")} color={toneColor(x.tone) ?? C.dim} />
-          <Text style={[T.body, { color: C.text, flex: 1 }]}>{x.text}</Text>
+          <Text style={[T.body, { color: C.text, flex: 1 }]}>{m(x.text)}</Text>
         </View>
       ))}
     </View>
   );
 }
 function KV({ p }: { p: any }) {
+  const m = useMask();
   return (
     <View style={{ gap: 4 }}>
       {p.title ? <Text style={[T.section, { color: C.text, minHeight: 32 }]}>{p.title}</Text> : null}
@@ -408,8 +460,8 @@ function KV({ p }: { p: any }) {
               {r.k_sub ? <Text style={[T.meta, { color: C.dim, fontWeight: "500" }]}>{r.k_sub}</Text> : null}
             </View>
             <View style={{ alignItems: "flex-end", flexShrink: 1 }}>
-              <Text style={[{ fontSize: r.bold ? 16 : 15, fontWeight: r.bold ? "700" : "600", ...NUM }, { color: toneColor(r.tone) ?? C.text, textAlign: "right" }]}>{r.v}</Text>
-              {r.v_sub ? <Text style={[T.meta, { color: C.dim, fontWeight: "500" }]}>{r.v_sub}</Text> : null}
+              <Text style={[{ fontSize: r.bold ? 16 : 15, fontWeight: r.bold ? "700" : "600", ...NUM }, { color: toneColor(r.tone) ?? C.text, textAlign: "right" }]}>{m(r.v)}</Text>
+              {r.v_sub ? <Text style={[T.meta, { color: C.dim, fontWeight: "500" }]}>{m(r.v_sub)}</Text> : null}
             </View>
           </View>
         ))}
@@ -419,6 +471,7 @@ function KV({ p }: { p: any }) {
   );
 }
 function Bars({ p }: { p: any }) {
+  const m = useMask();
   return (
     <View style={[card(), { padding: 16, gap: 18 }]}>
       {p.title ? <Text style={[T.section, { color: C.text }]}>{p.title}</Text> : null}
@@ -428,7 +481,7 @@ function Bars({ p }: { p: any }) {
           <View key={b.name} style={{ gap: 8 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
               <Text style={[T.row, { color: C.text, flexShrink: 1 }]}>{b.name}</Text>
-              <Text style={[T.meta, { color: C.dim, fontWeight: "500", ...NUM }]}>{b.right}</Text>
+              <Text style={[T.meta, { color: C.dim, fontWeight: "500", ...NUM }]}>{m(b.right)}</Text>
             </View>
             <View accessibilityLabel={`${b.done} of ${b.need}`} style={{ height: 6, borderRadius: 3, backgroundColor: C.card2 }}>
               {f > 0 ? <View style={{ width: `${Math.round(100 * f)}%`, height: 6, borderRadius: 3, backgroundColor: C.text }} /> : null}
@@ -441,6 +494,7 @@ function Bars({ p }: { p: any }) {
   );
 }
 function Split({ p }: { p: any }) {
+  const m = useMask();
   const shade = (s: string) => (s === "ink" ? C.text : s === "dim" ? C.faint : C.card2);
   return (
     <View style={{ gap: 4 }}>
@@ -453,7 +507,7 @@ function Split({ p }: { p: any }) {
           <View key={x.label} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, borderBottomWidth: i === p.parts.length - 1 ? 0 : 1, borderBottomColor: C.line2 }}>
             <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: shade(x.shade), borderWidth: x.shade === "faint" ? 1 : 0, borderColor: C.faint }} />
             <Text style={[T.body, { color: C.text, flex: 1 }]}>{x.label}</Text>
-            <Text style={[T.row, { color: C.text, ...NUM }]}>{x.value}</Text>
+            <Text style={[T.row, { color: C.text, ...NUM }]}>{m(x.value)}</Text>
           </View>
         ))}
       </View>
@@ -461,6 +515,7 @@ function Split({ p }: { p: any }) {
   );
 }
 function Chart({ p }: { p: any }) {
+  const m = useMask();
   const [w, setW] = useState(0);
   const h = 138;
   const all = (p.lines || []).flatMap((l: any) => l.values || []).concat(p.baseline != null ? [p.baseline] : []);
@@ -488,7 +543,7 @@ function Chart({ p }: { p: any }) {
           })}
         </Svg>
       ) : <View style={{ height: h }} />}
-      {p.left || p.right ? <View style={{ flexDirection: "row", justifyContent: "space-between" }}><Text style={[T.meta, { color: C.dim, fontWeight: "500" }]}>{p.left}</Text><Text style={[T.meta, { color: C.dim, fontWeight: "500" }]}>{p.right}</Text></View> : null}
+      {p.left || p.right ? <View style={{ flexDirection: "row", justifyContent: "space-between" }}><Text style={[T.meta, { color: C.dim, fontWeight: "500" }]}>{m(p.left)}</Text><Text style={[T.meta, { color: C.dim, fontWeight: "500" }]}>{m(p.right)}</Text></View> : null}
       {p.legend ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 14 }}>
           {p.legend.map((l: any) => (
@@ -500,6 +555,148 @@ function Chart({ p }: { p: any }) {
         </View>
       ) : null}
       {p.caption ? <Text style={[T.meta, { color: C.dim, fontWeight: "500" }]}>{p.caption}</Text> : null}
+    </View>
+  );
+}
+// ---------------------------------------------------------------------------------------------------- 13 · price chart with ranges and timeframes
+// Madhav, 10 Nov 2026 19:09: "the 4 objects in 2 boxes from home tab has to show their respective charts ... with more filters like
+// 1D,5D,1M,3M,6M and timeframes of 5M,15M,30M,1H,4H,1D". The server says what fits (jarvis/chartkit.py: 4 to 300 candles a chart); this
+// draws candles or a line, the two rows of chips, and a finger on the chart reads one candle.
+const DAYS3 = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MON3 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const TFW: Record<string, string> = { "5M": "5-minute", "15M": "15-minute", "30M": "30-minute", "1H": "Hourly", "4H": "4-hour", "1D": "Daily" };
+function group(n: number, dp: number, indian: boolean) {
+  const [i, f] = Math.abs(n).toFixed(dp).split(".");
+  const g = indian && i.length > 3 ? i.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + i.slice(-3) : i.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return f ? `${g}.${f}` : g;
+}
+export function fmtAmount(v: number | null | undefined, ccy: string, signed = false) {
+  if (v == null || !isFinite(v)) return "—";
+  const sign = v < 0 ? "−" : signed && v > 0 ? "+" : "";
+  if (ccy === "%") return `${sign}${Math.abs(v).toFixed(2)}%`;
+  const dp = ccy === "₹" ? 0 : ccy === "C$" ? 2 : ccy === "$" ? (Math.abs(v) >= 1000 ? 0 : 2) : 2;
+  return `${sign}${ccy}${group(v, dp, ccy === "₹")}`;
+}
+function tLabel(t: number, tz: number, intraday: boolean, withDay: boolean) {
+  const d = new Date((t + tz * 60) * 1000);
+  const day = `${DAYS3[d.getUTCDay()]} ${d.getUTCDate()} ${MON3[d.getUTCMonth()]}`;
+  if (!intraday) return day;
+  const hm = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+  return withDay ? `${day}, ${hm}` : hm;
+}
+function ChipRow({ items, on, set, label }: { items: { id: string; ok?: boolean; text?: string }[]; on?: string; set: (id: string) => void; label: string }) {
+  return (
+    <View accessibilityLabel={label} style={{ flexDirection: "row", gap: 6 }}>
+      {items.map((x) => {
+        const sel = x.id === on, ok = x.ok !== false;
+        return (
+          <Pressable key={x.id} disabled={!ok} onPress={() => set(x.id)} accessibilityRole="button" accessibilityState={{ selected: sel, disabled: !ok }}
+            accessibilityLabel={`${label} ${x.text ?? x.id}${ok ? "" : ", not offered for this range"}`}
+            style={{ flex: 1, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: sel ? C.text : "transparent",
+              borderWidth: sel ? 0 : 1, borderColor: C.line, opacity: ok ? 1 : 0.35 }}>
+            <Text style={[T.small, { color: sel ? C.bg : C.text, fontWeight: "700" }]}>{x.text ?? x.id}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+function PriceChart({ p }: { p: any }) {
+  const [rng, setRng] = useState<string>(p.range ?? "");
+  const [tf, setTf] = useState<string>(p.tf ?? "");
+  const [mode, setMode] = useState<"candles" | "line">("candles");
+  const { data: d, err, loading } = useData<any>(`/v3/candles/${encodeURIComponent(p.sym)}?range=${rng}&tf=${tf}`, rng === "" || rng === "1D" ? 60000 : 300000);
+  const [w, setW] = useState(0);
+  const [at, setAt] = useState<number | null>(null);
+  const [hidden] = useHidden();
+  const H = 190;
+  const bars: number[][] = d?.bars ?? [];
+  const ccy: string = d?.ccy ?? "";
+  const veil = hidden && (ccy === "₹" || ccy === "C$");
+  const fmt = (v: number, signed = false) => (veil ? `${ccy}••••` : fmtAmount(v, ccy, signed));
+  const isLine = d?.kind === "line" || mode === "line";
+  const n = bars.length;
+  const lo = n ? Math.min(...bars.map((b) => (isLine ? b[4] : b[3]))) : 0;
+  const hi = n ? Math.max(...bars.map((b) => (isLine ? b[4] : b[2]))) : 1;
+  const pad = (hi - lo) * 0.08 || Math.abs(hi) * 0.01 || 1;
+  const y0 = lo - pad, y1 = hi + pad;
+  const Y = (v: number) => 4 + (H - 8) * (1 - (v - y0) / (y1 - y0));
+  const step = n ? w / n : 1;
+  const X = (i: number) => step * (i + 0.5);
+  const cw = Math.max(1, Math.min(9, step * 0.62));
+  const pick = (x: number) => (n ? Math.max(0, Math.min(n - 1, Math.floor(x / step))) : null);
+  const cur = at != null && bars[at] ? bars[at] : null;
+  const tz = d?.tz_min ?? 0, intra = !!d?.intraday;
+  const chg = d?.change, pct = d?.change_pct;
+  const tone = chg == null || d?.neutral ? undefined : chg > 0 ? "good" : chg < 0 ? "bad" : undefined;
+  const ranges: string[] = d?.ranges ?? (p.kind === "line" ? [] : ["1D", "5D", "1M", "3M", "6M"]);
+  const tfs: { id: string; ok: boolean }[] = d?.tfs ?? [];
+  const head = d ? `${d.name} · ${d.kind === "line" ? (d.fell_back ? "daily closes" : `one point a ${d.market === "india" ? "session" : "night"}`) : `${TFW[d.tf] ?? d.tf} ${mode === "line" ? "closes" : "candles"}`}` : p.name;
+  return (
+    <View style={[card(), { padding: 16, gap: 12 }]}>
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12, minHeight: 40 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={[T.meta, { color: C.dim }]} numberOfLines={1}>{cur ? tLabel(cur[0], tz, intra, true) : head}</Text>
+          {cur ? (
+            <Text style={[T.row, { color: C.text, ...NUM }]} numberOfLines={1} adjustsFontSizeToFit>
+              {isLine ? fmt(cur[4]) : `O ${fmt(cur[1])}  H ${fmt(cur[2])}  L ${fmt(cur[3])}  C ${fmt(cur[4])}`}
+            </Text>
+          ) : d && chg != null ? (
+            <Text style={[T.row, { color: toneColor(tone) ?? C.text, ...NUM }]} numberOfLines={1}>
+              {ccy === "%" ? fmtAmount(chg, "%", true) : fmt(chg, true)}{pct != null && ccy !== "%" ? ` (${fmtAmount(pct, "%", true)})` : ""}{" "}
+              <Text style={{ color: C.dim, fontWeight: "500" }}>{d.over}</Text>
+            </Text>
+          ) : null}
+        </View>
+        {d?.kind === "candles" ? (
+          <Pressable onPress={() => setMode(mode === "line" ? "candles" : "line")} accessibilityRole="button" accessibilityLabel={mode === "line" ? "Show candles" : "Show a line"}
+            style={{ height: 32, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" }}>
+            <Text style={[T.small, { color: C.text, fontWeight: "700" }]}>{mode === "line" ? "Candles" : "Line"}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      <View style={{ height: H }} onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}
+        onStartShouldSetResponder={() => n > 0} onMoveShouldSetResponder={() => n > 0}
+        onResponderGrant={(e) => setAt(pick(e.nativeEvent.locationX))} onResponderMove={(e) => setAt(pick(e.nativeEvent.locationX))}
+        onResponderRelease={() => setAt(null)} onResponderTerminate={() => setAt(null)}
+        accessibilityLabel={d && n ? `${head}: from ${fmt(bars[0][isLine ? 4 : 1])} to ${fmt(bars[n - 1][4])}, high ${fmt(hi)}, low ${fmt(lo)}` : "Chart"}>
+        {w > 20 && n ? (
+          <Svg width={w} height={H} pointerEvents="none">
+            {d.kind === "line" ? <Path d={`M0 ${Y(bars[0][4]).toFixed(1)}H${w}`} stroke={C.line} strokeDasharray="2 4" /> : null}
+            {isLine ? (
+              <Path d={bars.map((b, i) => `${i ? "L" : "M"}${X(i).toFixed(1)} ${Y(b[4]).toFixed(1)}`).join("")} stroke={C.gold} strokeWidth={2} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+            ) : bars.map((b, i) => {
+              const col = b[4] >= b[1] ? C.good : C.bad;
+              const top = Y(Math.max(b[1], b[4])), bot = Y(Math.min(b[1], b[4]));
+              return (
+                <G key={i}>
+                  <Path d={`M${X(i).toFixed(1)} ${Y(b[2]).toFixed(1)}V${Y(b[3]).toFixed(1)}`} stroke={col} strokeWidth={1} />
+                  <Rect x={X(i) - cw / 2} y={top} width={cw} height={Math.max(1, bot - top)} fill={col} />
+                </G>
+              );
+            })}
+            {isLine && n <= 40 ? bars.map((b, i) => <Circle key={i} cx={X(i)} cy={Y(b[4])} r={2.5} fill={C.gold} />) : null}
+            {cur ? <Path d={`M${X(at as number).toFixed(1)} 0V${H}`} stroke={C.dim} strokeWidth={1} strokeDasharray="3 3" /> : null}
+            {cur ? <Circle cx={X(at as number)} cy={Y(cur[4])} r={4} fill={C.text} stroke={C.card} strokeWidth={2} /> : null}
+          </Svg>
+        ) : (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 12 }}>
+            <Text style={[T.meta, { color: C.dim, fontWeight: "500", textAlign: "center" }]}>{err ? err : loading ? "Loading the chart…" : d?.fell_back || "Nothing to draw yet."}</Text>
+          </View>
+        )}
+        {w > 20 && n ? <Text pointerEvents="none" style={[T.small, { position: "absolute", left: 0, top: 0, color: C.dim, ...NUM }]}>{fmt(hi)}</Text> : null}
+        {w > 20 && n ? <Text pointerEvents="none" style={[T.small, { position: "absolute", left: 0, bottom: 0, color: C.dim, ...NUM }]}>{fmt(lo)}</Text> : null}
+      </View>
+      {n ? (
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text style={[T.small, { color: C.dim }]}>{tLabel(bars[0][0], tz, intra, d.range !== "1D")}</Text>
+          <Text style={[T.small, { color: C.dim }]}>{tLabel(bars[n - 1][0], tz, intra, d.range !== "1D")}</Text>
+        </View>
+      ) : null}
+      {ranges.length > 1 ? <ChipRow label="Range" items={ranges.map((r) => ({ id: r, text: r === "ALL" ? "All" : r }))} on={d?.range ?? rng} set={(r) => { setAt(null); setRng(r); }} /> : null}
+      {d?.kind === "candles" && tfs.length ? <ChipRow label="Candle" items={tfs.map((x) => ({ id: x.id, ok: x.ok }))} on={d?.tf ?? tf} set={(x) => { setAt(null); setTf(x); }} /> : null}
+      {d?.fell_back && n ? <Text style={[T.meta, { color: C.warn, fontWeight: "500" }]}>{d.fell_back}</Text> : null}
+      {d?.note ? <Text style={[T.small, { color: C.dim }]}>{d.note}</Text> : null}
     </View>
   );
 }
@@ -662,6 +859,7 @@ export function Parts({ data, needs }: { data: any; needs?: any }) {
       case "bars": out.push(<Bars key={k} p={p} />); break;
       case "split": out.push(<Split key={k} p={p} />); break;
       case "chart": out.push(<Chart key={k} p={p} />); break;
+      case "pricechart": out.push(<PriceChart key={`${k}${p.sym}`} p={p} />); break;
       case "counts": out.push(<Counts key={k} p={p} />); break;
       case "link": out.push(<Pressable key={k} onPress={() => go(p.to)} accessibilityRole="link" style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 4 }}><Text style={[T.row, { color: C.gold }]}>{p.label}</Text></Pressable>); break;
       case "identity": out.push(

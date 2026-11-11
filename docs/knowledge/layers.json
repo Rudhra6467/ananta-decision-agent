@@ -874,6 +874,7 @@
     "jarvis/service/surfaces.py",
     "jarvis/service/places.py",
     "jarvis/placekit.py",
+    "jarvis/chartkit.py",
     "jarvis/service/exam.py",
     "jarvis/service/nightcheck.py",
     "jarvis/service/openlist.py",

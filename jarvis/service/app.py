@@ -1599,6 +1599,20 @@ def place(name: str, m: str = "crypto", who: str = Depends(owner)) -> dict:
         raise HTTPException(status_code=404, detail=f"No such place: {name}") from e
 
 
+@app.get("/v3/candles/{sym}")
+def candles(sym: str, request: Request, tf: str = "", who: str = Depends(owner)) -> dict:
+    """The charts behind a tap (Madhav, 10 Nov 2026): BTC, ETH or SOL candles for ?range=1D|5D|1M|3M|6M and ?tf=5M|15M|30M|1H|4H|1D, and
+    COINS, CASH or ACCOUNT, the $500 book's own history (the owner only). jarvis/service/places.py candles(). Read-only."""
+    from jarvis.service import places
+
+    try:
+        return places.candles(_main(), sym, request.query_params.get("range"), tf, is_owner=not is_guest(who))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=f"No chart for {sym}: Bitcoin, Ethereum, Solana, your coins, your cash or the account") from e
+
+
 @app.get("/v3/surface/chart/{name}")
 def surface_chart(name: str, who: str = Depends(owner)) -> dict:
     """The new look's charts for crypto (Madhav, 10 Nov 2026): BTC, ETH and SOL (daily closes with the dial's two averages) and PORTFOLIO

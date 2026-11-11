@@ -147,6 +147,7 @@ def test_a_buy_that_left_the_holdings_without_a_sale_is_said(tmp_path):
 def _fake_today(monkeypatch, tmp_path, dial=CLOSED, book=BOOK, fills=()):
     from jarvis.service import discipline, exposure, feed, health, waiting
     j = _j_with_fills(tmp_path, list(fills))
+    monkeypatch.setattr(S, "_night_test", lambda: None)        # 10 Nov evening: the live night test's first record must not reach a fixed fixture
     monkeypatch.setattr(S, "_book", lambda j: dict(book))
     monkeypatch.setattr(S, "_dial", lambda j: dict(dial))
     monkeypatch.setattr(S, "_officer_note", lambda j: {"day": "2026-11-10", "text": "The account sat in cash, worth about C$439.49. The H07 losses stopped. Nothing needs you."})

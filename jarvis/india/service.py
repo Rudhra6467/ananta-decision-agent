@@ -662,6 +662,20 @@ def chart(name: str, who: str = Depends(signed_in)) -> dict:
             "note": "daily closes as of the last session; zones are swing levels plus or minus half a round step; a description, never a rule"}
 
 
+@r.get("/v3/candles/{name}")
+def candles(name: str, request: Request, tf: str = "", who: str = Depends(signed_in)) -> dict:
+    """The charts behind a tap (Madhav, 10 Nov 2026): NIFTY, BANKNIFTY or VIX candles for ?range=1D|5D|1M|3M|6M and ?tf=5M|15M|30M|1H|4H|1D
+    (Kite, read-only), and STOCKS or OPTIONS, his own history (the owner only). jarvis/india/places.py candles()."""
+    from jarvis.india import places as _pl
+
+    try:
+        return _pl.candles(name, request.query_params.get("range"), tf, full=(who == "owner" or not who.startswith("guest:")))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=f"No chart for {name}: Nifty, Bank Nifty, the fear gauge, your stocks or the options line") from e
+
+
 @r.get("/v3/{name:path}")
 def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
     fn = india_views.ROUTES.get(name)

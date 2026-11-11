@@ -18,7 +18,7 @@ import re
 OVERVIEWS = ("home", "markets", "more")          # rules 3 and 4 are for these first layers
 TONES = (None, "good", "bad", "warn")
 PART_TYPES = ("hero", "today", "boxes", "peek", "rows", "chips", "tiles", "pill", "heading", "line", "points", "trust", "kv", "notices",
-              "bars", "split", "chart", "link", "identity", "counts", "needs")     # needs: the app fills it from /v3/place/needs (the open list)
+              "bars", "split", "chart", "link", "identity", "counts", "needs", "pricechart")     # needs: the app fills it from /v3/place/needs (the open list)
 # word budgets (rule 2 to 4 and 8); the app's row is cut at one line anyway, the budget keeps the words whole
 MAX = {"row_title": 6, "row_sub": 9, "row_right": 4, "today_line": 9, "today_sub": 13, "notice": 11, "point_overview": 10, "points_overview": 3,
        "rows_overview": 3, "tile_label": 3, "tile_value": 4, "chip": 4, "box_label": 3, "box_caption": 6, "foot": 16, "page_line": 22,
@@ -192,6 +192,12 @@ def chart(lines, left=None, right=None, legend=None, caption=None, label=None, b
     """lines: [{"values": [...], "style": "main" | "dash" | "dot", "color": "ink" | "bronze" | "dim", "last_dash": n}]; one shared scale."""
     return _drop({"t": "chart", "lines": [_drop(x) for x in lines if x and x.get("values")], "left": left, "right": right, "legend": legend,
                   "caption": caption, "label": label, "baseline": baseline})
+
+
+def pricechart(sym: str, name: str, kind: str = "candles", rng: str | None = None, tf: str | None = None, private: bool = False, caption: str | None = None) -> dict:
+    """A chart the app fetches itself (/v3/candles/<sym>?range=&tf=) with its range and timeframe chips (jarvis/chartkit.py). kind: candles for
+    a price, line for a history of the account; private: the amounts hide with the hide button."""
+    return _drop({"t": "pricechart", "sym": sym, "name": name, "kind": kind, "range": rng, "tf": tf, "private": private or None, "caption": caption})
 
 
 def link(label, to) -> dict:

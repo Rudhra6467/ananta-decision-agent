@@ -233,7 +233,7 @@ def _index_boxes(t: dict) -> list[dict]:
         if p.get("label") != name:
             continue
         out.append(K.box(name, p.get("value") or "—", change=chg, tone=p.get("tone"), since=str(p.get("sub2") or "").replace(" close", "") or None,
-                         spark=_spark(key), to=K.tab("markets")))
+                         spark=_spark(key), to=K.place({"NIFTY 50": "nifty", "NIFTY BANK": "banknifty"}[key])))
     return out
 
 
@@ -291,7 +291,7 @@ def home(full: bool = True) -> dict:
                     status={"ok": bool((t.get("running") or {}).get("ok")), "words": "Running" if (t.get("running") or {}).get("ok") else "Needs a look"}),
              K.today(label, line, sub, to=K.place("plan")),
              K.boxes([K.paged(_index_boxes(t)),
-                      K.paged([K.box("In stocks", _rs(stocks), bar=[round(stocks / tot, 3), round(opts / tot, 3)], caption=f"{mb.get('positions') or len(m.get('holdings') or [])} stocks", to=K.place("account")),
+                      K.paged([K.box("In stocks", _rs(stocks), bar=[round(stocks / tot, 3), round(opts / tot, 3)], caption=f"{mb.get('positions') or len(m.get('holdings') or [])} stocks", to=K.place("stocks")),
                                K.box("Options", _rs(opts), bar=[0, round(opts / tot, 3)], caption=_options_caption(t, m), to=K.place("options"))])]),
              {"t": "needs", "title": "Needs you", "badge": True, "more": K.place("notices")},
              K.rows("What Ananta did", top, more=K.tab("activity")) if top else None,
@@ -307,7 +307,8 @@ def markets(full: bool = True) -> dict:
     cards = []
     for p in pages:
         mm = re.search(r"\(([+−-]?[\d.]+%)\)", str(p.get("sub") or ""))
-        cards.append(K.box(p.get("label"), p.get("value"), change=mm.group(1).replace("-", "−") if mm else None, tone=p.get("tone")))
+        cards.append(K.box(p.get("label"), p.get("value"), change=mm.group(1).replace("-", "−") if mm else None, tone=p.get("tone"),
+                           to=K.place({"Nifty 50": "nifty", "Bank Nifty": "banknifty"}.get(p.get("label"), "nifty"))))
     vix = None
     for c in t.get("cards") or []:
         for x in c.get("points") or []:
@@ -315,7 +316,7 @@ def markets(full: bool = True) -> dict:
             if v and not vix:
                 vix = v.group(1)
     if vix:
-        cards.append(K.box("Fear gauge", vix, caption="India VIX"))
+        cards.append(K.box("Fear gauge", vix, caption="India VIX", to=K.place("vix")))
     when = (pages[0].get("sub2") if pages else None) or ""
     view = mv.get("view") or []
     trend = next((x for x in view if "uptrend" in x or "downtrend" in x), "")
@@ -344,13 +345,20 @@ def options_page(full: bool = True) -> dict:
     m = IS.money(full)
     ob, op = m.get("options_book") or {}, m.get("options") or {}
     rows = [K.kvrow(IDX.get(r.get("index"), r.get("index")), _rs(r.get("rupees"), sign=True), k_sub=f"{r.get('trades')} trades", tone=_tone(r.get("rupees"))) for r in ob.get("by_index") or []]
+    try:
+        trades = [json.loads(x) for x in (views.DATA / "paper" / "sp1" / "outcomes.jsonl").read_text().splitlines() if x.strip()][::-1]
+    except (OSError, ValueError):
+        trades = []
     parts = [K.hero("Options, set aside", _rs(ob.get("set_aside_inr")), change=_rs(ob.get("pnl_inr"), sign=True) if ob.get("pnl_inr") is not None else None, tone=_tone(ob.get("pnl_inr")),
                     since=f"over {ob.get('sessions')} sessions, on paper"),
+             K.pricechart("OPTIONS", "The options line", kind="line", private=True),
              K.line(str(ob.get("open_words") or "")), K.kv(rows, title="By index"),
+             K.rows("Trades on paper", [_trade_row(r) for r in trades[:3]], count=len(trades), more=K.to_page(option_trades_page(trades)) if len(trades) > 3 else None) if trades and full else None,
              K.bars([K.bar("Sessions on record", ob.get("sessions") or 0, 20, right=f"{ob.get('sessions') or 0} of 20", note="It earns a bigger share only after 20")]),
              K.points([IS._tidy(op.get("words"))]) if op.get("words") else None,
              K.trust(str(ob.get("words") or ""))]
-    return K.page("Options", parts, ask_q="How is the options line doing, and what does it decide each morning?")
+    return K.page("Options", parts, ask_q="How is the options line doing, and what does it decide each morning?",
+                  second={"label": "Show the portfolio", "to": K.place("account")} if full else None)
 
 
 # ------------------------------------------------------------------------------------------------ the account page
@@ -450,14 +458,246 @@ def more(full: bool = True) -> dict:
     return K.surface("more", "india", parts, title="More")
 
 
+# ------------------------------------------------------------------------------------------------ charts behind a tap
+# Madhav, 10 Nov 2026 19:09 Toronto: "the 4 objects in 2 boxes from home tab has to show their respective charts ... with more filters like
+# 1D,5D,1M,3M,6M and timeframes of 5M,15M,30M,1H,4H,1D. for stocks and options in the second box, it should show their own respective graphs
+# representing their historical performance with an option there to show the portfolio and ask ananta about it" and "In the markets tab, the
+# boxes nifty 50, bank nifty and fear gauge should also be clickable and show their historical details". His request covers these India
+# screens and the candles they draw (read from Kite, read-only, kept in memory; no new data file).
+IDX_PAGES = {"nifty": ("NIFTY 50", "Nifty 50"), "banknifty": ("NIFTY BANK", "Bank Nifty"), "vix": ("INDIA VIX", "Fear gauge")}
+CHART_KEYS = {"NIFTY": "NIFTY 50", "NIFTY50": "NIFTY 50", "BANKNIFTY": "NIFTY BANK", "NIFTYBANK": "NIFTY BANK", "BANK": "NIFTY BANK", "VIX": "INDIA VIX", "INDIAVIX": "INDIA VIX"}
+KEY_NAME = {k: n for k, n in IDX_PAGES.values()}
+KITE_TF = {"5M": "5minute", "15M": "15minute", "30M": "30minute", "1H": "60minute", "4H": "60minute", "1D": "day"}
+BACK_DAYS = {"1D": 7, "5D": 12, "1M": 31, "3M": 92, "6M": 183}
+FEED_NOTE = "From Zerodha's feed, read-only, in India time. A description, never a rule."
+
+
+def _tech() -> dict:
+    try:
+        return json.loads((views.DATA / "manifests" / "technicals.json").read_text()).get("indices") or {}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def index_candles(key: str, rng: str | None = None, tf: str | None = None, fetch=None) -> dict:
+    """One index's candles for a range and timeframe (jarvis/chartkit.py). Kite's 4-hour candles are built from its hourly ones (09:15 to
+    13:15, then to the close). When Kite cannot answer (signed out until the morning sign-in), the daily closes on file are drawn as a line."""
+    from jarvis import chartkit as CK
+    from jarvis.india import livesession as L
+
+    r, t, ok = CK.pick("india", rng, tf)
+    end = dt.datetime.now(L.IST).date()
+    name = KEY_NAME[key]
+    day = lambda b: dt.datetime.fromtimestamp(b[0], L.IST).date()                                 # noqa: E731
+    try:
+        allb = L.index_bars(key, KITE_TF[t], end - dt.timedelta(days=BACK_DAYS[r]), end, fetch=fetch)
+        if t == "4H":
+            allb = CK.agg(allb, key=lambda b: (day(b), dt.datetime.fromtimestamp(b[0], L.IST).strftime("%H%M") >= "1315"))
+        if t == "1D":
+            bars = allb[-CK.SESSIONS[r]:]
+        else:
+            keep = set(sorted({day(b) for b in allb})[-CK.SESSIONS[r]:])
+            bars = [b for b in allb if day(b) in keep]
+        if not bars:
+            raise ValueError("no candles came back")
+        out = CK.shape(name, "india", r, t, ok, bars, tz_min=330, live=day(bars[-1]) == end, note=FEED_NOTE, base=CK.before(allb, bars))
+        if key == "INDIA VIX":                        # a falling fear gauge is calmer, not a loss: no green or red on its change
+            out["neutral"] = True
+        return out
+    except Exception as e:  # noqa: BLE001
+        why = str(e)
+        panel = (_tech().get(key) or {}).get("chart") or {}
+        closes = list(zip(panel.get("dates") or [], panel.get("closes") or []))
+        n = max(6, CK.SESSIONS[r] + 1)
+        bars = [[CK.day_t(d, 15, 330), c, c, c, c] for d, c in closes[-n:] if isinstance(c, (int, float))]
+        words = ("Zerodha's feed is signed out until the morning sign-in (06:05 India time)" if ("403" in why or "Login" in why or "token" in why.lower())
+                 else "Zerodha's feed did not answer just now")
+        out = CK.shape(name, "india", r, "1D", ok, bars, kind="line", tz_min=330, ranges=CK.RANGES, note="The daily closes on file, from Zerodha's daily candles.",
+                       fell_back=words + (", so these are the daily closes on file." if bars else "; no closes on file for this one yet."))
+        if len(bars) > 1:
+            out["over"] = f"over the last {len(bars) - 1} sessions"
+        return out
+
+
+def stock_points() -> list[tuple[str, float]]:
+    """Your stocks at each close since the managed book started: the book's value less the money set aside for options and the cash, the
+    cash at each close rebuilt from the book's own fills (a sale adds its value less costs, a buy takes its value and costs)."""
+    try:
+        rows = [json.loads(x) for x in (views.DATA / "paper" / "account" / "benchmark.jsonl").read_text().splitlines() if x.strip()]
+        fills = [json.loads(x) for x in (views.DATA / "paper" / "managed" / "ledger.jsonl").read_text().splitlines() if x.strip()]
+    except (OSError, ValueError):
+        return []
+    mb = IS._managed()
+    cash_now, opts = mb.get("cash_inr"), mb.get("options_inr") or 0
+    if not isinstance(cash_now, (int, float)):
+        return []
+    fills = [f for f in fills if f.get("filled") and isinstance(f.get("value_inr"), (int, float))]
+    delta = lambda f: (f["value_inr"] - (f.get("cost_inr") or 0)) if str(f.get("side")).upper() == "SELL" else (-f["value_inr"] - (f.get("cost_inr") or 0))  # noqa: E731
+    out = []
+    for r in rows:
+        d, v = str(r.get("day") or ""), r.get("managed_inr")
+        if not d or not isinstance(v, (int, float)):
+            continue
+        cash = cash_now - sum(delta(f) for f in fills if str(f.get("for_session") or "") > d)
+        out.append((d, round(v - opts - cash)))
+    stocks_now = mb.get("stocks_inr")
+    if out and isinstance(stocks_now, (int, float)) and str(mb.get("day") or "") >= out[-1][0]:
+        out[-1] = (out[-1][0], stocks_now)                                           # the book's own figure for its last close
+    return out
+
+
+def stock_return(values: list[tuple[str, float]] | None = None) -> list[tuple[str, float]]:
+    """The stocks' own return since the book started, in %, one point a close: a session's sales and buys are taken out first, so selling a
+    cut stock into cash is not counted as a loss (2 Nov: ₹43,412 sold, ₹29,058 bought)."""
+    vals = values if values is not None else stock_points()
+    try:
+        fills = [json.loads(x) for x in (views.DATA / "paper" / "managed" / "ledger.jsonl").read_text().splitlines() if x.strip()]
+    except (OSError, ValueError):
+        fills = []
+    flow: dict[str, float] = {}
+    for f in fills:
+        if f.get("filled") and isinstance(f.get("value_inr"), (int, float)):
+            d = str(f.get("for_session") or "")
+            flow[d] = flow.get(d, 0.0) + (f["value_inr"] if str(f.get("side")).upper() == "BUY" else -f["value_inr"])
+    out, g = [], 1.0
+    for i, (d, v) in enumerate(vals):
+        if i and vals[i - 1][1]:
+            g *= (v - flow.get(d, 0.0)) / vals[i - 1][1]
+        out.append((d, round(100 * (g - 1), 2)))
+    return out
+
+
+def option_points() -> list[tuple[str, float]]:
+    """The options line at each scored session: the money set aside plus its running result on one option lot (realistic fills)."""
+    o = IS._safe(views.options) or {}
+    cap = o.get("capital_inr") or 50000
+    try:
+        rows = [json.loads(x) for x in (views.DATA / "paper" / "sp1" / "outcomes.jsonl").read_text().splitlines() if x.strip()]
+    except (OSError, ValueError):
+        return []
+    by: dict[str, float] = {}
+    for r in rows:
+        net = ((r.get("legs") or {}).get("option") or {}).get("net_rs_realistic")
+        if r.get("date"):
+            by[str(r["date"])] = by.get(str(r["date"]), 0.0) + (net if isinstance(net, (int, float)) else 0.0)
+    if not by:
+        return []
+    days = sorted(by)
+    out, run = [((dt.date.fromisoformat(days[0]) - dt.timedelta(days=1)).isoformat(), float(cap))], 0.0
+    for d in days:
+        run += by[d]
+        out.append((d, round(cap + run)))
+    return out
+
+
+def candles(name: str, rng: str | None = None, tf: str | None = None, full: bool = True, fetch=None) -> dict:
+    """/india/v3/candles/<name>: NIFTY, BANKNIFTY or VIX (candles), STOCKS or OPTIONS (Madhav's history, the owner only)."""
+    from jarvis import chartkit as CK
+    key = str(name or "").upper().replace("%20", " ").strip()
+    if key in ("STOCKS", "OPTIONS"):
+        if not full:
+            raise PermissionError("This chart shows Madhav's account.")
+        if key == "STOCKS":
+            return CK.history("Your stocks", "india", stock_return(), rng, ccy="%", tz_min=330,
+                              note="The stocks' own return since the book started, one point a session at the close. Sales and buys are taken out, "
+                                   "so selling a cut stock into cash is not a loss.")
+        return CK.history("The options line", "india", option_points(), rng, ccy="₹", tz_min=330,
+                          note="One point a scored session: the money set aside plus the line's result on one option lot, on paper.")
+    key = CHART_KEYS.get(key.replace(" ", ""), key)
+    if key not in KEY_NAME:
+        raise KeyError(name)
+    return index_candles(key, rng, tf, fetch=fetch)
+
+
+def _num(x) -> str:
+    return f"{x:,.2f}" if isinstance(x, (int, float)) else "—"
+
+
+def _vix_now(t: dict) -> str | None:
+    for c in t.get("cards") or []:
+        for x in c.get("points") or []:
+            v = re.search(r"VIX (\d+(?:\.\d+)?)", str(x))
+            if v:
+                return v.group(1)
+    return None
+
+
+def index_page(slug: str, full: bool = True) -> dict:
+    """Nifty 50, Bank Nifty or the fear gauge: the number, its chart with ranges and timeframes, its levels and what it says."""
+    key, name = IDX_PAGES[slug]
+    t = IS.today(full)
+    tech = _tech().get(key) or {}
+    sym = {"NIFTY 50": "NIFTY", "NIFTY BANK": "BANKNIFTY", "INDIA VIX": "VIX"}[key]
+    if slug == "vix":
+        c = IS._safe(index_candles, key, "1D", None) or {}
+        last, pct = c.get("last"), c.get("change_pct")
+        hero = K.hero(name, f"{last:.2f}" if isinstance(last, (int, float)) and not c.get("fell_back") else (_vix_now(t) or "—"),
+                      change=_pct(pct) if isinstance(pct, (int, float)) and not c.get("fell_back") else None,
+                      since="the swing traders expect over 30 days")
+        pts = ["The fear gauge measures how much traders expect the Nifty to swing over the next 30 days, as a yearly percentage",
+               "Higher means traders expect bigger swings; lower means calm",
+               {"text": "Ananta reads it before the open: a high reading makes the options line more careful", "icon": "info"}]
+        kv = []
+    else:
+        p, chg = _index_box(t, name)
+        hero = K.hero(name, p.get("value") or "—", change=chg, tone=p.get("tone"), since=str(p.get("sub2") or "") or None)
+        sma = tech.get("sma") or {}
+        sup, res = tech.get("support") or {}, tech.get("resistance") or {}
+        kv = [K.kvrow("Last close", _num(tech.get("close")), v_sub=IS._dw(tech.get("as_of")) if tech.get("as_of") else None),
+              K.kvrow("50-day average", _num(sma.get("50"))), K.kvrow("200-day average", _num(sma.get("200"))),
+              K.kvrow("52-week high", _num(tech.get("high_52w"))), K.kvrow("52-week low", _num(tech.get("low_52w"))),
+              K.kvrow("Support", _num(sup.get("swing_low") or sup.get("round"))), K.kvrow("Resistance", _num(res.get("swing_high") or res.get("round"))),
+              K.kvrow("RSI, 14 days", f"{tech['rsi14']:.0f}" if isinstance(tech.get("rsi14"), (int, float)) else "—", v_sub=tech.get("rsi_zone"))] if tech else []
+        words = re.sub(r"^NIFTY (50|BANK) ", "", str(tech.get("words") or ""))
+        pts = [K.clip(x[:1].upper() + x[1:], 22, 160) for x in re.split(r";\s+|:\s+(?=above|below)", words.rstrip(".")) if x.strip()][:4]
+    parts = [hero, K.pricechart(sym, name),
+             K.kv(kv, title="Levels") if kv else None,
+             K.points(pts, title="What it says") if pts else None,
+             K.trust("Candles from Zerodha's feed, read-only. Levels from the daily closes on file. A description, never a rule.")]
+    return K.page(name, parts, bar_kind="close", ask_q=f"Tell me about the {name} now: its trend, its levels and what would change your view.")
+
+
+def stocks_page(full: bool = True) -> dict:
+    """Home's In stocks box: your stocks over time, the biggest holdings, and the whole portfolio one tap away."""
+    m = IS.money(full)
+    ret = stock_return()
+    now = m.get("stocks_inr")
+    last = ret[-1][1] if ret else None
+    hs = sorted(m.get("holdings") or [], key=lambda h: -(h.get("value_inr") or 0))
+    parts = [K.hero("Your stocks · on paper", _rs(now), change=_pct(last) if last is not None else None, tone=_tone(last),
+                    since=f"since {IS._dw(ret[0][0])}, sales and buys taken out" if ret else None),
+             K.pricechart("STOCKS", "Your stocks", kind="line", private=True),
+             K.rows("Your holdings", [holding_row(h) for h in hs[:5]], count=len(hs), sub="biggest first", more=K.to_page(holdings_page(hs))) if hs else None,
+             K.trust("Stocks only: the money set aside for options and the cash are not in this line. Paper only.")]
+    return K.page("Your stocks", parts, ask_q="How are my stocks doing since the managed book started, and which holdings carry it?",
+                  second={"label": "Show the portfolio", "to": K.place("account")})
+
+
+def option_trades_page(rows: list[dict]) -> dict:
+    return K.page("Options trades", [K.hero("Options trades", str(len(rows)), since="on paper, one option lot each"),
+                                     K.rows(None, [_trade_row(r) for r in rows], plain=True),
+                                     K.trust("Realistic fills. A trade with no result stays in the list, marked.")],
+                  ask_q="Walk me through the options line's trades: what worked, what did not, and why.")
+
+
+def _trade_row(r: dict) -> dict:
+    net = ((r.get("legs") or {}).get("option") or {}).get("net_rs_realistic")
+    side = "short" if r.get("dir") == -1 else "long"
+    return K.row(f"{IDX.get(r.get('index'), r.get('index'))} · {side}", IS._dw(r.get("date")), right=_rs(net, sign=True) if isinstance(net, (int, float)) else "No result",
+                 right_tone=_tone(net) if isinstance(net, (int, float)) else None, icon="bars")
+
+
+
 PLACES = {"home": home, "markets": markets, "activity": activity, "more": more, "account": account, "proof": proof, "plan": lambda full=True: plan_page(IS.money(full), IS.today(full)),
           "holdings": lambda full=True: holdings_page(sorted(IS.money(full).get("holdings") or [], key=lambda h: -(h.get("value_inr") or 0))),
-          "options": options_page, "people": people, "morning": lambda full=True: morning_page()}
+          "options": options_page, "people": people, "morning": lambda full=True: morning_page(), "stocks": stocks_page,
+          "nifty": lambda full=True: index_page("nifty", full), "banknifty": lambda full=True: index_page("banknifty", full),
+          "vix": lambda full=True: index_page("vix", full)}
 
 
 def _guest(name):
     def f(full: bool = True):
-        if not full and name in ("home", "account", "holdings", "plan", "activity", "markets"):
+        if not full and name in ("home", "account", "holdings", "plan", "activity", "markets", "stocks"):
             return {"ready": False, "kind": "place", "name": name, "words": "This page shows Madhav's account. A guest's own book is on the practice screens."}
         return PLACES[name](full=full)
     return f

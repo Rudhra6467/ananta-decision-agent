@@ -119,15 +119,17 @@ def coin_page(j, coin: str) -> dict:
     ch = S._safe(S.coin_chart, j, coin, default={}) or {}
     cc = ch.get("chart") or {}
     name = _name(coin)
-    lines = [{"values": K.thin((cc.get("sma200") or [])[-60:], 12), "style": "dot", "color": "dim"},
-             {"values": K.thin((cc.get("sma50") or [])[-60:], 20), "style": "dash", "color": "dim"},
-             {"values": K.thin((cc.get("closes") or [])[-60:], 60), "style": "main", "color": "ink"}]
+    closes = cc.get("closes") or []
+    last = closes[-1] if closes else None
+    d1 = 100 * (closes[-1] / closes[-2] - 1) if len(closes) > 1 and closes[-2] else None
     pts = [S._plain(x) for x in S._sentences(ch.get("words") or "")][:4]
-    parts = [K.chart(lines, legend=[{"label": name, "style": "main"}, {"label": "50-day average", "style": "dash"}, {"label": "200-day", "style": "dot"}],
-                     label=f"{name}'s daily closes for 60 days with its two averages") if cc.get("closes") else None,
-             K.heading(name), K.points(pts) if pts else K.line("No daily closes on file for this coin yet."),
+    parts = [K.hero(name, f"${last:,.2f}" if isinstance(last, (int, float)) and last < 1000 else f"${last:,.0f}" if isinstance(last, (int, float)) else "—",
+                    change=S._pct(d1) if d1 is not None else None, tone=S._tone(d1), since=f"at the {ch.get('as_of')}" if ch.get("as_of") else None),
+             K.pricechart(coin, name),
+             K.heading("What it says"), K.points(pts) if pts else K.line("No daily closes on file for this coin yet."),
              K.trust(str(ch.get("note") or "Daily closes in US dollars."))]
-    return K.page(name, parts, bar_kind="close", ask_q=f"How is {name} doing, and does Ananta have a setup on it?")
+    return K.page(name, parts, bar_kind="close", ask_q=f"How is {name} doing, and does Ananta have a setup on it?",
+                  second={"label": "Why is buying off?" if coin == "BTC" else "Bitcoin's chart", "to": K.place("why") if coin == "BTC" else K.place("coin:BTC")})
 
 
 # ------------------------------------------------------------------------------------------------ trades: rows and receipts
@@ -337,7 +339,7 @@ def _coin_boxes(j, pages: list[dict]) -> list[dict]:
         cc = (S._safe(S.coin_chart, j, p.get("coin") or "BTC", default={}) or {}).get("chart") or {}
         out.append(K.box(p.get("label"), p.get("value") or "—", change=chg if ok else None, tone=p.get("tone"), since=since if ok else None,
                          caption=None if ok else K.clip(p.get("sub"), 4, 24), spark=K.thin((cc.get("closes") or [])[-60:], 30),
-                         to=K.place("why") if p.get("coin") == "BTC" else K.place("coin:" + str(p.get("coin")))))
+                         to=K.place("coin:" + str(p.get("coin") or "BTC"))))
     return out
 
 
@@ -365,9 +367,9 @@ def home(j) -> dict:
              K.today("Today", line, sub, to=K.place("why")),
              K.boxes([K.paged(_coin_boxes(j, pages)),
                       K.paged([K.box("In coins", S._cad(coins, 0), bar=[round(coins / value, 3) if value else 0],
-                                     caption="All in cash" if not pos else f"{len(pos)} coin{'s' if len(pos) != 1 else ''}", to=K.place("account")),
+                                     caption="All in cash" if not pos else f"{len(pos)} coin{'s' if len(pos) != 1 else ''}", to=K.place("coins")),
                                K.box("Cash", S._cad(b.get("cash_cad"), 0), bar=[0, round((b.get("cash_cad") or 0) / value, 3) if value else 0],
-                                     caption=f"{round(100 * (b.get('cash_cad') or 0) / value)}% of the book" if value else None, to=K.place("account"))])]),
+                                     caption=f"{round(100 * (b.get('cash_cad') or 0) / value)}% of the book" if value else None, to=K.place("cash"))])]),
              K.rows("Needs you", you[:3], count=len(you), badge=True, more=K.place("notices")) if you else None,
              K.rows("What Ananta did", did, more=K.tab("activity")) if did else None,
              K.notices(home_notices(j, c))]
@@ -398,7 +400,7 @@ def markets(j) -> dict:
     for p in pages:
         chg, _, _since = str(p.get("sub") or "").partition(" ")
         cards.append(K.box(p.get("label"), p.get("value"), change=chg if chg[:1] in "+−-" else None, tone=p.get("tone"), caption=None if chg[:1] in "+−-" else K.clip(p.get("sub"), 4, 24),
-                           to=K.place("why") if p.get("coin") == "BTC" else K.place("coin:" + str(p.get("coin")))))
+                           to=K.place("coin:" + str(p.get("coin") or "BTC"))))
     day, close_at = S._last_close(c["dial"])
     since = f"Since {S._clock(close_at)} Toronto" if close_at and (now - close_at) < dt.timedelta(hours=24, minutes=30) else (f"Since {S._dw(day)}" if day else "")
     n = S._dial_numbers(c["dial"])
@@ -575,8 +577,114 @@ def more(j) -> dict:
     return K.surface("more", "crypto", parts, bell=len(you), title="More")
 
 
+# ------------------------------------------------------------------------------------------------ charts behind a tap
+# Madhav, 10 Nov 2026 19:09 Toronto: the numbers in Home's two boxes open their charts, with ranges 1D 5D 1M 3M 6M and timeframes 5M 15M
+# 30M 1H 4H 1D (jarvis/chartkit.py); the second box's numbers open their own history with the portfolio one tap away and Ask Ananta.
+def _tz_min() -> int:
+    from zoneinfo import ZoneInfo
+    return int(dt.datetime.now(ZoneInfo("America/Toronto")).utcoffset().total_seconds() // 60)
+
+
+def coin_candles(j, coin: str, rng: str | None = None, tf: str | None = None) -> dict:
+    """A coin's Binance candles in US dollars: 5- to 30-minute ones from the 14-day store, hourly and 4-hour from Binance's own, daily from
+    the daily store (jarvis/service/feed.py). Complete candles only."""
+    import time
+
+    from jarvis import chartkit as CK
+    from jarvis.service import feed
+    r, t, ok = CK.pick("crypto", rng, tf)
+    now = time.time()
+    since = now - CK.DAYS[r] * 86400
+    if t == "1D":
+        allb = [list(x[:5]) for x in feed.daily(j, coin)]
+        bars = allb[-CK.DAYS[r]:]
+    else:
+        allb = [list(x[:5]) for x in feed.bars(j, coin, t.lower(), CK.count("crypto", r, t) + 2)]
+        bars = [b for b in allb if b[0] >= since]
+    step = CK.TF_MIN[t] * 60
+    live = bool(bars) and now - bars[-1][0] < 3 * step
+    return CK.shape(S.COIN_NAME[coin], "crypto", r, t, ok, bars, ccy="$", tz_min=_tz_min(), live=live, base=CK.before(allb, bars),
+                    note="Binance candles in US dollars; times in Toronto. The book trades on NDAX in Canadian dollars.")
+
+
+def book_points(j, what: str) -> list[tuple[str, float]]:
+    """The $500 book at each night's close as the nightly facts recorded it (the same record as the account chart), and now: its value, its
+    cash, or what it held in coins (value less cash). The night before its first buy it was C$500 in cash."""
+    c = _ctx(j)
+    b = c["b"]
+    rec: dict[str, tuple] = {}
+    try:
+        for day, facts in j.db.execute("SELECT day, facts FROM officer_notes ORDER BY day"):
+            a = ((json.loads(facts or "{}") or {}).get("account") or {})
+            if isinstance(a.get("value_cad"), (int, float)) and isinstance(a.get("cash_cad"), (int, float)):
+                rec[(dt.date.fromisoformat(str(day)[:10]) - dt.timedelta(days=1)).isoformat()] = (a["value_cad"], a["cash_cad"])
+    except Exception:  # noqa: BLE001
+        pass
+    started = str(b.get("started") or "")[:10]
+    start = S._start_cad()
+    pts = []
+    if re.fullmatch(r"20\d\d-\d\d-\d\d", started):
+        pts.append(((dt.date.fromisoformat(started) - dt.timedelta(days=1)).isoformat(), (start, start)))
+    pts += sorted((d, v) for d, v in rec.items() if not pts or d > pts[0][0])
+    if isinstance(b.get("value_cad"), (int, float)) and isinstance(b.get("cash_cad"), (int, float)):
+        today = c["now"].date().isoformat()
+        pts = [p for p in pts if p[0] < today] + [(today, (b["value_cad"], b["cash_cad"]))]
+    pick = {"ACCOUNT": lambda v: v[0], "CASH": lambda v: v[1], "COINS": lambda v: max(0.0, v[0] - v[1])}[what]
+    return [(d, round(pick(v), 2)) for d, v in pts]
+
+
+BOOK_LINES = {"COINS": ("In coins", "What the book held in coins at each night's close, and now. A buy moves cash into coins; a sale moves it back."),
+              "CASH": ("Cash", "The book's cash at each night's close, and now."),
+              "ACCOUNT": ("The $500 book", "The book's value at each night's close, and now.")}
+
+
+def candles(j, sym: str, rng: str | None = None, tf: str | None = None, is_owner: bool = True) -> dict:
+    """/v3/candles/<sym>: BTC, ETH or SOL (candles), COINS, CASH or ACCOUNT (the $500 book's history, the owner only)."""
+    from jarvis import chartkit as CK
+    key = str(sym or "").upper().strip()
+    if key in BOOK_LINES:
+        if not is_owner:
+            raise PermissionError("This chart shows Madhav's account.")
+        name, note = BOOK_LINES[key]
+        return CK.history(name, "crypto", book_points(j, key), rng, ccy="C$", per="night", tz_min=_tz_min(), note=note + " Paper only.", neutral=key != "ACCOUNT")
+    coin = S.CHART_ALIAS.get(key, key)
+    if coin not in S.COIN_NAME:
+        raise KeyError(sym)
+    return coin_candles(j, coin, rng, tf)
+
+
+def coins_page(j) -> dict:
+    """Home's In coins box: what the book holds in coins, how that moved, and the whole account one tap away."""
+    c = _ctx(j)
+    b, pos = c["b"], c["pos"]
+    held = sum(p["value"] or 0 for p in pos)
+    rows = [K.row(_name(p["symbol"]), K.clip(str(p.get("chip") or "held"), 7, 44), right=p.get("value_words"), right_sub=(S._pct(p.get("pnl_pct")) if p.get("pnl_pct") is not None else None),
+                  right_tone=S._tone(p.get("pnl_pct")), letter=str(p["symbol"])[:1]) for p in pos] or [K.row("No coins held", "The whole book is cash", to=K.place("why"))]
+    parts = [K.hero("In coins · on paper", S._cad(held, 0), since=f"of {S._cad(b.get('value_cad'))}, the whole book" if b.get("value_cad") else None),
+             K.pricechart("COINS", "In coins", kind="line", private=True),
+             K.rows("Your coins", rows, plain=True),
+             K.trust("Paper only, at real NDAX prices, in Canadian dollars.")]
+    return K.page("In coins", parts, ask_q="What does the $500 book hold in coins, why, and what would make it buy or sell?",
+                  second={"label": "Show the portfolio", "to": K.place("account")})
+
+
+def cash_page(j) -> dict:
+    """Home's Cash box: the book's cash, how it moved, and why it sits in cash now."""
+    c = _ctx(j)
+    b, pos = c["b"], c["pos"]
+    cash, value = b.get("cash_cad"), b.get("value_cad")
+    held = sum(p["value"] or 0 for p in pos)
+    parts = [K.hero("Cash · on paper", S._cad(cash), since=f"{round(100 * cash / value)}% of the book" if isinstance(cash, (int, float)) and value else None),
+             K.pricechart("CASH", "Cash", kind="line", private=True),
+             K.kv([K.kvrow("Cash", S._cad(cash)), K.kvrow("In coins", S._cad(held)), K.kvrow("The whole book", S._cad(value), bold=True)]),
+             K.rows(None, [K.row("Buying is on" if c["open"] else "Buying is off", "Why the book holds this cash", to=K.place("why"))], plain=True),
+             K.trust("Paper only, in Canadian dollars.")]
+    return K.page("Cash", parts, ask_q="Why is the $500 book holding this much cash, and when would it buy?",
+                  second={"label": "Show the portfolio", "to": K.place("account")})
+
+
 PLACES = {"home": home, "markets": markets, "activity": activity, "more": more, "account": account, "proof": proof, "why": why, "notices": notices,
-          "openlist": openlist_page, "people": people}
+          "openlist": openlist_page, "people": people, "coins": coins_page, "cash": cash_page}
 
 
 def needs(j, market: str = "crypto") -> dict:

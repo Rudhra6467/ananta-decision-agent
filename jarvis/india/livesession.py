@@ -153,6 +153,32 @@ def _kite():
     return kite.Kite(rate_per_s=5.0)
 
 
+# 10 Nov 2026 (Madhav: the Home and Markets boxes open charts with ranges and timeframes): Kite's instrument tokens for the three indices
+# (NSE, segment INDICES; the same ones india.kite_index reads from the instruments file).
+INDEX_TOKENS = {"NIFTY 50": 256265, "NIFTY BANK": 260105, "INDIA VIX": 264969}
+_BARS: dict = {}
+
+
+def index_bars(key: str, interval: str, start: dt.date, end: dt.date, fetch=None) -> list[list]:
+    """Candles [epoch seconds, open, high, low, close] for one index from Kite's historical API (GET only, through the records repo's
+    read-only client), kept 60 s when the window reaches today and an hour otherwise. Raises when Kite cannot answer (signed out, no network)."""
+    tok = INDEX_TOKENS[key]
+    ck = (tok, interval, str(start), str(end))
+    hit = _BARS.get(ck)
+    ttl = 60 if end >= dt.datetime.now(IST).date() else 3600
+    if hit and time.time() - hit[0] < ttl:
+        return hit[1]
+    raw = fetch(tok, interval, start, end) if fetch else _kite().historical(tok, interval, start, end)
+    rows = []
+    for c in raw or []:
+        t = c[0] if isinstance(c[0], dt.datetime) else dt.datetime.strptime(str(c[0]), "%Y-%m-%dT%H:%M:%S%z")
+        rows.append([int(t.timestamp()), float(c[1]), float(c[2]), float(c[3]), float(c[4])])
+    _BARS[ck] = (time.time(), rows)
+    while len(_BARS) > 64:
+        _BARS.pop(next(iter(_BARS)))
+    return rows
+
+
 def quotes(symbols: list[str], fetch=None) -> dict:
     """GET /quote/ohlc for up to 500 instruments (e.g. 'NSE:NIFTY 50', 'NSE:TCS', 'NFO:...'): last price, open, high, low and the previous
     close. Cached for TTL_S; a failure returns {'error': ...} and is never raised into an answer."""

@@ -5,7 +5,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native"
 import { router, useScrollToTop } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "./theme";
-import { Bell, Icon, MarketChip, Parts, Pinned, useNeeds, usePlace } from "./place";
+import { Bell, HideButton, Icon, MarketChip, Parts, Pinned, useNeeds, usePlace } from "./place";
 
 function Problem({ err, words }: { err?: string | null; words?: string }) {
   return (
@@ -29,7 +29,7 @@ export function PlaceScreen({ name, title }: { name: string; title: string }) {
       refreshControl={<RefreshControl refreshing={!!loading && !!data} onRefresh={() => { reload(); needs.reload(); }} tintColor={C.dim} />}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 }}>
         {name === "home" ? <MarketChip /> : <Text accessibilityRole="header" style={{ color: C.text, fontSize: 24, lineHeight: 30, fontWeight: "700", letterSpacing: -0.2 }}>{title}</Text>}
-        <Bell count={count} />
+        <View style={{ flexDirection: "row", alignItems: "center" }}><HideButton /><Bell count={count} /></View>
       </View>
       {err && !data ? <Problem err={err} /> : null}
       {data && data.ready === false ? <Problem words={data.words} /> : null}
@@ -56,7 +56,7 @@ export function PageScreen({ page, place, onClose }: { page?: any; place?: strin
             <Icon name={isClose ? "close" : "back"} size={24} color={C.text} />
           </Pressable>
           {!isClose ? <Text style={{ flex: 1, textAlign: "center", color: C.text, fontSize: 15, fontWeight: "600" }} numberOfLines={1}>{data?.title || ""}</Text> : <View style={{ flex: 1 }} />}
-          <View style={{ width: 44 }} />
+          <HideButton />
         </View>
         {got.err && !data ? <Problem err={got.err} /> : null}
         {data && data.ready === false ? <Problem words={data.words} /> : null}

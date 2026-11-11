@@ -403,8 +403,12 @@ def _options_review() -> dict:
         d = dt.date.fromisoformat(last)
         for _ in range(max(0, 20 - done)):
             d = _ag.next_session_after(d)
-        when = (f"at session 20 of the options line: {done} of 20 sessions are done, so the 20th is {_ag.day_words(d)} if no session is "
-                "lost (weekends and NSE holidays skipped); the review reads it that evening")
+        # 11 Nov 2026 (the dry voice test): it said the review reads the 20th session "that evening", but that session's trades close at the
+        # next open, so its outcome (and the review) comes a session later: Fri 20 Nov's trades close Mon 23 Nov, the plan's review day.
+        rd = _ag.next_session_after(d)
+        when = (f"at session 20 of the options line: {done} of 20 sessions are scored, so the 20th is {_ag.day_words(d)} if no session is "
+                f"lost (weekends and NSE holidays skipped); its trades close at the next open, {_ag.day_words(rd)}, and the review reads "
+                "the 20 sessions that day")
     except (OSError, ValueError, KeyError, TypeError):
         pass
     return {"when": when, "questions": s.get("questions"), "why": s.get("why"),
@@ -1689,7 +1693,14 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                                   "Say an item by its name in one plain line; what needs his yes first, then this market's work, then the next dates. "
                                   "Something not on it is not open: never call a thing waiting or pending from the morning review, a note or an "
                                   "earlier answer. work_to_do and next_dates here are the Indian market's and the shared ones; crypto's are on the "
-                                  "crypto side.")}
+                                  "crypto side. 11 Nov (Madhav: \"it also gets updates back when done and keeps a track of them as well\"): "
+                                  "closed_lately is what was finished or dropped in the last two days, each by its name with what closed it; use it "
+                                  "(with about_ananta's newest change-book lines when they are given) for 'what got done', 'what did we finish "
+                                  "today', 'is X done', and give trades only when he asks about trading. For 'when is X' or 'what's planned', read "
+                                  "work_to_do as well as next_dates: a work item can carry its own day in its words. Asked how Ananta keeps track: "
+                                  "everything open is one item on this list; it closes only with its proof (a commit, a change-book line or a "
+                                  "check's result), and the scheduled checks close their own items when they run; every change to Ananta is a "
+                                  "dated line in the change book.")}
     t0 = time.time()
     # 27 Oct: "How did the Nifty close today?" is a question, not an order (the model still never places anything)
     asks = "?" in text or re.match(r"\s*(how|what|where|when|why|did|does|do|is|are|was|were|which|who|tell me)\b", text, re.I)
@@ -1905,10 +1916,16 @@ APP_BUG = re.compile(r"\b(screen|button|panel|chat|tab|page|app|voice|mic|microp
 NO_FIX = re.compile(r"\b(?:no|don'?t (?:give|suggest|need|want)|not)\b[^.!?]{0,20}\b(?:fix|fixes|suggestions?|menu|options?)\b|\bjust (?:a |the )?(?:detailed )?note\b", re.I)
 
 
+# 11 Nov 2026 (the dry voice test): "What got done for India today, and how do you keep track of it?" filed a note nobody asked for.
+# A question about how something is done ("how do you keep track of it?", "how do I flag it?") asks for an answer, not a filing.
+HOW_BEFORE = re.compile(r"\bhow\s+(?:do|does|did|will|would|can|could|should|is|are)\b[^.!?]{0,40}$", re.I)
+
+
 def flag_intent(text: str) -> dict | None:
     """None, or {"kind": "research" | "note" | "bug"} when the message asks Ananta to flag or note something."""
     t = text or ""
-    req = [m for m in FLAG_REQ.finditer(t) if not NEG_BEFORE.search(t[max(0, m.start() - 30):m.start()])]
+    req = [m for m in FLAG_REQ.finditer(t) if not NEG_BEFORE.search(t[max(0, m.start() - 30):m.start()])
+           and not HOW_BEFORE.search(t[max(0, m.start() - 60):m.start()])]
     if not req and not BARE_FLAG.match(t):
         return None
     if RESEARCH.search(t) and not APP_BUG.search(t):

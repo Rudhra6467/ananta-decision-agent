@@ -22,6 +22,9 @@ THE RULES (kept by code, not by memory)
   6. Every reader reads this list: the app's bar (/v3/waiting), /v3/open, both Asks, the morning review page (printed, not written),
      the night test, and each work session.
   7. An item that has not moved in STALE_DAYS is named as stale: it is kept, parked or dropped, never left.
+  8. What closed lately travels with the list (closed_lately: the last CLOSED_HOURS, newest first, each by its name with what closed it and
+     the proof), so every reader can say what got done, not only what is open (11 Nov 2026, Madhav: "it also gets updates back when done
+     and keeps a track of them as well").
 
   collect(j)        the list
   short(j)          a few lines of it for every turn of a conversation
@@ -181,20 +184,69 @@ def collect(j, now: float | None = None) -> dict:
     return {"as_of": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(now)), "line": line, "counts": counts, "waiting_line": w.get("line") or "",
             "you": you, "work": work, "dated": dated, "parked": parked, "stale": stale, "problems": problems(j, board=board),
             "quiet": sorted(quiet_keys(j, now)),
+            "closed_lately": closed_lately(j, now=now)[:12],
             "kinds": KIND_WORDS,
             "how": ("This is the only place that says what is open. Say an item by its name ('flag 53', 'CHECKPOINT-30'). Something not on this "
                     "list is not open: it is done, dropped or was never filed. A dated note or the morning page is history, not the list.")}
 
 
 def short(j, market: str | None = None, now: float | None = None) -> dict:
-    """A few lines for every turn: the count line, what needs his yes, this market's work, the next dates."""
+    """A few lines for every turn: the count line, what needs his yes, this market's work, the next dates, and what closed lately."""
     d = collect(j, now)
     mine = lambda x: not market or x.get("market") in (market, "both")                   # noqa: E731
     return {"line": d["line"], "as_of": d["as_of"],
             "needs_your_yes": [{k: x.get(k) for k in ("id", "market", "line", "advice") if x.get(k)} for x in d["you"]][:8],
-            "work_to_do": [{k: x.get(k) for k in ("id", "line", "seen", "stale") if x.get(k)} for x in d["work"] if mine(x)][:8],
-            "next_dates": [{k: x.get(k) for k in ("id", "due", "line") if x.get(k)} for x in d["dated"] if mine(x) and x.get("due")][:5],
+            # 11 Nov: with each item's advice, as the crypto lookup has it ("what did the re-grade score last time?": the 6.5 is in its advice)
+            "work_to_do": [{k: x.get(k) for k in ("id", "line", "seen", "stale", "advice") if x.get(k)} for x in d["work"] if mine(x)][:8],
+            "next_dates": [{k: x.get(k) for k in ("id", "due", "line", "advice") if x.get(k)} for x in d["dated"] if mine(x) and x.get("due")][:5],
+            "closed_lately": [{k: x.get(k) for k in ("id", "line", "result", "how", "when") if x.get(k)} for x in d["closed_lately"] if mine(x)][:6],
             "parked": d["counts"]["PARKED"], "how": d["how"]}
+
+
+CLOSED_HOURS = 48
+
+
+def closed_lately(j, hours: float = CLOSED_HOURS, market: str | None = None, now: float | None = None) -> list[dict]:
+    """What was finished or dropped in the last `hours`, newest first (rule 8). Each item by its name, with what closed it and the proof:
+    close() and the change book's `closes` write both, and the scheduled checks close their own items when they run. So "what did we finish
+    today?" and "is X done?" are answered from the list, never from memory."""
+    from jarvis.service import requests_log
+
+    now = now or time.time()
+    try:
+        rows = requests_log.list_(j, include_done=True)
+    except Exception:  # noqa: BLE001  the closed part never breaks the open list
+        return []
+    out = []
+    for r in rows:
+        if r.get("status") not in ("DONE", "WONT"):
+            continue
+        t = float(r.get("updated_t") or r.get("t") or 0)
+        if now - t > hours * 3600:
+            continue
+        m = market_of(r)
+        if market and m not in (market, "both"):
+            continue
+        out.append({"id": r["label"], "num": r["num"], "market": m, "line": plain(r["text"], 150),
+                    "result": "done" if r["status"] == "DONE" else "dropped", "how": plain(r.get("note") or "", 200),
+                    "proof": str(r.get("closed_by") or "")[:160], "when": time.strftime("%a %d %b %H:%M", time.localtime(t)), "t": int(t)})
+    try:                       # the due list's own dates marked done (a checkpoint, the monthly cost check): due_list.mark_done keeps them
+        from jarvis.service import due_list
+
+        said = {i["id"]: i.get("plain") or plain(i.get("what") or i["id"], 150) for i in due_list.load(j).get("items", [])}
+        for k, v in j.db.execute("SELECT k, v FROM engine_state WHERE k LIKE 'kb:due_done:%'").fetchall():
+            t_s, _, note = str(v).partition("|")
+            t = float(t_s or 0)
+            if now - t > hours * 3600 or (market and market not in ("crypto", "both")):
+                continue
+            item = str(k).split(":")[2]
+            out.append({"id": item, "num": None, "market": "crypto", "line": said.get(item) or item, "result": "done",
+                        "how": plain(note, 200) or "marked done", "proof": "the due list",
+                        "when": time.strftime("%a %d %b %H:%M", time.localtime(t)), "t": int(t)})
+    except Exception:  # noqa: BLE001  no due list or no marks yet
+        pass
+    out.sort(key=lambda x: -x["t"])
+    return out
 
 
 # ---------------------------------------------------------------- closing: the one way

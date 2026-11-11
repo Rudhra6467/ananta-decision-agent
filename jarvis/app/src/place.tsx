@@ -6,8 +6,9 @@
 // them, so a wording fix never needs a new app build. A tap ("to") goes to a tab, a place, a page that rode in with the payload, a bottom
 // sheet, a question for Ask, or an older screen. Colours come from C (the theme) so dark and light both work; bronze is the one accent.
 import { useEffect, useRef, useState } from "react";
-import { Platform, Pressable, ScrollView, Text, TextInput, View, type LayoutChangeEvent } from "react-native";
+import { Animated, Easing, PanResponder, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
 import { C, NUM, setTheme, themeName } from "./theme";
@@ -17,13 +18,15 @@ import { useMarket } from "./market";
 import { useData } from "./useData";
 
 // ---------------------------------------------------------------------------------------------------- where a tap goes
-export type To = { tab?: string; place?: string; page?: any; sheet?: any; ask?: string; route?: string; action?: string } | null | undefined;
+export type To = { tab?: string; place?: string; page?: any; sheet?: any; ask?: string; route?: string; action?: string; as?: string } | null | undefined;
 const PAGES = new Map<string, any>();
 let nextId = 1;
 export const pageOf = (id: string) => PAGES.get(id);
 
 export function go(to: To) {
   if (!to) return;
+  if (to.place && to.as === "sheet") { openSheet({ place: to.place }); return; }     // a place drawn in a tall sheet over this screen
+  if (to.tab || to.place || to.page) closeSheet();                                  // leaving for a tab or a page closes an open sheet
   if (to.tab) { goTab(`/new/${to.tab}`); return; }
   if (to.place) { router.push({ pathname: "/page", params: { place: to.place } } as any); return; }
   if (to.page) {
@@ -758,6 +761,7 @@ export function SheetHost() {
   useEffect(() => { const f = () => bump((n) => n + 1); sheetSubs.add(f); return () => { sheetSubs.delete(f); }; }, []);
   if (!sheet) return null;
   const s = sheet;
+  if (s.place) return <PlaceSheet key={s.place} name={s.place} />;
   return (
     <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
       <Pressable onPress={closeSheet} accessibilityLabel="Close" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, backgroundColor: C.overlay }} />
@@ -782,6 +786,72 @@ export function SheetHost() {
           </Pressable>
         </View>
       </View>
+    </View>
+  );
+}
+
+// Madhav, 10 Nov 22:12: a number on Home opens in a sheet over Home, "up to 75-80% of screen ... easy to close or swipe down to continue
+// using in the same screen". It draws the same place as its page (/v3/place/<name>). It closes with a swipe down on its top (the handle
+// row), a pull down past the top of its content (iPhone), a tap on the dimmed Home above it, or the X; Ask and the portfolio close it too.
+const NATIVE = Platform.OS !== "web";
+function PlaceSheet({ name }: { name: string }) {
+  const { height } = useWindowDimensions();
+  const ins = useSafeAreaInsets();
+  const H = Math.round(Math.min(height * 0.78, height - ins.top - 8));
+  const got = usePlace(name);
+  const needs = useNeeds();
+  const data = got.data;
+  const y = useRef(new Animated.Value(H)).current;
+  const fade = useRef(new Animated.Value(0)).current;
+  const leaving = useRef(false);
+  useEffect(() => {
+    Animated.parallel([Animated.timing(y, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: NATIVE }),
+                       Animated.timing(fade, { toValue: 1, duration: 260, useNativeDriver: NATIVE })]).start();
+  }, []);
+  const dismiss = () => {
+    if (leaving.current) return;
+    leaving.current = true;
+    Animated.parallel([Animated.timing(y, { toValue: H, duration: 200, easing: Easing.in(Easing.cubic), useNativeDriver: NATIVE }),
+                       Animated.timing(fade, { toValue: 0, duration: 200, useNativeDriver: NATIVE })]).start(() => closeSheet());
+  };
+  const keep = useKeepRef({ dismiss, H });
+  const pan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_e, g) => g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
+    onPanResponderMove: (_e, g) => y.setValue(Math.max(0, g.dy)),
+    onPanResponderRelease: (_e, g) => {
+      if (g.dy > keep.current.H * 0.18 || g.vy > 0.8) keep.current.dismiss();
+      else Animated.spring(y, { toValue: 0, bounciness: 4, useNativeDriver: NATIVE }).start();
+    },
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderTerminate: () => Animated.spring(y, { toValue: 0, bounciness: 4, useNativeDriver: NATIVE }).start(),
+  })).current;
+  return (
+    <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}>
+      <Animated.View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, opacity: fade }}>
+        <Pressable onPress={dismiss} accessibilityLabel="Close" style={{ flex: 1, backgroundColor: C.overlay }} />
+      </Animated.View>
+      <Animated.View accessibilityViewIsModal style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: H, transform: [{ translateY: y }],
+        borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: C.bg, borderTopWidth: 1, borderColor: C.line, overflow: "hidden",
+        maxWidth: 720, alignSelf: "center", width: "100%" }}>
+        <View {...pan.panHandlers} style={[{ flexDirection: "row", alignItems: "center", height: 52, paddingHorizontal: 8 },
+          NATIVE ? null : ({ userSelect: "none", cursor: "grab", touchAction: "none" } as any)]}>
+          <View style={{ width: 88 }} />
+          <View style={{ flex: 1, alignItems: "center" }}><View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: C.faint }} /></View>
+          <HideButton />
+          <Pressable onPress={dismiss} accessibilityRole="button" accessibilityLabel="Close" style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+            <Icon name="close" size={22} color={C.text} />
+          </Pressable>
+        </View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 16, gap: 16 }}
+          scrollEventThrottle={16} onScrollEndDrag={(e) => { if (e.nativeEvent.contentOffset.y < -64) dismiss(); }}>
+          {got.err && !data ? <Text style={{ color: C.text, fontSize: 15, lineHeight: 22 }}>{got.err}</Text> : null}
+          {data && data.ready === false ? <Text style={{ color: C.text, fontSize: 15, lineHeight: 22 }}>{data.words}</Text> : null}
+          {data && data.ready !== false ? <Parts data={data} needs={needs.data} /> : null}
+          {!data && !got.err ? <Text style={{ color: C.dim, fontSize: 15 }}>Loading…</Text> : null}
+        </ScrollView>
+        <View style={{ paddingBottom: Math.max(ins.bottom, 8) }}><Pinned p={data?.pinned} /></View>
+      </Animated.View>
     </View>
   );
 }
@@ -821,6 +891,8 @@ function Search({ s }: { s: any }) {
 }
 
 // ---------------------------------------------------------------------------------------------------- the parts, in order
+const sheetTo = (to: any) => (to && to.place ? { ...to, as: "sheet" } : to);
+const inSheet = (b: any) => ({ ...b, to: sheetTo(b.to), pages: b.pages ? b.pages.map((x: any) => ({ ...x, to: sheetTo(x.to) })) : b.pages });
 export function Parts({ data, needs }: { data: any; needs?: any }) {
   const parts: any[] = data?.parts || [];
   const chipPart = parts.find((p) => p.t === "chips");
@@ -839,7 +911,11 @@ export function Parts({ data, needs }: { data: any; needs?: any }) {
     switch (p.t) {
       case "hero": out.push(<Hero key={k} p={p} />); break;
       case "today": out.push(<TodayCard key={k} p={p} />); break;
-      case "boxes": out.push(<View key={k} style={{ flexDirection: "row", gap: 12 }}>{(p.items || []).map((b: any, j: number) => <Box key={j} b={b} tall={(p.items || []).some((x: any) => x.pages && x.pages.length > 1)} />)}</View>); break;
+      case "boxes": {
+        const overHome = data?.name === "home";          // Madhav, 10 Nov 22:12: Home's two boxes open each number in a tall sheet over Home
+        out.push(<View key={k} style={{ flexDirection: "row", gap: 12 }}>{(p.items || []).map((b: any, j: number) => <Box key={j} b={overHome ? inSheet(b) : b} tall={(p.items || []).some((x: any) => x.pages && x.pages.length > 1)} />)}</View>);
+        break;
+      }
       case "peek": out.push(<Peek key={k} p={p} />); break;
       case "rows": {
         const rows = chipPart && on !== first && !p.tags ? (p.rows || []).filter((r: any) => r.tag === on) : p.rows;

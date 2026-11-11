@@ -184,7 +184,9 @@ def _wait_for(plan: Any) -> dict | None:
 
 def wait_for_arrived(j, days: int = 2) -> list[dict]:
     """Yesterday's (and the day before's) PASS decisions whose wait_for came true on the last daily close: price_above / price_below
-    against the coin's close, dial against tonight's dial state. Each row is written once (engine_state wait:<decision id>)."""
+    against the coin's close, dial against tonight's dial state. A row already reported (engine_state wait:<decision id>) is left out.
+    Reading writes nothing: the officer's note marks what it reported (save_plan), so a page view or a question no longer uses up an
+    arrival before the note can report it (11 Nov 2026, R-182)."""
     from jarvis.service import feed
 
     out = []
@@ -215,10 +217,7 @@ def wait_for_arrived(j, days: int = 2) -> list[dict]:
         if w.get("dial") and state and str(w["dial"]).upper() == state:
             hit.append(f"the dial is {state}")
         if hit:
-            out.append({"decision": did, "coin": coin, "waited_for": w.get("words") or w, "arrived": "; ".join(hit), "passed_at": t})
-            j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (f"wait:{did}", json.dumps({"t": int(j.now()), "hit": hit})))
-    if out:
-        j.db.commit()
+            out.append({"decision": did, "coin": coin, "waited_for": w.get("words") or w, "arrived": "; ".join(hit), "passed_at": t, "hit": hit})
     return out
 
 
@@ -353,7 +352,9 @@ def file_failed_checks(j, checks: list[dict]) -> list[int]:
 def plan_line(j, day: str | None = None) -> dict:
     """One plan sentence for tonight, from the layers: the stance (dial state and view), the $500 book's core plan, the brain's
     decisions today, the bold book's action today, and the officer's checks. Conflicts are listed; the stance wins them.
-    Saved once per UTC day (engine_state plan:<day>)."""
+    Reading writes nothing. The officer's note saves the plan it was written from, once a night (save_plan, engine_state plan:<day>).
+    11 Nov 2026 (R-182): this used to save on every call, so each page view and question re-saved the night's plan; on 5 of the 18
+    nights since the plan began, the saved plan no longer matched the one the note was written from."""
     from jarvis.service import feed, ndax_book
 
     now = int(j.now())
@@ -440,14 +441,26 @@ def plan_line(j, day: str | None = None) -> dict:
     if view:
         parts.append(f"View: {view}")
     line = " ".join(parts)
-    out = {"day": day, "state": state, "line": line, "conflicts": conflicts, "checks": checks, "arrived": arrived, "rules": version()}
+    return {"day": day, "state": state, "line": line, "conflicts": conflicts, "checks": checks, "arrived": arrived, "rules": version()}
+
+
+def save_plan(j, plan: dict | None) -> bool:
+    """The officer's note saves the plan it was written from, once a night: engine_state plan:<day>, plus a wait:<decision id> mark
+    for each wait_for it reported, so the next night does not report it again. Nothing else writes these rows (11 Nov 2026, R-182)."""
+    if not plan or not plan.get("day"):
+        return False
+    now = int(j.now())
     try:
         j.db.execute("CREATE TABLE IF NOT EXISTS engine_state (k TEXT PRIMARY KEY, v TEXT)")
-        j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (f"plan:{day}", json.dumps(out, default=str)))
+        for a in plan.get("arrived") or []:
+            if a.get("decision"):
+                j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)",
+                             (f"wait:{a['decision']}", json.dumps({"t": now, "hit": a.get("hit") or [a.get("arrived")]})))
+        j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (f"plan:{plan['day']}", json.dumps({**plan, "saved_t": now}, default=str)))
         j.db.commit()
+        return True
     except Exception:  # noqa: BLE001
-        pass
-    return out
+        return False
 
 
 def latest_plan(j) -> dict | None:

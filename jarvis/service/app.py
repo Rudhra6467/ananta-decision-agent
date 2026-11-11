@@ -16,6 +16,27 @@ from jarvis.service import core
 
 app = FastAPI(title="Jarvis", version=core.VERSION, docs_url=None, redoc_url=None, openapi_url=None)
 
+
+def _times_in_the_log() -> None:
+    """11 Nov 2026 (the keen audit's register, R-183): every line of jarvis_service.log carries its time (Toronto, with the offset), so
+    a night can be rebuilt from the log. uvicorn sets up its loggers before it imports this app; here their formats gain the time."""
+    import logging
+
+    when = "%Y-%m-%d %H:%M:%S%z"
+    try:
+        from uvicorn.logging import AccessFormatter, DefaultFormatter
+
+        plain = DefaultFormatter("%(asctime)s %(levelprefix)s %(message)s", when, use_colors=False)
+        access = AccessFormatter('%(asctime)s %(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s', when, use_colors=False)
+    except Exception:  # noqa: BLE001
+        plain = access = logging.Formatter("%(asctime)s %(levelname)s %(message)s", when)
+    for name, fmt in (("uvicorn", plain), ("uvicorn.error", plain), ("uvicorn.access", access)):
+        for h in logging.getLogger(name).handlers:
+            h.setFormatter(fmt)
+
+
+_times_in_the_log()
+
 # The web app (livetrading247.com, Madhav 2026-10-06: "where i can access it through web") calls this API from the browser;
 # only our own sites may. Phones are not browsers and are unaffected. Every route still needs the login token.
 from fastapi.exceptions import RequestValidationError  # noqa: E402

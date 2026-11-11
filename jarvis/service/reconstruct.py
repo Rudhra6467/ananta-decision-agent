@@ -351,24 +351,30 @@ def value_line(j) -> dict:
     findings that changed a rule (none can, without Madhav), decisions that changed what runs (a book paused on a finding), families drafted."""
     _table(j)
     try:
-        rows = j.db.execute("SELECT kind, key, decision, day FROM rx_queue WHERE state='DECIDED' ORDER BY decided_t").fetchall()
+        rows = j.db.execute("SELECT kind, key, decision, day, decided_t FROM rx_queue WHERE state='DECIDED' ORDER BY decided_t").fetchall()
     except Exception:  # noqa: BLE001
         rows = []
     try:                                                   # what runs is read from the status book, never from the words of a decision
-        status = {k: (v.get("status") if isinstance(v, dict) else "") for k, v in (json.loads((REPO / "docs" / "knowledge" / "strategy_status.json").read_text()).get("strategies") or {}).items()}
+        book_doc = json.loads((REPO / "docs" / "knowledge" / "strategy_status.json").read_text()).get("strategies") or {}
     except Exception:  # noqa: BLE001
-        status = {}
+        book_doc = {}
+    status = {k: (v.get("status") if isinstance(v, dict) else "") for k, v in book_doc.items()}
     paused = []
-    for kind, k, dec, d in rows:
+    for kind, k, dec, d, decided_t in rows:
         if kind != "BOOK_BLEED" or (dec or "").startswith("superseded"):
             continue
         book = k.split(":", 1)[-1].split(":")[0].strip()
         st = status.get(book) or status.get(book.replace("JARVIS_", "")) or ""
         if st in ("PARKED", "RETIRED"):
-            paused.append(f"{book} {st.lower()} ({d})")
-    drafted = [m.group(1) for kind, k, dec, d in rows if kind == "MISS_PATTERN" and dec and (m := re.search(r"drafted as (\w+)", dec))]
+            # 11 Nov 2026 (R-153): the day of the decision, not the night the finding was queued (H07 was parked on 28 Oct; the card said 26 Oct)
+            entry = book_doc.get(book) or book_doc.get(book.replace("JARVIS_", "")) or {}
+            from jarvis.service import strategy_status
+
+            when = strategy_status.status_since(entry, st) or (time.strftime("%Y-%m-%d", time.gmtime(decided_t)) if decided_t else d)
+            paused.append(f"{book} {st.lower()} ({when})")
+    drafted = [m.group(1) for kind, k, dec, d, _ in rows if kind == "MISS_PATTERN" and dec and (m := re.search(r"drafted as (\w+)", dec))]
     drafted = [f"{x} ({status.get(x, 'unknown').lower()})" for x in drafted]
-    rule_b = sum(1 for kind, k, dec, d in rows if dec and "Rule B:" in dec)   # a hand decision through decide() is prefixed "<by>: "
+    rule_b = sum(1 for kind, k, dec, d, _ in rows if dec and "Rule B:" in dec)   # a hand decision through decide() is prefixed "<by>: "
     words = (f"Value since 24 Oct: 0 findings changed a rule; {len(paused)} decision{'s' if len(paused) != 1 else ''} changed what runs"
              + (f" ({', '.join(paused)})" if paused else "") + f"; {len(drafted)} famil{'ies' if len(drafted) != 1 else 'y'} drafted from a finding" + (f" ({', '.join(drafted)})" if drafted else "")
              + (f"; {rule_b} new-family question{'s' if rule_b != 1 else ''} held by Rule B until {RULE_B_ENDS}" if rule_b else "") + ".")

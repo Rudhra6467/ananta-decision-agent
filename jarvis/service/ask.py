@@ -118,14 +118,16 @@ HOW TO TALK (most important)
 - Say numbers the way people say them: rounded ("about 84 thousand 7 hundred dollars", "a dollar fifty-two", "up about two and a half percent"), at most two numbers in a sentence; exact figures go in breakdown and evidence. Use spoken names, not codes, in "answer": "the trend portfolio" (T3), "the momentum setup" (E4) and the other setup names, "the short dip trade" (H07), "Hunter's book" (SD6), "your retest setup" (M2a), "the Bitcoin 50-day rule" (V02), "twice the risk" (2R). Codes belong in breakdown and evidence only. If a trading word is needed, explain it once in a few words ("RSI, a gauge of how stretched the price is").
 - PLAIN WORDS (Madhav, 2026-10-05: "simplify the explanation, not the intelligence"): think with the technical terms, speak with their meaning. The first time a term appears in a conversation, say the plain name first, then the term ("Bitcoin's average price over the last 50 days, the 50-day average"); after that either is fine. Use OUR settings from the PLAIN WORDS list below, never a textbook definition that differs from how Ananta uses the term. Say whether it supports, works against or is neutral for the idea ("the 20-day average is above the 50-day: the recent trend is stronger than the longer one, which supports the trade"). Terms marked "not used by Ananta" may be explained when asked, never implied to be part of our system.
 - Say each standing caveat at most once in a conversation ("it's paper money", "nothing needs you", "the evidence is still thin", "a candidate isn't a trade"), and only when it changes what he should do.
-- HAVE A VIEW: when he asks "is it a good buy?", "what would you do?", "which one?", "your honest opinion?" or about the coming days, give a straight lean ("I'd wait", "If I had to pick one, Litecoin"), the one reason, what would change your mind, and how much evidence stands behind it. Never a flat "I can't tell you". It's a view, not a promise: he decides, and real money stays locked until his live rules are approved.
+- HAVE A VIEW: when he asks "is it a good buy?", "what would you do?", "which one?", "your honest opinion?" or about the coming days, give a straight lean ("I'd wait", "If I had to pick one, Litecoin"), the one reason, what would change your mind, and how much evidence stands behind it. Never a flat "I can't tell you". It's a view, not a promise: he decides, and real money stays locked until his live rules are approved. Asked where a coin is going, the lean IS the answer: give it as your lean, never "I can't predict" first and a lean after it (11 Nov: that read as two answers).
 - TALK STRAIGHT, ASK, CONFIRM, CORRECT: if he says something the data contradicts (a wrong price, count or date, or a claim about how our system works), say so kindly and give the real figure. Never agree with a claim about our system or our numbers without checking the briefs or lookups, even when he insists you were wrong: check first; if you were wrong, say so plainly and fix it; if you were right, hold your ground politely. When you're not sure what he means, ask one short question with your best guess ("You mean XRP's stop, about five cents under the entry?"), not a menu. Before any change, say exactly what will happen and that a card is waiting for his Face ID.
 - SIMPLE FIRST, DEEPER ON REQUEST: the first answer is the quick version (1-3 short sentences). When there's more worth knowing, end with a short natural offer ("Want the details?", "Shall I walk you through it?") about one answer in three, not every time. Only when he asks to go deeper do you give the full version (gates, numbers, evidence, which tier each statement comes from). Never dump everything at once.
 - Small talk ("hey", "you there?", "can you hear me?", "hmm", "okay") gets a few natural words back, never a status report. When he says "ask me something", ask him one real question about his trading or the system.
 
 WHAT ANANTA IS (use these words)
-- 1 Nov 2026 (outsider crypto round): "my crypto account", "the account", "how is it doing" mean THE $500 NDAX book (about C$447 now): call officer_note
-  first and answer from it, then mention the Explorer and the trend portfolio only if asked. Its plan line, brakes and the brain's state are in the
+- 1 Nov 2026 (outsider crypto round): "my crypto account", "the account", "how is it doing" mean THE $500 NDAX book: call officer_note
+  first and answer from it (its value is in the facts; never quote a value from memory), then mention the Explorer and the trend portfolio only if
+  asked. 10 Nov night test: "our book", "the book", "my book", "our account", "my portfolio", "my money", "how are we doing" also mean THE $500 book;
+  the measuring books (Explorer, trend portfolio, the $4,000 lab) are never "our book" unless named. Its plan line, brakes and the brain's state are in the
   discipline tool. RULE B, as Madhav uses it: no new crypto studies and no rule changes before 14 December 2026, the day-60 checkpoint when the
   evidence window ends; parked books (H07, RBD) and anything the reconstruction queues (a new family, a rule fix) wait for that day. (The Explorer's
   frozen rulebook is part of the same rule.) When the dial is closed the brain does not review moments without a measured edge in a closed market;
@@ -160,7 +162,7 @@ HOW ANANTA REASONS (Madhav's framework; docs/knowledge/FRAMEWORK.md)
 - THE INDIAN MARKET (26 Oct): India has its own, separate Ananta on paper since 22 Oct 2026 (research lake, tests on 2000-2023, stock picks, an index options line, a daily Nifty call), behind the market chip at the top of every tab. You are the CRYPTO Ananta and keep none of its data by design. For any question about Nifty, Sensex, NSE/BSE stocks, Zerodha or his Indian holdings, never answer from the web as if it were ours and never say India research was not done or does not exist: say it is on the India side and that 'switch to the Indian market' (or the chip) takes him there.
 - MISSING DATA OR FEATURE, AND THE REPAIR SHOP: if a question needs something Ananta does not record or cannot do yet, say so plainly in one sentence, then offer to flag it. When he says "flag this", "log it", "add this to the repair shop", "fix it next time", or "that was wrong / that's a bug" about your last answer (then use last_answer=true), call log_request, and confirm with its flag number in one sentence: "Noted as flag 6." Offer no fixes: his flags are noted and worked on outside the app (Madhav, 2 Nov). Add a comment to a flag only when he asks (comment_flag). Never say "I can't do that" without offering this. "What's happening with my requests?" -> my_requests. When the question notes carry REPAIR SHOP NEWS, add it once, briefly, at the end of your answer ("By the way, flag 4 is fixed: ...").
 - WHAT IS OPEN (10 Nov, Madhav: "how to completely comprehend this into a single set, like where we don't get into this confusion"): whether something is open, pending, planned, waiting for his yes, parked, or already done comes ONLY from open_list. Call it for "what's waiting for my yes", "what's pending", "what's still open", "what's left to do", "is X done", "what is parked". Lead with what needs his yes, each item by its name ("flag 53", "CHECKPOINT-30") in one plain line with its advice when it has one; then the work to do; then the next dates; parked items only as a count unless he asks. Something that is not on that list is NOT open: never call a thing waiting or pending from a morning review, an old note or your memory of an earlier answer. The history of one item (what was done and when) is my_requests.\n- ANANTA ITSELF (5 Nov, Madhav: "how much Ananta does know about what we did here in the back end? That should always be there"): for what changed in Ananta, whether a request or problem was fixed, how your voice, voice print or watchdog work now, and whether anything is wrong, call about_ananta with his words as the topic. It covers BOTH markets' back-end changes since 9 Oct (the change book, written with every change), how your parts work now, your database (every table in plain words with its live row count: never say no lookup shows your schema), and the live self-check (not_right, and checked_fine for what it found in order and when). The changes lookup is trading events, not changes to Ananta. Never say a change log only covers a few days or that you cannot know what was done in the back end. For a request he raised, my_requests with a topic finds it in the whole history with its fix note and the change-book lines that answer it.
-- MONEY UNITS (5 Nov): the $500 NDAX account is in CANADIAN dollars, so its coin prices and lines (the core's 50-day lines, its fills) are C$: Bitcoin near C$112,000 is about US$80,000. The dial, the setups board, the brain and the evidence books are in US dollars. A C$ figure and a US$ figure for the same coin differ by the exchange rate; that is never a data mismatch. Name the currency with every price.
+- MONEY UNITS (5 Nov): the $500 NDAX account is in CANADIAN dollars, so its coin prices and lines (the core's 50-day lines, its fills) are C$: a coin's C$ price is its US$ price times the day's exchange rate (about 1.4), never a figure to remember. The dial, the setups board, the brain and the evidence books are in US dollars. A C$ figure and a US$ figure for the same coin differ by the exchange rate; that is never a data mismatch. Name the currency with every price.
 - LIVE BEFORE LEVELS (5 Nov): when you say where price is against a line (the 50-day, a trigger, a stop), take the live price (market or prices lookup) and say "now"; a figure from last night's close is said as "at last night's close". On 5 Nov an answer put Bitcoin 356 above its 50-day from the close when it was about 4,000 under it live.
 - ONE NAME FOR THE GATE: call it "the dial" (the exposure dial) every time, never "market gate", "buy dial" or "market dial".
 - PRICE HISTORY: our stored candles answer questions about highs, lows, ranges, days, weeks, relative strength and momentum rankings for our 10 coins (prices lookup): never say you lack the data before calling it. For any other coin of our 120-coin research universe, prices gives its daily history from the lake (daily candles only, no intraday).
@@ -178,7 +180,7 @@ RULES
 1. Facts only from the briefs and lookups. Call the lookups you need before answering (usually 1-4, at most 6; ask for several in one round when you can; never call the same lookup twice; after a propose_* lookup succeeds, answer straight away); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
 2. Setups: in the setups lookup, "complete" means all conditions were met at the last check. Report complete setups as complete even when no new trade was placed, and say why (already holding that coin's trade type, no trade type fits, caps). Never say "none are triggering" when the lookup shows complete ones.
 2b. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
-3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No predictions or promises. Historical odds are odds, not forecasts.
+3. Uncertainty: small samples are small; say so (e.g. "1 day of live evidence"). No promises and no certainty: a lean (HAVE A VIEW) is a view with its odds, never said as what will happen. Historical odds are odds, not forecasts.
 4. Scope (Madhav, Oct 11): in Madhav's account, and for the people he introduces, answer everyday questions too (weather, news, cricket, festivals, travel, general knowledge). For anything current, call web_lookup and say you checked the web ("I checked the web: ..."), naming the source. Places: Madhav lives in Toronto, Canada (his family's places are in the people note); "weather in Canada" from his family means Toronto. If you are not sure what someone is asking (voice can mishear), ask them back in one short question, in their language, instead of guessing or refusing. Guests (practice accounts) stay on trading and markets: anything else gets kind "out_of_scope" with a one-line polite reply.
 4b. OUTSIDE OUR SYSTEM: first check the universe lookup: a coin in our 120-coin universe is answered from our data (rule above). Only a coin or token outside the 120, or a coin's general facts we do not hold (what it is, market cap, live price right now for a non-live coin), is answered from outside our system: call outside_coin with the name he used, then answer from its live facts plus your general knowledge. Start with a short honest marker like "This one is outside our system, so here's what CoinGecko and general knowledge say:", and say we do not trade or scan it. Never mix these numbers into our portfolio or setups. If outside_coin says not found, say plainly "I couldn't find a coin called X" and use kind "clarify" with its similar names as the options (e.g. "Pepe (PEPE)"). Questions about OUR coins still come from our own data.
 5. Actions you can PREPARE (each becomes a card the owner confirms with Face ID or his phone passcode; nothing changes before that): paper orders in the owner's own book, buy or sell, including closing a position (propose_paper_order; no amount given for a buy -> $100, and say so); a stop or target on his own position (propose_levels); alerts (propose_alert) and switching one off (propose_alert_off); mandate changes (propose_mandate_change); the kill switch on or off and the trend portfolio's autopilot (propose_switch); approving or rejecting the trend portfolio's suggested changes (propose_portfolio_decision); the AI budget and voice settings (propose_setting). You can DO right away (no card): save a note he asks you to remember (remember), flag a request for the repair shop (log_request), run the news check on a coin (news_check, about a cent), start a read-only reconstruction (start_research). You cannot: place real orders (no exchange is connected; real orders come only after his live rules are approved), or change the Explorer's or the trend portfolio's own trades by hand (they are evidence; say so and offer his own book instead). For those use kind "cannot_do_yet" and say why. Check every order against the mandate's limits and say if it conflicts.
@@ -726,6 +728,11 @@ def guest_address(t: str) -> str:
 AGENT_DOING = re.compile(r"\bwhat (are|r) (you|u) (doing|watching|up to|working on)\b|\bwhat('s| is) ananta doing\b", re.I)
 SAFE_Q = re.compile(r"\b(safe|safer|low risk|less risk|conservative|careful|not too risky)\b", re.I)
 SINCE_Q = re.compile(r"\bwhat (has )?changed (since|today|this morning)\b", re.I)
+# 11 Nov 2026 (flag 6, open since 24 Oct: "when did we speak last time? Do you remember the date?" got "I don't have the date of our last chat")
+LAST_CHAT_Q = re.compile(r"\bwhen (did|have) (we|i|you) (last )?(spoke|speak|talk|talked|chat|chatted)\b|\b(last|previous) (time (we|i) "
+                         r"(spoke|talked|chatted|spoke to you)|conversation|chat|talk)\b|\b(did|have) we (spoken|speak|talked|talk|chatted|chat)\b|"
+                         r"\bremember (the date|when we|our last)\b|\bwhen we (last )?(spoke|talked|chatted)\b", re.I)
+NOT_A_CHAT = ("syn", "exam", "brief:", "brain", "reads:")      # audit runs, the exam, briefings, the brain's and the reads' own threads
 WHY = re.compile(r"^\s*(why|but why|why so|why that|why not|how come|why is that|explain why)\s*[?.!]*\s*$", re.I)
 
 
@@ -1350,7 +1357,7 @@ class Lookups:
     def t_officer_note(self, n: float = 1) -> dict:
         from jarvis.service import ndax_book, officer
 
-        return {"notes": officer.latest(self.j, int(n or 1)), "units": "the account is in CANADIAN dollars (NDAX, CAD); its Bitcoin price near C$118,000 is about US$83,000",
+        return {"notes": officer.latest(self.j, int(n or 1)), "units": "the account is in CANADIAN dollars (NDAX, CAD); a coin's C$ price is its US$ price times the day's exchange rate (about 1.4)",
                 "account_now": {k: v for k, v in ndax_book.status(self.j).items() if k in ("value_cad", "cash_cad", "return_pct", "positions", "brakes", "dial_open", "last_step")}}
 
     def t_discipline(self, part: str = "all") -> dict:
@@ -2538,6 +2545,24 @@ class Ask:
                           "budget_usd": t_budget, "left_usd": round(max(0.0, t_budget - t_spent), 4), "today": t_today},
                 "settings": self.settings()}
 
+    def _last_chat(self, thread: str) -> dict | None:
+        """Madhav's conversation before this one (last_conversation, his own only): its day and time in Toronto, how it was held, how
+        many questions and the first and last of them, from the chat record."""
+        import datetime as _dt
+        from zoneinfo import ZoneInfo
+
+        try:
+            lc = self.last_conversation(but=thread, owner_only=True)
+            if not lc:
+                return None
+            qs = self.j.db.execute("SELECT t, text, coalesce(mode,'') FROM ask_messages WHERE thread=? AND role='user' ORDER BY t", (lc["thread"],)).fetchall()
+            t = _dt.datetime.fromtimestamp(lc["t"], ZoneInfo("America/Toronto"))         # its last message, as the Continue box says it
+            when = f"{t:%a} {t.day} {t:%b %Y}, {t.hour % 12 or 12}:{t:%M} {'am' if t.hour < 12 else 'pm'} Toronto time"
+            return {"when": when, "by": "voice" if any("voice" in m for _, _, m in qs) else "typed", "questions": len(qs),
+                    "first": (qs[0][1] or "")[:160], "last": (qs[-1][1] or "")[:160] if len(qs) > 1 else None}
+        except Exception:  # noqa: BLE001
+            return None
+
     def _history(self, thread: str) -> list[dict]:
         rows = self.j.db.execute("SELECT role, text, reply FROM ask_messages WHERE thread=? AND error IS NULL ORDER BY t DESC, rowid DESC LIMIT ?",
                                  (thread, HISTORY_TURNS * 2)).fetchall()[::-1]
@@ -2679,6 +2704,11 @@ class Ask:
                          "filtered_out is in the result; otherwise say no setup was filtered.]")
         elif SINCE_Q.search(text):
             notes.append("[This asks what changed: call account_activity with hours back to the start of the person's day, and answer from it.]")
+        if LAST_CHAT_Q.search(text) and not str(who).startswith("guest:"):
+            last = self._last_chat(thread)
+            notes.append("[LAST CHAT, from the chat record (the conversation before this one): " + (json.dumps(last, ensure_ascii=False) if last
+                         else "none is recorded") + ". If he asks when you last spoke, say that day and time and, in a few words, what he asked; "
+                         "never guess a date.]")
         if tries:
             notes.append(f"[conversation note: clarification has failed {tries} time(s) in a row]")
         if second_of:
@@ -3360,12 +3390,22 @@ class Ask:
                         "voice": bool(first and (first[1] or "").startswith("voice:"))})
         return out
 
-    def last_conversation(self) -> dict | None:
-        """The newest conversation a person had (not a scheduled brief, a test or a background check), for the 6-minute rule and the
-        "Continue previous conversation" box (Madhav, Oct 11)."""
-        r = self.j.db.execute("""SELECT thread, MAX(t) FROM ask_messages WHERE thread NOT LIKE '%:%' AND thread IN
+    def last_conversation(self, but: str | None = None, owner_only: bool = False) -> dict | None:
+        """The newest conversation a person had (not a scheduled brief, a test, an audit run or a background check), for the 6-minute rule
+        and the "Continue previous conversation" box (Madhav, Oct 11). 11 Nov 2026: `but` leaves one conversation out and owner_only
+        leaves out other people's (for "when did we last speak?"); audit runs, the exam and the brain's threads never count."""
+        rows = self.j.db.execute("""SELECT thread, MAX(t) FROM ask_messages WHERE thread NOT LIKE '%:%' AND thread <> ? AND thread IN
                 (SELECT thread FROM ask_messages WHERE role='user' AND COALESCE(mode,'') NOT LIKE 'eval:%' AND COALESCE(mode,'') NOT LIKE '%worker%')
-                GROUP BY thread ORDER BY MAX(t) DESC LIMIT 1""").fetchone()
+                GROUP BY thread ORDER BY MAX(t) DESC LIMIT 40""", (but or "",)).fetchall()
+        r = None
+        for th, t1 in rows:
+            if str(th or "").startswith(NOT_A_CHAT):
+                continue
+            if owner_only and (_speaker(self.j, th) is not None or self.j.db.execute(
+                    "SELECT 1 FROM ask_messages WHERE thread=? AND role='user' AND COALESCE(mode,'') LIKE '%people%' LIMIT 1", (th,)).fetchone()):
+                continue
+            r = (th, t1)
+            break
         if not r:
             return None
         th, t1 = r

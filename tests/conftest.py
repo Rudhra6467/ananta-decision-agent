@@ -108,3 +108,22 @@ def _no_live_selfcheck(tmp_path, monkeypatch):
 
     monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
     monkeypatch.setattr(selfcheck, "_credit", lambda post=None: [])     # and never call the Anthropic API
+
+
+@pytest.fixture(autouse=True)
+def _no_live_india_timing(tmp_path, monkeypatch):
+    """11 Nov 2026 (the keen audit's register, R-041): the test suite wrote its own rows into the real India reports/ask_timing.jsonl,
+    which the self-scan reads for slow answers. A timing line written while a test runs goes to that test's own folder; a test that
+    points the India data folder somewhere else itself keeps it."""
+    from jarvis.india import ask as india_ask
+
+    real, live = india_ask._timing_log, india_ask.DATA
+
+    def _timing_log(*a, **k):
+        if india_ask.DATA != live:
+            return real(*a, **k)
+        with monkeypatch.context() as m:
+            m.setattr(india_ask, "DATA", tmp_path / "india_data")
+            return real(*a, **k)
+
+    monkeypatch.setattr(india_ask, "_timing_log", _timing_log)

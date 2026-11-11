@@ -70,7 +70,10 @@ def align(j) -> dict:
                 if s.get("status") in DEMOTE and c.get("permission") == "PAPER":
                     out["fixed"].append(f"status_cards.json {cid}: permission PAPER -> CONTEXT ({sid} is {s.get('status')})")
                     c["permission"] = "CONTEXT"
-                    c["reason"] = (c.get("reason") or "") + f" [{sid} {str(s.get('status')).lower()} {today}: no longer a reason to buy]"
+                    # 11 Nov 2026 (R-153): the day the status changed (its history), not the day this build noticed it: H07's note said
+                    # "parked 2026-10-29" for a park of 28 Oct, and Ask repeated it
+                    since = strategy_status.status_since(s, str(s.get("status"))) or today
+                    c["reason"] = (c.get("reason") or "") + f" [{sid} {str(s.get('status')).lower()} {since}: no longer a reason to buy]"
                     changed = True
         if changed:
             doc["updated"] = today

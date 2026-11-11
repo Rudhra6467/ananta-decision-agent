@@ -32,8 +32,8 @@
   },
   {
    "id": "brief3",
-   "name": "the morning briefing",
-   "q": "Give me my morning briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
+   "name": "the briefing",
+   "q": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
    "mark": "grader",
    "must": [
     "the account's value agrees with value_cad",
@@ -44,7 +44,8 @@
     "a holding that is not in holdings"
    ],
    "core": true,
-   "from": "the app's morning briefing"
+   "from": "the app's morning briefing",
+   "changed": "11 Nov: 'morning' left out, because the night test asks at 7 pm Toronto and a greeting by time of day is right (R-179)"
   },
   {
    "id": "dial_why",

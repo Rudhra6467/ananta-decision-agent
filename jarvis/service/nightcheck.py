@@ -287,6 +287,7 @@ def unsourced(answer: str, evidence: str, T: dict | None = None) -> list[str]:
 GRADER_RULES = """You mark one answer from Ananta, a paper-trading assistant for crypto, given to its owner Madhav. You are given the QUESTION, the TRUTH
 (read by code from the book and the rule files a moment ago; it is correct but NOT complete), the RUBRIC for this question, and the ANSWER.
 
+A greeting is never a mistake: an answer may open with any time of day ("Evening, sir" at 7 pm is right even for a briefing).
 Mark the answer WRONG only if one of these holds:
 1. It breaks the RUBRIC: a "must" is missing, or a "must not" happens.
 2. A figure in it CONTRADICTS a figure in the TRUTH that measures the same thing.
@@ -426,7 +427,8 @@ def run(j, ask=None, post=None, day: str | None = None, budget: float | None = N
             row.update({k2: v for k2, v in m.items() if k2 != "cost_usd"})
             out["cost_grader_usd"] += m["cost_usd"]
             miss = unsourced(txt, q["q"] + " " + json.dumps(T, default=str) + " " + " ".join(askmod.EVIDENCE), T)
-            if re.search(r"\bflag", txt, re.I) and not re.search(r"\bflag", q["q"], re.I):
+            if re.search(r"\bflag", txt, re.I) and not re.search(r"\bflag|waiting|wait for me|needs? me|open list", q["q"], re.I):   # 11 Nov: naming
+                # the open list's flags when asked what waits is right, not a stray call
                 miss.append("talks about a flag nobody asked for")       # 10 Nov: test answers kept mentioning a flag they tried to file
             if miss:
                 row["look"] = miss[:8]

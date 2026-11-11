@@ -63,6 +63,15 @@ def of_book(home_book: str | None) -> tuple[str, dict] | None:
     return None
 
 
+def status_since(entry: dict, status: str) -> str | None:
+    """The day a strategy entered its status, from its own history here (the last move into that status); None when the history
+    does not say. 11 Nov 2026 (R-153): one event, one date on every surface."""
+    for h in reversed((entry or {}).get("history") or []):
+        if isinstance(h, dict) and h.get("to") == status and h.get("when"):
+            return str(h["when"])[:10]
+    return None
+
+
 def trades(watch: str) -> bool:
     """May this watch open new paper trades? EVIDENCE books do (they measure in the background); RETIRED and PARKED do not."""
     e = of_watch(watch)

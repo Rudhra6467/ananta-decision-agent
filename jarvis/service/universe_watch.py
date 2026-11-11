@@ -151,6 +151,7 @@ def manage_live_rows(j, tier: str, coins: list[str]) -> int:
 
     labs = set(registry.lab10())
     n = 0
+    closed: list[dict] = []
     # 10 Nov 2026: a zone touch whose coin has since moved to another tier is still this tier's trade to close (they were left open)
     moved = [c for (c,) in j.db.execute("SELECT DISTINCT coin FROM evidence_trades WHERE status='OPEN' AND watch=?", (wid("ZONE_TOUCH", tier),)) if c not in set(coins)]
     for c in list(coins) + moved:
@@ -163,7 +164,12 @@ def manage_live_rows(j, tier: str, coins: list[str]) -> int:
         if len(D) < 30:
             continue
         S = R.Series(D)
-        n += len(watch_engine._manage(j, c, D, S, R.rsi(S.c, 10), rows))
+        evs = watch_engine._manage(j, c, D, S, R.rsi(S.c, 10), rows)
+        n += len(evs)
+        closed += [e for e in evs if e.get("event") == "closed"]
+    # 11 Nov 2026 (R-169): these closes count in the night's late closes too; on 10 Nov the note said 41 (net about -US$96) when 50
+    # had closed late (net -US$228.31): the 9 zone touches closed here were left out
+    watch_engine._note_late(j, closed)
     j.db.commit()
     return n
 

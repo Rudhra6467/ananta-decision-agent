@@ -387,7 +387,8 @@ def test_the_note_reads_the_dial_afresh_and_knows_which_close_a_brake_fired_on(t
     assert f["account"]["corrections"] == [{"day": "2026-10-28", "what": "a sale recorded late", "cash_added": 28.06}]
     monkeypatch.setattr(exposure, "state", lambda j: {"dial_words": "CLOSED", "why": [], "as_of_day": "2026-10-27"})
     assert "different candle" in officer.facts(j)["dial"]["warning"]
-    for must in ("never write that no brake fired", "do NOT close every note with its day", "A check with state OK is not a failure", "never\n\"caught\" as if it were a win"):
+    for must in ("never write that no brake fired", "do NOT close every note with its day", "A check with state OK is not a failure", "never \"caught\" as if it were a win",
+                 "coin's code is a coin"):                                 # 11 Nov: "a measuring book was in ERA" read ERA as a word
         assert must in officer.NOTE_RULES, must
 
 

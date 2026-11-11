@@ -255,9 +255,18 @@ def _manage(j, coin: str, D: list[tuple], S, r10: list, rows: list[tuple]) -> li
                 break
         if exit_px is not None:
             n = net(coin, r["entry"], exit_px, r["watch"])
+            now = int(j.now())
+            late = exit_t < now - 2 * DAY      # 11 Nov 2026 (R-169): a close written more than two days after its rule's day says so on its row
+            if late:
+                if not det and r.get("detail"):
+                    try:
+                        det = json.loads(r["detail"])
+                    except ValueError:
+                        det = {"was": r["detail"]}
+                det["recorded_late"] = _day(now)
             j.db.execute("UPDATE evidence_trades SET exit_t=?, exit_day=?, exit=?, net_usd=?, status='CLOSED', exit_why=?, stop=?, detail=? WHERE id=?",
-                         (exit_t, _day(exit_t), exit_px, n, why, r["stop"], json.dumps(det, default=str) if (protect_on or live) else r.get("detail"), r["id"]))
-            out.append({"watch": r["watch"], "coin": coin, "event": "closed", "net_usd": n, "exit_t": exit_t})
+                         (exit_t, _day(exit_t), exit_px, n, why, r["stop"], json.dumps(det, default=str) if (protect_on or live or late) else r.get("detail"), r["id"]))
+            out.append({"watch": r["watch"], "coin": coin, "event": "closed", "net_usd": n, "exit_t": exit_t, **({"late": True} if late else {})})
         elif moved:                                           # the protect rule moved the stop: the row says so (stop_moves, high)
             j.db.execute("UPDATE evidence_trades SET stop=?, detail=? WHERE id=?", (r["stop"], json.dumps(det, default=str), r["id"]))
             out.append({"watch": r["watch"], "coin": coin, "event": "protected", "stop": r["stop"]})

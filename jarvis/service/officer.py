@@ -31,10 +31,25 @@ greeting by time of day. If the facts say a brake fired or a strategy passed, le
 the "fired" numbers inside "brakes" are totals since the book started, never today's. If "account.corrections" is there, say the
 correction once in plain words (what was put right and the money). If "dial.warning" is there, say it. If "background.old_paper_trades_closed_late_tonight" is there, say in one sentence
 how many old paper trades of the measuring books were closed late tonight by their own rules, their net in US dollars, and that the
-account itself is untouched. A "caught" move only means
-some paper book held that coin, often a measuring book that may not trade for the account: say "a measuring book was in X", never
-"caught" as if it were a win. In a check's words, the books after "Paused books still closing"
+account itself is untouched. "background.missed_moves" lists the day's big moves by coin, each with what happened in plain words; a
+coin's code is a coin, never a word ("ERA" is a coin): write "a measuring book held the coin ERA on paper", never "a measuring book was in
+ERA" and never "caught" as if it were a win (11 Nov note). Mention them in one short sentence at most, and only if one touches the account. In a check's words, the books after "Paused books still closing"
 are different books from the ones before: never call a live book paused. A check with state DECIDED is one Madhav has already decided: say his decision, not a failure."""
+
+
+MOVE_WORDS = {"CAUGHT": "a measuring book held the coin on paper (not the account)", "SEEN": "seen; no book held the coin",
+              "MISSED": "no book saw the move in time"}
+
+
+def _moves_in_words(missed) -> list | None:
+    """The day's big moves for the note, coin by coin in plain words: "ERA CAUGHT" became "a measuring book was in ERA" on 11 Nov."""
+    if not isinstance(missed, list):
+        return missed
+    out = []
+    for m in missed[:5]:
+        coin, _, what = str(m).strip().partition(" ")
+        out.append({"coin": coin, "what": MOVE_WORDS.get(what.strip().upper(), what.strip().lower() or "a big move")})
+    return out
 
 
 def _table(j) -> None:
@@ -46,8 +61,9 @@ def facts(j, daily: dict | None = None) -> dict:
 
     daily = daily or {}
     f: dict = {"day": time.strftime("%Y-%m-%d", time.gmtime(j.now())),
-               "note_on_units": "Every figure under 'account' is in CANADIAN dollars (CAD): the book trades on NDAX in CAD, so Bitcoin near "
-                                "C$118,000 is about US$83,000. Market prices elsewhere are US dollars. Never call a CAD price stale or wrong."}
+               "note_on_units": "Every figure under 'account' is in CANADIAN dollars (CAD): the book trades on NDAX in CAD, so a coin's C$ price "
+                                "is its US$ price times the day's exchange rate (about 1.4); never quote a C$ price from memory. Market prices "
+                                "elsewhere are US dollars. Never call a CAD price stale or wrong."}   # 11 Nov: a fixed Bitcoin figure written here went stale
     try:
         s = ndax_book.status(j)
         f["account"] = {"value_cad": s.get("value_cad"), "cash_cad": s.get("cash_cad"), "return_pct": s.get("return_pct"),
@@ -106,7 +122,7 @@ def facts(j, daily: dict | None = None) -> dict:
     except Exception:  # noqa: BLE001
         pass
     f["background"] = {**bg, "brain_woke": daily.get("brain_woke"), "pushed": daily.get("pushed") or [],
-                       "missed_moves": (daily.get("missed") or [])[:5] if isinstance(daily.get("missed"), list) else daily.get("missed"),
+                       "missed_moves": _moves_in_words(daily.get("missed")),
                        "brain_rebuild": daily.get("brain_rebuild"), "weekly_review": daily.get("weekly_review")}
     try:
         st = strategy_status.load().get("strategies") or {}
@@ -126,6 +142,7 @@ def facts(j, daily: dict | None = None) -> dict:
         from jarvis.service import discipline
 
         pl = discipline.plan_line(j)
+        f["_plan"] = pl                       # the whole plan: write() saves it beside the note (11 Nov 2026, R-182), and pops it first
         f["checks"] = pl.get("checks") or discipline.officer_checks(j)
         f["plan_line"] = pl.get("line")
         f["layer_conflicts"] = pl.get("conflicts") or []
@@ -229,6 +246,7 @@ def write(j, daily: dict | None = None, push: Callable | None = None, call: Call
 
     _table(j)
     f = facts(j, daily)
+    plan = f.pop("_plan", None)
     day = f["day"]
     if j.db.execute("SELECT 1 FROM officer_notes WHERE day=?", (day,)).fetchone():
         return {"ok": True, "note": latest(j, 1)[0]["note"], "facts": f, "already": True}
@@ -243,6 +261,12 @@ def write(j, daily: dict | None = None, push: Callable | None = None, call: Call
         return {"ok": False, "error": "empty note", "facts": f}
     j.db.execute("INSERT OR REPLACE INTO officer_notes VALUES (?,?,?,?,?)", (day, int(j.now()), note, json.dumps(f, default=str)[:20000], cost))
     j.db.commit()
+    try:  # 11 Nov 2026 (R-182): the plan this note was written from is saved with it, and only here; pages and questions only read it
+        from jarvis.service import discipline
+
+        f["plan_saved"] = discipline.save_plan(j, plan)
+    except Exception:  # noqa: BLE001
+        pass
     try:  # 10 Nov 2026: the scorecard's clean nights (docs/knowledge/crypto_scorecard.json)
         f["clean_night"] = mark_clean_night(j, f)
     except Exception:  # noqa: BLE001

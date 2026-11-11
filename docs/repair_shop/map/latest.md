@@ -1,4 +1,4 @@
-# The one map (2026-11-09T20:35)
+# The one map (2026-11-10T20:35)
 
 The map holds 175 studies and 1440 variants. 79 mismatches between layers: 24 planned, not done, 14 proved, not in the paper rules, 37 tested, but not at full scale, 2 the voice has it, but no plain-words name, 2 a result the screens do not show; 14 need Madhav's yes.
 

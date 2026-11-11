@@ -17,6 +17,8 @@ import { goTab } from "./context";
 import { useMarket } from "./market";
 import { useData } from "./useData";
 import { soft, tap } from "./haptics";
+import { api } from "./api";
+import { showToast } from "./visitor";
 
 // ---------------------------------------------------------------------------------------------------- where a tap goes
 export type To = { tab?: string; place?: string; page?: any; sheet?: any; ask?: string; route?: string; action?: string; as?: string; peek?: any } | null | undefined;
@@ -40,18 +42,41 @@ export function go(to: To) {
   if (to.sheet) { openSheet(to.sheet); return; }
   if (to.ask) { closeSheet(); goTab({ pathname: "/new/ask", params: { q: to.ask, t: String(Date.now()) } }); return; }
   if (to.route) { closeSheet(); router.push(to.route as any); return; }
+  if (to.action === "clear_needs") { clearNeeds(); return; }
   if (to.action === "theme") setTheme(themeName() === "bat" ? "light" : "bat");
 }
 
 // ---------------------------------------------------------------------------------------------------- data
+// after one of his answers every place on screen and the bell read again, quietly (11 Nov 2026)
+const refreshSubs = new Set<() => void>();
+export function refreshPlaces() { refreshSubs.forEach((f) => { try { f(); } catch { /* a screen that left */ } }); }
+function useRefreshable(d: { refresh?: () => void }) {
+  const r = useRef(d.refresh);
+  r.current = d.refresh;
+  useEffect(() => { const f = () => r.current && r.current(); refreshSubs.add(f); return () => { refreshSubs.delete(f); }; }, []);
+}
 export function usePlace(name: string | null, refreshMs = 60000) {
   const mk = useMarket();
-  return useData<any>(mk && name ? `/v3/place/${name}?m=${mk}` : null, refreshMs);
+  const d = useData<any>(mk && name ? `/v3/place/${name}?m=${mk}` : null, refreshMs);
+  useRefreshable(d);
+  return d;
 }
 // the open list lives with the sign-in service; both markets ask it (src/api.ts SHARED)
 export function useNeeds() {
   const mk = useMarket();
-  return useData<any>(mk ? `/v3/place/needs?m=${mk}` : null, 60000);
+  const d = useData<any>(mk ? `/v3/place/needs?m=${mk}` : null, 60000);
+  useRefreshable(d);
+  return d;
+}
+async function clearNeeds() {
+  try {
+    const r: any = await api("/v3/openlist/answer", { key: "all", answer: "later" });
+    tap();
+    refreshPlaces();
+    showToast(r?.words || "Cleared from your notifications.", 3200);
+  } catch (e: any) {
+    showToast(e?.message || "That did not save. Try again.", 3200);
+  }
 }
 
 // ---------------------------------------------------------------------------------------------------- type and small pieces
@@ -780,12 +805,14 @@ export function SheetHost() {
             <Text style={{ color: C.text, fontSize: 14, lineHeight: 20, flex: 1 }}><Text style={{ fontWeight: "600" }}>Ananta's advice: </Text>{s.advice}</Text>
           </View>
         ) : null}
-        <View style={{ gap: 4 }}>
-          {s.primary ? <MainButton label={s.primary.label} onPress={() => { const t = s.primary.to; closeSheet(); go(t); }} /> : null}
-          <Pressable onPress={closeSheet} accessibilityRole="button" style={{ height: 48, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>{s.secondary || "Not now"}</Text>
-          </Pressable>
-        </View>
+        {s.key && s.answers && s.answers.length ? <AnswerButtons s={s} /> : (
+          <View style={{ gap: 4 }}>
+            {s.primary ? <MainButton label={s.primary.label} onPress={() => { const t = s.primary.to; closeSheet(); go(t); }} /> : null}
+            <Pressable onPress={closeSheet} accessibilityRole="button" style={{ height: 48, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>{s.secondary || "Not now"}</Text>
+            </Pressable>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -924,6 +951,67 @@ function PlaceSheet({ name, peek }: { name: string; peek?: any }) {
           <View style={{ paddingBottom: Math.max(ins.bottom, 8) }}><Fade /><Pinned p={data?.pinned} /></View>
         </View>
       </Animated.View>
+    </View>
+  );
+}
+
+// Madhav, 10 Nov 22:33: "after reading I can click on that, like it's get approved straight away instead of only asking Ananta", and
+// "Even if I click no, like not now, it is still there in the notification": his answer right in the sheet. Yes (or Done for his own
+// step), No, Not now. Not now clears it from his notifications for a week and it stays on the open list; every answer is logged
+// (/v3/openlist/answer, jarvis/service/openlist.py). Talking to Ananta about it stays one tap away.
+function AnswerButtons({ s }: { s: any }) {
+  const ids: string[] = (s.answers || []).map((a: any) => a.id);
+  const label = (id: string) => (s.answers || []).find((a: any) => a.id === id)?.label || id;
+  const [busy, setBusy] = useState<string | null>(null);
+  const [said, setSaid] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const send = async (id: string) => {
+    if (busy || said) return;
+    setBusy(id);
+    setErr(null);
+    try {
+      const r: any = await api("/v3/openlist/answer", { key: s.key, answer: id });
+      tap();
+      setSaid(r?.words || "Saved.");
+      refreshPlaces();
+      setTimeout(() => closeSheet(), 1500);
+    } catch (e: any) {
+      setErr(e?.message || "That did not save. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
+  const main = ids.find((x) => x === "yes" || x === "done");
+  const side = ids.filter((x) => x === "no" || x === "later");
+  const talk = s.primary ? () => { const t = s.primary.to; closeSheet(); go(t); } : null;
+  if (said) {
+    return (
+      <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 16, backgroundColor: C.card2 }}>
+        <Icon name="check" size={22} color={C.good} />
+        <Text style={{ flex: 1, color: C.text, fontSize: 15, lineHeight: 21 }}>{said}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={{ gap: 10 }}>
+      {main ? <MainButton label={busy === main ? "Saving…" : label(main)} onPress={() => send(main)} /> : talk ? <MainButton label={s.primary.label} onPress={talk} /> : null}
+      {side.length ? (
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          {side.map((x) => (
+            <Pressable key={x} onPress={() => send(x)} accessibilityRole="button" disabled={!!busy}
+              style={({ pressed }) => ({ flex: 1, height: 48, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? C.card : C.card2,
+                                         alignItems: "center", justifyContent: "center" })}>
+              <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }}>{busy === x ? "Saving…" : label(x)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+      {err ? <Text style={{ color: C.bad, fontSize: 13, lineHeight: 18, textAlign: "center" }}>{err}</Text> : null}
+      {main && talk ? (
+        <Pressable onPress={talk} accessibilityRole="button" style={{ minHeight: 40, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: C.gold, fontSize: 15, fontWeight: "600" }}>{s.primary.label}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

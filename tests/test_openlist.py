@@ -126,3 +126,60 @@ def test_a_finding_ananta_files_by_itself_is_work_and_is_never_put_to_him_as_pic
     assert [x["num"] for x in L["work"]] == [f["num"]] and all(x["kind"] != "flag_pick" for x in bar["items"]) and L["problems"] == []
     old = fixflow.flag(j, "A flag from before the list, with no kind", market="crypto", screen="x", use_ai=False)       # the old path still shows
     assert any(x["id"] == f"flag:{old['num']}" for x in waiting.collect(j, NOW)["items"])
+
+
+def test_his_answer_in_the_app_is_kept_and_does_what_it_says(j, tmp_path, monkeypatch):
+    """Madhav, 10 Nov 22:33: "after reading I can click on that, like it's get approved straight away"; "Even if I click no, like not now,
+    it is still there in the notification ... I should be able to still clear that notifications" while it is "saved in the log and the
+    flags list"."""
+    from jarvis.service import places
+
+    look = openlist.open_item(j, "Look at build 0.4.0 (14) on your iPhone; say yes or what to change.", "YOU", market="both", on_yes="done")
+    dec = openlist.open_item(j, "Include the options line's result in the account total?", "YOU", market="india", advice="yes, as its own line")
+    step = openlist.open_item(j, "Phone notes need your Apple sign-in once: your step.", "YOU", market="both")
+    other = openlist.open_item(j, "Keep the Explorer's weekly report?", "YOU", market="crypto")
+    L = openlist.collect(j, NOW)
+    k = {n: f"ask:{x['num']}" for n, x in (("look", look), ("dec", dec), ("step", step), ("other", other))}
+    assert set(k.values()) <= {x["key"] for x in L["you"]}
+    sheets = {r["to"]["sheet"]["key"]: r["to"]["sheet"] for r in places.you_rows(L, "india")}
+    assert [a["id"] for a in sheets[k["dec"]]["answers"]] == ["yes", "no", "later"] and sheets[k["dec"]]["answers"][2]["label"] == "Not now"
+    assert [a["id"] for a in sheets[k["step"]]["answers"]] == ["done", "later"], "his own step is done, not a yes"
+    assert [a["id"] for a in sheets["india:drafts"]["answers"]] == ["later"], "research drafts are answered in their own place"
+    # Not now: gone from his notifications (the bell, Home, Notices, the phone reminders), still on the open list, back after a week
+    said = openlist.answer(j, k["dec"], "later")
+    assert said["words"] == "Cleared from your notifications for 7 days. It stays on your open list."
+    L = openlist.collect(j, NOW)
+    assert k["dec"] in L["quiet"] and k["dec"] in {x["key"] for x in L["you"]}, "it stays on the list"
+    assert k["dec"] not in {r["to"]["sheet"]["key"] for r in places.you_rows(L, "india")}, "and leaves the bell"
+    monkeypatch.setattr(waiting, "STATE", tmp_path / "waiting_state.json")
+    sent = []
+    told = waiting.remind(j, push=lambda t, b: sent.append((t, b)), now=NOW)
+    assert k["dec"] not in told["new"] and sent and "options line" not in json.dumps(sent), "no phone note for what he cleared"
+    assert k["dec"] not in openlist.quiet_keys(j, NOW + 8 * DAY), "after a week it comes back once"
+    # yes on a look closes it; yes on a decision makes it work to do with his yes on it; no closes it; done closes his step
+    assert openlist.answer(j, k["look"], "yes")["words"] == "Saved: you said yes. It is closed, and your answer is kept."
+    r = openlist._get(j, look["num"])
+    assert r["status"] == "DONE" and r["note"].startswith("You said yes in the app (Tue 10 Nov, 11:00 am Toronto)") and r["closed_by"] == "Madhav, in the app"
+    openlist.answer(j, k["dec"], "yes")
+    r = openlist._get(j, dec["num"])
+    assert r["status"] == "OPEN" and r["waits"] == "WORK" and r["note"].startswith("You said yes in the app")
+    assert openlist.advice_of(r["note"]) == "yes, as its own line", "the advice survives"
+    assert k["dec"] not in openlist.quiet_keys(j, NOW), "an answered item is no longer cleared"
+    assert openlist._get(j, other["num"])["status"] == "OPEN"
+    openlist.answer(j, k["other"], "no")
+    assert openlist._get(j, other["num"])["status"] == "WONT"
+    openlist.answer(j, k["step"], "done")
+    assert openlist._get(j, step["num"])["status"] == "DONE"
+    with pytest.raises(ValueError):
+        openlist.answer(j, k["other"], "yes")                     # already answered
+    with pytest.raises(ValueError):
+        openlist.answer(j, "india:drafts", "yes")                 # answered in its own place
+    with pytest.raises(ValueError):
+        openlist.answer(j, k["look"], "maybe")
+    log = j.db.execute("SELECT key, answer FROM owner_answers ORDER BY rowid").fetchall()
+    assert log == [(k["dec"], "later"), (k["look"], "yes"), (k["dec"], "yes"), (k["other"], "no"), (k["step"], "done")], "every answer is kept"
+    # Clear all: everything still waiting leaves his notifications, and stays on the list
+    out = openlist.clear_all(j, now=NOW)
+    L = openlist.collect(j, NOW)
+    assert out["cleared"] == len(L["you"]) > 0 and places.you_rows(L, "india") == [] and places.you_rows(L, "crypto") == []
+    assert L["counts"]["YOU"] >= out["cleared"]

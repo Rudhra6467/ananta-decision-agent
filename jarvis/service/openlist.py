@@ -29,9 +29,12 @@ THE RULES (kept by code, not by memory)
   apply_closes(j)   the change book's `closes` applied (the 15-minute loop)
   open_item(j, ...) put a new hand-kept item on the board with its kind
   set_kind(j, ...)  set an item's kind, date or topic
+  answer(j, ...)    his answer from the app: yes, no, done, or later (clears it from his notifications for a week); logged
+  clear_all(j)      everything waiting cleared from his notifications for a week; it all stays on the list
+  quiet_keys(j)     what is cleared from his notifications now (the bell, Home's Needs you, the phone reminders)
   problems(j)       what is wrong with the list itself
   text(j)           the list as plain lines (python scripts/open_list.py)
-Read-only except close / apply_closes / open_item / set_kind. Nothing here trades or changes a rule."""
+Read-only except close / apply_closes / open_item / set_kind / answer / clear_all. Nothing here trades or changes a rule."""
 from __future__ import annotations
 
 import json
@@ -161,7 +164,7 @@ def collect(j, now: float | None = None) -> dict:
     due = _due(j)
     w = waiting.collect(j, now)
     low = lambda t: (t[:1].lower() + t[1:]) if str(t).lower().startswith(("flag ", "request ")) else t      # noqa: E731
-    you = [{"id": low(x.get("title") or x["id"]), "kind": "YOU", "market": x.get("market") or "crypto", "line": plain(x.get("line") or x.get("title") or "", 190),
+    you = [{"id": low(x.get("title") or x["id"]), "key": x["id"], "kind": "YOU", "market": x.get("market") or "crypto", "line": plain(x.get("line") or x.get("title") or "", 190),
             "count": int(x.get("count") or 1), "source": {"drafts": "India research drafts", "needs": "crypto Needs you"}.get(x.get("kind"), "board"),
             **({"advice": (x.get("review") or {}).get("proposal")} if (x.get("review") or {}).get("proposal") else {})} for x in w["items"]]
     work = [x for x in board if x["kind"] == "WORK"]
@@ -176,6 +179,7 @@ def collect(j, now: float | None = None) -> dict:
     stale = [x["id"] for x in work if x.get("stale")]
     return {"as_of": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(now)), "line": line, "counts": counts, "waiting_line": w.get("line") or "",
             "you": you, "work": work, "dated": dated, "parked": parked, "stale": stale, "problems": problems(j, board=board),
+            "quiet": sorted(quiet_keys(j, now)),
             "kinds": KIND_WORDS,
             "how": ("This is the only place that says what is open. Say an item by its name ('flag 53', 'CHECKPOINT-30'). Something not on this "
                     "list is not open: it is done, dropped or was never filed. A dated note or the morning page is history, not the list.")}
@@ -258,7 +262,7 @@ def apply_closes(j, path: Path | None = None, force: bool = False) -> list[int]:
 
 
 def open_item(j, text: str, waits: str, market: str = "crypto", due: str | None = None, topic: str | None = None, advice: str | None = None,
-              by: str = "claude") -> dict:
+              by: str = "claude", on_yes: str | None = None) -> dict:
     """A new hand-kept item on the board with its kind. The same words or the same topic as an open item join it (no second copy)."""
     from jarvis.service import requests_log
 
@@ -270,7 +274,111 @@ def open_item(j, text: str, waits: str, market: str = "crypto", due: str | None 
     if advice and not r.get("duplicate"):
         j.db.execute("UPDATE owner_requests SET note=? WHERE num=?", (("Advice: " + advice)[:400], r["num"]))
         j.db.commit()
+    if on_yes and not r.get("duplicate"):                # "done": his yes closes it (a look, a confirmation); otherwise a yes makes it work to do
+        j.db.execute("UPDATE owner_requests SET on_yes=? WHERE num=?", (on_yes, r["num"]))
+        j.db.commit()
     return r
+
+
+# ---------------------------------------------------------------- his answers from the app (Madhav, 10 Nov 22:33)
+# "Can I add something like ... after reading I can click on that, like it's get approved straight away instead of only asking Ananta";
+# "Even if I click no, like not now, it is still there in the notification ... I should be able to still clear that notifications" while
+# "this thing should be saved in the log and the flags list". A YOU item in the app's sheet offers Yes (or Done for his own step), No and
+# Not now. Not now clears it from his notifications (the bell, Home's Needs you, the phone reminders) for QUIET_DAYS; it stays on the open
+# list and comes back once after that. Every answer is kept in owner_answers.
+QUIET_DAYS = 7
+ANSWER_LABEL = {"yes": "Yes", "no": "No", "done": "Done", "later": "Not now"}
+
+
+def _answer_tables(j) -> None:
+    j.db.execute("CREATE TABLE IF NOT EXISTS owner_answers (t INTEGER, key TEXT, answer TEXT, by TEXT, words TEXT)")
+    j.db.execute("CREATE TABLE IF NOT EXISTS notice_quiet (key TEXT PRIMARY KEY, until INTEGER, t INTEGER, by TEXT)")
+
+
+def quiet_keys(j, now: float | None = None) -> set:
+    """The waiting items he cleared from his notifications, until they come back."""
+    try:
+        _answer_tables(j)
+        return {k for (k,) in j.db.execute("SELECT key FROM notice_quiet WHERE until > ?", (int(now or j.now()),))}
+    except Exception:  # noqa: BLE001  a missing table never hides the list
+        return set()
+
+
+def answers_for(key: str | None, step: bool = False) -> list[str]:
+    """What the app's sheet offers for one waiting item: a board item takes yes (done for his own step), no and later; a crypto ladder card
+    takes yes and later; the rest (research drafts, a flag's fixes, a due-list decision) are answered in their own place, so only later."""
+    kind = str(key or "").split(":", 1)[0]
+    if kind == "ask":
+        return ["done", "later"] if step else ["yes", "no", "later"]
+    if kind == "needs":
+        return ["yes", "later"]
+    return ["later"] if key else []
+
+
+def _when(now: float) -> str:
+    try:
+        import datetime as dt
+        from zoneinfo import ZoneInfo
+
+        t = dt.datetime.fromtimestamp(now, ZoneInfo("America/Toronto"))
+        return f"{t:%a} {t.day} {t:%b}, {t.hour % 12 or 12}:{t:%M} {'am' if t.hour < 12 else 'pm'} Toronto"
+    except Exception:  # noqa: BLE001
+        return time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(now))
+
+
+def answer(j, key: str, said: str, by: str = "Madhav", now: float | None = None) -> dict:
+    """His answer to one waiting item (waiting.collect's id: "ask:<num>", "needs:<id>", ...). yes: a board item whose on_yes is "done" closes;
+    any other turns into work to do with his yes written on it, so the work it allows stays on the list until it is done. no: closed with his
+    no. done: his own step, closed. later: cleared from his notifications for QUIET_DAYS. Every answer is logged."""
+    said = str(said or "").strip().lower()
+    if said not in ANSWER_LABEL:
+        raise ValueError("the answer is yes, no, done or later")
+    _answer_tables(j)
+    now = int(now or j.now())
+    when = _when(now)
+    kind, _, ref = str(key or "").partition(":")
+    out = {"key": key, "said": said}
+    if said == "later":
+        j.db.execute("INSERT OR REPLACE INTO notice_quiet VALUES (?,?,?,?)", (key, now + QUIET_DAYS * 86400, now, by))
+        out["words"] = f"Cleared from your notifications for {QUIET_DAYS} days. It stays on your open list."
+    elif kind == "ask" and ref.isdigit():
+        num = int(ref)
+        r = _get(j, num)
+        if not r or r["status"] in ("DONE", "WONT"):
+            raise ValueError("that one is already answered")
+        if said == "no":
+            close(j, num, f"You said no in the app ({when}).", done=False, by=f"{by}, in the app", quiet=True)
+            out["words"] = "Saved: you said no. It is closed, and your answer is kept."
+        elif said == "done" or str(r.get("on_yes") or "") == "done":
+            close(j, num, f"You {'did it' if said == 'done' else 'said yes'} in the app ({when}).", done=True, by=f"{by}, in the app", quiet=True)
+            out["words"] = f"Saved: {'done' if said == 'done' else 'you said yes'}. It is closed, and your answer is kept."
+        else:
+            note = f"You said yes in the app ({when})" + (" | " + r["note"] if r.get("note") else "")
+            j.db.execute("UPDATE owner_requests SET waits='WORK', note=?, updated_t=? WHERE id=?", (note[:400], now, r["id"]))
+            out["words"] = "Saved: you said yes. It is now work to do, and stays on the list until it is done."
+    elif kind == "needs" and said == "yes":
+        from jarvis.service import needs
+
+        out["result"] = needs.decide(j, ref, "approve", by)
+        out["words"] = "Saved: you said yes."
+    else:
+        raise ValueError("this one is answered in its own place: tell Ananta, or open it")
+    j.db.execute("DELETE FROM notice_quiet WHERE key=? AND ?<>'later'", (key, said))
+    j.db.execute("INSERT INTO owner_answers VALUES (?,?,?,?,?)", (now, key, said, by, out["words"]))
+    j.db.commit()
+    return out
+
+
+def clear_all(j, by: str = "Madhav", now: float | None = None) -> dict:
+    """Everything waiting for his yes, cleared from his notifications for QUIET_DAYS; it all stays on the open list."""
+    from jarvis.service import waiting
+
+    keys = [x["id"] for x in waiting.collect(j, now)["items"]]
+    for k in keys:
+        answer(j, k, "later", by=by, now=now)
+    n = len(keys)
+    return {"cleared": n, "words": (f"Cleared {n} from your notifications for {QUIET_DAYS} days. {'It stays' if n == 1 else 'They stay'} on your open list."
+                                    if n else "Nothing to clear.")}
 
 
 def set_kind(j, num: int, waits: str, due: str | None = None, topic: str | None = None, seen: int | None = None, advice: str | None = None,

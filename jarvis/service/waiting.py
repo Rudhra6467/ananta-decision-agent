@@ -94,7 +94,7 @@ def _asks(j) -> list[dict]:
     for r in reversed(requests_log.list_(j, include_done=False)):
         if r.get("waits") != "YOU":
             continue
-        out.append({"id": f"ask:{r['num']}", "market": openlist.market_of(r), "kind": "ask", "count": 1, "t": r.get("t"),
+        out.append({"id": f"ask:{r['num']}", "market": openlist.market_of(r), "kind": "ask", "count": 1, "t": r.get("t"), "on_yes": r.get("on_yes"),
                     "title": r["label"].capitalize(), "line": r.get("line") or openlist.plain(r["text"], 190), "route": "flags", "say": f"yes or no to {r['label']}",
                     "review": {"words": str(r.get("note") or "")[:600], "proposal": openlist.advice_of(r.get("note")), "settled": False}})
     return out
@@ -169,6 +169,15 @@ def remind(j, push=None, web=None, now: float | None = None) -> dict:
     """A note when something new waits; one evening reminder while anything has waited a day. Returns what it sent."""
     now = now or time.time()
     w = collect(j, now)
+    try:  # 11 Nov 2026: what he cleared from his notifications is not pushed again until it comes back (it stays on the open list)
+        from jarvis.service import openlist
+
+        quiet = openlist.quiet_keys(j, now)
+    except Exception:  # noqa: BLE001
+        quiet = set()
+    if quiet:
+        items = [x for x in w["items"] if x["id"] not in quiet]
+        w = {**w, "items": items, "count": sum(int(x.get("count") or 1) for x in items), "line": line(items)}
     st = _load()
     seen = st.get("seen") or {}                 # id -> count already told
     new = [x for x in w["items"] if int(x.get("count") or 1) > int(seen.get(x["id"], 0))]

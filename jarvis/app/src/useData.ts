@@ -35,5 +35,5 @@ export function useData<T = any>(path: string | null, refreshMs = 60000) {
     const sub = AppState.addEventListener("change", (st) => { if (st === "active") load(true); });
     return () => { clearInterval(id); sub.remove(); };
   }, [load, refreshMs]);
-  return { data, err, loading, reload: () => load(false) };
+  return { data, err, loading, reload: () => load(false), refresh: () => load(true) };      // refresh: quietly, no spinner
 }

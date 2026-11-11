@@ -25,7 +25,8 @@ STATUS_WORDS = {"OPEN": "on the list", "PLANNED": "planned for the next work ses
 COLS = ("id", "num", "t", "by", "kind", "text", "about", "thread", "status", "note", "updated_t", "pushed", "told",
         # 10 Nov 2026 (the open list, jarvis/service/openlist.py): what the item is about (a repeat with the same topic joins it), how many
         # times it was seen, the last sightings, its kind (YOU | WORK | DATE | PARKED), its date, and what closed it
-        "topic", "seen", "sightings", "waits", "due", "closed_by", "line")       # line: the item in one plain sentence, when its first words are not one
+        "topic", "seen", "sightings", "waits", "due", "closed_by", "line",       # line: the item in one plain sentence, when its first words are not one
+        "on_yes")                    # 11 Nov 2026: what his yes in the app does to a YOU item: "done" closes it; empty turns it into work to do
 # The flag numbers restart after the 23 Oct reset (Madhav, 25 Oct: "the flag number is 90 plus. didn't we discuss to update the number?"):
 # request 82 is flag 1, 96 is flag 15. The stored number never changes (the repair ledger and the locks cite it); people see and say
 # the flag number, and every lookup takes either.
@@ -53,7 +54,7 @@ def _table(j) -> None:
                  "thread TEXT, status TEXT, note TEXT)")
     have = {r[1] for r in j.db.execute("PRAGMA table_info(owner_requests)")}
     for c, typ in (("num", "INTEGER"), ("updated_t", "INTEGER"), ("pushed", "INTEGER"), ("told", "INTEGER"), ("topic", "TEXT"), ("seen", "INTEGER"),
-                   ("sightings", "TEXT"), ("waits", "TEXT"), ("due", "TEXT"), ("closed_by", "TEXT"), ("line", "TEXT")):
+                   ("sightings", "TEXT"), ("waits", "TEXT"), ("due", "TEXT"), ("closed_by", "TEXT"), ("line", "TEXT"), ("on_yes", "TEXT")):
         if c not in have:
             j.db.execute(f"ALTER TABLE owner_requests ADD COLUMN {c} {typ}")
     if "num" not in have:                                    # number the requests logged before numbers existed, oldest first
@@ -128,7 +129,7 @@ def add(j, kind: str, text: str, about: str | None = None, by: str = "owner", th
     j.db.execute(f"INSERT INTO owner_requests ({', '.join(COLS)}) VALUES ({', '.join('?' * len(COLS))})",
                  (rid, num, int(j.now()), "exam" if exam else by, kind, text, (about or "")[:120], thread,
                   "WONT" if exam else "OPEN", EXAM_NOTE if exam else "", int(j.now()), 1, 1,
-                  (topic or "")[:120] or None, 1, None, waits, due, None, None))
+                  (topic or "")[:120] or None, 1, None, waits, due, None, None, None))
     j.db.commit()
     return {"id": rid, "num": num, "kind": kind, "status": "OPEN",
             "say": f"Flagged as {label(num)}. It's on your flags list, and I'll tell you when it's fixed."}

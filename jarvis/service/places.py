@@ -52,17 +52,23 @@ def _rest(line, title: str) -> str:
 
 
 def you_rows(col: dict, market: str = "crypto") -> list[dict]:
-    """The open list's "needs your yes" as rows; a tap opens a bottom sheet with the whole line and the advice (one thing at a time)."""
+    """The open list's "needs your yes" as rows; a tap opens a bottom sheet with the whole line, the advice and his answers (Yes, No, Not
+    now: 11 Nov 2026). What he cleared from his notifications is left out here (the bell, Home, Notices) and stays on the open list page."""
+    from jarvis.service import openlist
+
+    quiet = set(col.get("quiet") or [])
     out = []
     for it in col.get("you") or []:
-        if it.get("market") not in (market, "both", None):
+        if it.get("market") not in (market, "both", None) or it.get("key") in quiet:
             continue
         t, sub = K.title_sub(it.get("line") or "")
         adv = str(it.get("advice") or "")
         step = "step" in adv.lower() or "your step" in str(it.get("line") or "").lower()
+        ans = [{"id": a, "label": openlist.ANSWER_LABEL[a]} for a in openlist.answers_for(it.get("key"), step)]
         out.append(K.row(t, sub, right="Your step" if step else "Your yes", icon="you", tint="bronze", tag="you",
                          to=K.sheet(t, _rest(it.get("line"), t), advice=(adv[:1].upper() + adv[1:]) if adv else None, icon="you",
-                                    primary={"label": "Talk to Ananta about it", "to": K.ask(f"About {it.get('id')}: {t}. What do I need to do, and what happens after?")})))
+                                    primary={"label": "Talk to Ananta about it", "to": K.ask(f"About {it.get('id')}: {t}. What do I need to do, and what happens after?")},
+                                    key=it.get("key"), answers=ans)))
     return out
 
 
@@ -533,6 +539,7 @@ def notices(j, market: str = "crypto", c: dict | None = None) -> dict:
         you = you_rows(c["list"], market)
         n = c["list"].get("counts") or {}
         return K.page("Notices", [K.rows("For you", you, count=len(you), badge=True) if you else K.line("Nothing needs you right now."),
+                                  K.link("Clear all from notifications", {"action": "clear_needs"}) if you else None,
                                   K.counts("The open list", [{"n": n.get("YOU", 0), "label": "Need you", "accent": True}, {"n": n.get("WORK", 0), "label": "To do"},
                                                              {"n": n.get("DATE", 0), "label": "Wait for a date"}, {"n": n.get("PARKED", 0), "label": "Parked"}], to=K.place("openlist"))],
                       bar_kind="close", ask_q="What needs me today, in order?")
@@ -541,6 +548,7 @@ def notices(j, market: str = "crypto", c: dict | None = None) -> dict:
     ev = [r for _d, _o, r in _events(j, c)[:3]]
     n = c["list"].get("counts") or {}
     parts = [K.rows("For you", you, count=len(you), badge=True) if you else K.line("Nothing needs you right now."),
+             K.link("Clear all from notifications", {"action": "clear_needs"}) if you else None,
              K.rows("New", new) if new else None,
              K.rows("Latest", ev, more=K.tab("activity")) if ev else None,
              K.counts("The open list", [{"n": n.get("YOU", 0), "label": "Need you", "accent": True}, {"n": n.get("WORK", 0), "label": "To do"},

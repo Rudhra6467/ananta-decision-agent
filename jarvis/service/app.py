@@ -506,6 +506,27 @@ class NeedsIn(BaseModel):
     decision: str = "later"
 
 
+class AnswerIn(BaseModel):
+    key: str
+    answer: str
+
+
+@app.post("/v3/openlist/answer")
+def openlist_answer(b: AnswerIn, who: str = Depends(owner)) -> dict:
+    """Madhav, 10 Nov 2026 22:33: his answer from a "Needs you" sheet: yes, no, done, or later (cleared from his notifications for a week;
+    it stays on the open list). key "all" with later clears everything waiting. Every answer is logged (openlist.owner_answers)."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="Only Madhav decides.")
+    from jarvis.service import openlist
+
+    try:
+        if b.key == "all" and b.answer == "later":
+            return openlist.clear_all(_main())
+        return openlist.answer(_main(), b.key, b.answer)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.post("/v3/needs/decide")
 def needs_decide(b: NeedsIn, who: str = Depends(owner)) -> dict:
     """Madhav's tap on the card: approve = one step up the ladder (paper); later = hide it for a week."""

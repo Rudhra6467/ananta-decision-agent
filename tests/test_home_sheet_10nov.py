@@ -43,3 +43,12 @@ def test_the_sheet_looks_and_feels_premium():
 def test_leaving_the_sheet_closes_it():
     assert "if (to.tab || to.place || to.page) closeSheet();" in PLACE, "Show the portfolio or a tab closes the sheet first"
     assert "SHEET_Y.setValue(1);" in BODY.split("return () =>", 1)[1], "and the screen behind comes back to full size"
+
+
+def test_he_answers_in_the_needs_you_sheet_and_can_clear_notifications():
+    # Madhav, 10 Nov 22:33: a Yes in the sheet ("get approved straight away"), and a way to clear notifications that keeps the item on the list
+    assert "function AnswerButtons(" in PLACE and '"/v3/openlist/answer", { key: s.key, answer: id }' in PLACE
+    assert "{s.key && s.answers && s.answers.length ? <AnswerButtons s={s} /> : (" in PLACE, "an older payload keeps the old buttons"
+    assert 'if (to.action === "clear_needs") { clearNeeds(); return; }' in PLACE and '{ key: "all", answer: "later" }' in PLACE
+    assert "refreshPlaces();" in PLACE, "the bell and the places read again after an answer"
+    assert '"/v3/openlist"' in (APP / "src" / "api.ts").read_text(), "the open list lives with the sign-in service for both markets"

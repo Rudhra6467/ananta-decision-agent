@@ -85,8 +85,12 @@ def to_page(p: dict | None) -> dict | None:
     return {"page": p} if p else None
 
 
-def sheet(title: str, text: str, advice: str | None = None, icon: str = "you", primary: dict | None = None, secondary: str = "Not now") -> dict:
-    return {"sheet": _drop({"icon": icon, "title": title, "text": text, "advice": advice, "primary": primary, "secondary": secondary})}
+def sheet(title: str, text: str, advice: str | None = None, icon: str = "you", primary: dict | None = None, secondary: str = "Not now",
+          key: str | None = None, answers: list | None = None) -> dict:
+    """answers (11 Nov 2026): what he can answer right there, [{"id": "yes"|"no"|"done"|"later", "label": ...}], sent with the item's key to
+    /v3/openlist/answer. An older app shows primary and secondary as before."""
+    return {"sheet": _drop({"icon": icon, "title": title, "text": text, "advice": advice, "primary": primary, "secondary": secondary, "key": key,
+                            "answers": answers or None})}
 
 
 # ---- the parts

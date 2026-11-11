@@ -1204,7 +1204,10 @@
     "src/research/review30.py",
     "src/research/book500.py",
     "src/research/book500_s2.py",
-    "src/research/review39.py"
+    "src/research/review39.py",
+    "src/research/review41.py",
+    "src/research/review42.py",
+    "src/research/review42_forward.py"
    ]
   },
   {

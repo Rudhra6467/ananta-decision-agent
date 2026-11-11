@@ -542,6 +542,15 @@
    "cadence": "monthly",
    "owner": "Claude",
    "plain": "Monthly re-dating of the hand-written gate checks (each expires after 30 days)."
+  },
+  {
+   "id": "EV-R42",
+   "what": "Review 42's forward test on live paper (recording only): a waiting buy after a coin's rarest 15-minute drops, NDAX's own quotes deciding.",
+   "how": "When ~/ananta_runs/review42_forward/status.json shows 30 independent days with an NDAX fill, read the record once by docs/research/REVIEW_42_FORWARD.md and write the result; never total it before.",
+   "cadence": "evidence",
+   "goal": "30 independent days with an NDAX fill",
+   "owner": "Claude",
+   "plain": "Being recorded on live paper: the waiting buy after the sharpest drops (review 42). Read once at 30 separate days."
   }
  ]
 }

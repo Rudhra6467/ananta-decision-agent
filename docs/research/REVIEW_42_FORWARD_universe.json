@@ -1,0 +1,27 @@
+{
+ "symbols": [
+  "BTCUSDT",
+  "ETHUSDT",
+  "SOLUSDT",
+  "XRPUSDT",
+  "DOGEUSDT",
+  "NEARUSDT",
+  "SUIUSDT",
+  "XLMUSDT",
+  "ADAUSDT",
+  "ENAUSDT",
+  "XPLUSDT",
+  "TAOUSDT",
+  "PEPEUSDT",
+  "LINKUSDT",
+  "UNIUSDT",
+  "AAVEUSDT",
+  "AVAXUSDT",
+  "LTCUSDT",
+  "ONDOUSDT",
+  "FETUSDT",
+  "BCHUSDT"
+ ],
+ "from": "pit_top30 2026-09 and NDAX-listed in universe_live.json",
+ "frozen": "2026-11-11"
+}

@@ -24,3 +24,5 @@ cli.main(['sync'])
 " >> "$HOME/ananta_runs/lake_weekly.log" 2>&1
 # engine plan U7.1: every other coin Ananta watches, at 15-minute to daily detail (new months only)
 nice -n 15 "$HOME/ananta_venvs/lake/bin/python" -u scripts/lake_extend.py >> "$HOME/ananta_runs/lake_extend.log" 2>&1
+# review 42's forward test on live paper, recording only (docs/research/REVIEW_42_FORWARD.md): counts only, read once at 30 days
+nice -n 15 "$HOME/ananta_venvs/lake/bin/python" -u -m src.research.review42_forward >> "$HOME/ananta_runs/review42_forward.log" 2>&1

@@ -471,7 +471,7 @@ def account(j) -> dict:
                      caption="One point a night." + (" Corrected on " + S._dw(now.date()) + "." if corrected else ""), baseline=start,
                      label="The account's value each night against Bitcoin just held") if yours else None,
              K.kv([K.kvrow(x.get("label"), S._pct(x.get("ret_pct")), tone=S._tone(x.get("ret_pct")), bold=(i == 0)) for i, x in enumerate(books)], title="How it compares",
-                  foot="Nothing is read into the gap before 14 Dec."),
+                  foot=((S._safe(S.like_for_like, j, default="") or "") + "Nothing is read into the gap before 14 Dec.").strip()),   # 11 Nov (R-149)
              K.rows("Your coins", coin_rows, plain=True),
              K.points([m["under_check"]], title="Being checked") if m.get("under_check") else None,
              K.rows("Closed trades", [crow(x) for x in closed[:3]], count=len(closed), sub=f"{won} won, {len(closed) - won} lost", more=K.to_page(all_closed)) if closed else None,

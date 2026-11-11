@@ -387,7 +387,10 @@ def account(full: bool = True) -> dict:
                       {"label": "Cash", "value": _rs(cash), "share": round(cash / tot, 3), "shade": "faint"}], title="Where it sits"),
              K.kv([K.kvrow(label.get(b.get("id"), b.get("label")), _pct(b.get("ret_pct")) if b.get("ret_pct") is not None else (b.get("words") or "—"), tone=_tone(b.get("ret_pct")), bold=(b.get("id") == "managed"))
                    for b in sorted(books, key=lambda b: order.get(b.get("id"), 9))], title="How it compares",
-                  foot=(f"All from the {IS._dw(clock.get('since'))} close. {clock.get('words')}: too early to judge." if clock.get("since") and clock.get("words") else m.get("books_note"))),
+                  # 11 Nov 2026 (R-027, flag 93): the hero said "since Fri 30 Oct" and this foot "All from the Thu 29 Oct close" for one start
+                  foot=((f"All since {IS._dw(mb.get('start_day'))}, the same start as above (counted from the {IS._dw(clock.get('since'))} close). "
+                         if mb.get("start_day") and str(clock.get("since") or "") < str(mb.get("start_day")) else f"All from the {IS._dw(clock.get('since'))} close. ")
+                        + f"{clock.get('words')}: too early to judge." if clock.get("since") and clock.get("words") else m.get("books_note"))),
              K.rows("Your holdings", [holding_row(h) for h in hs[:3]], count=len(hs), sub=f"{len(hs)} · graded", more=K.to_page(holdings_page(hs))) if hs else None,
              K.rows("Bought on paper", [K.row(_name(r.get("symbol")), f"For the {_name(r.get('for_cut'))} cut", right=_rs(r.get("value_inr")), right_sub=_pct(r.get("pnl_pct"), 1),
                                               right_tone=_tone(r.get("pnl_pct"))) for r in reps[:3]], count=len(reps)) if reps else None,

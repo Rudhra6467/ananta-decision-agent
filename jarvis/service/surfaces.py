@@ -350,6 +350,10 @@ def _account_points(j, b: dict, pos: list[dict], brake: str | None, gap: list[di
     if isinstance(hold, (int, float)):
         pts.append(f"Bitcoin just held since {_dw(exposure.START)}: {_pct(hold)}"
                    + (f" · the hurdle to beat: {_pct(hurdle)}" if isinstance(hurdle, (int, float)) else ""))
+        # 11 Nov 2026 (R-149, the 10 Nov outside grading): the like-for-like figure showed on Money only; it sits wherever the return is shown
+        lfl = re.search(r"in Canadian dollars\): ([^.]+\.\d+%|[^.]+%)", _safe(like_for_like, j, default="") or "")
+        if lfl:
+            pts.append(f"Like for like (Bitcoin bought at the book's first NDAX price and held, in C$): {lfl.group(1)}")
     closed = b.get("closed") or []
     total = int((b.get("graduation") or {}).get("closed_trades") or len(closed))
     if total and total <= len(closed):
@@ -556,11 +560,15 @@ def like_for_like(j) -> str:
         held = 100 * (q["bid"] / (first[0] * (1 + B.NDAX_FEE)) - 1)
         words = f"Like for like (Bitcoin bought at the book's first price on NDAX and just held, in Canadian dollars): {_pct(held)}. "
         share = []
-        for (facts,) in j.db.execute("SELECT facts FROM officer_notes ORDER BY day"):
+        nf = _safe(_night_fixes, j, default={}) or {}
+        for day, facts in j.db.execute("SELECT day, facts FROM officer_notes ORDER BY day"):
             try:
                 a = (json.loads(facts or "{}").get("account") or {})
                 if a.get("value_cad"):
-                    share.append(1 - float(a.get("cash_cad") or 0) / float(a["value_cad"]))
+                    fx = nf.get(str(day)[:10]) or {}            # 11 Nov (R-144): the 14 nights without the ETH counted as corrected
+                    value = float(a["value_cad"]) + fx.get("add_cad", 0.0)
+                    cash = float(a.get("cash_cad") or 0) + (0.0 if fx.get("in_coins", True) else fx.get("add_cad", 0.0))
+                    share.append(1 - cash / value)
             except (ValueError, TypeError):
                 continue
         if share:
@@ -854,6 +862,7 @@ def account_chart(j) -> dict:
     empty = {"name": "Your account on paper", "kind": "portfolio", "as_of": None, "chart": {"dates": [], "yours": [], "untouched": [], "nifty500": []},
              "legend": legend, "lines": lines, "words": "The account's record starts with the first nightly note; nothing to draw yet.", "note": note}
     rec: dict[str, float] = {}
+    nf = _safe(_night_fixes, j, default={}) or {}
     for day, facts in j.db.execute("SELECT day, facts FROM officer_notes ORDER BY day"):
         try:
             v = ((json.loads(facts or "{}") or {}).get("account") or {}).get("value_cad")
@@ -861,7 +870,7 @@ def account_chart(j) -> dict:
         except (ValueError, AttributeError):
             continue
         if isinstance(v, (int, float)):
-            rec[close_day] = float(v)
+            rec[close_day] = round(float(v) + (nf.get(str(day)[:10]) or {}).get("add_cad", 0.0), 2)
     started = str(b.get("started") or "")[:10]
     if not rec or not re.fullmatch(r"20\d\d-\d\d-\d\d", started):
         return empty
@@ -895,10 +904,21 @@ def account_chart(j) -> dict:
         words += " " + gap_words(gap)
     for r in fixes:                                          # a correction is said: the nights before it were recorded without that money
         words += (f" Corrected on {_dw(r.get('day'))}: {_cad(r.get('cash_added'))} from a trade whose sale had not been recorded; "
-                  "the nights before that were recorded without it.")
+                  + (f"the {len(nf)} nights before it are drawn with it put back (the nightly notes keep what they recorded)." if nf else
+                     "the nights before that were recorded without it."))
     return {"name": "Your account on paper", "kind": "portfolio", "ccy": "CAD", "as_of": _dm(dates[-1]) + " close", "start_cad": start, "sessions": len(dates) - 1,
             "chart": {"dates": dates, "yours": yours, "untouched": hold, "nifty500": hurdle}, "legend": legend, "lines": lines,
             "x_labels": [_dm(dates[0]), _dm(dates[-1])], "words": words, "note": note}
+
+
+def _night_fixes(j) -> dict:
+    """11 Nov 2026 (R-144): per-night corrections of the nightly notes (book500_night_fixes, written from the book's own fills and the worker's
+    NDAX bids): note day -> {add_cad, in_coins}. The notes keep what they recorded; the chart and the coin share read the corrected nights."""
+    try:
+        rows = j.db.execute("SELECT day, add_cad, in_coins FROM book500_night_fixes").fetchall()
+    except Exception:  # noqa: BLE001  no table: nothing was corrected
+        return {}
+    return {str(d): {"add_cad": float(a or 0), "in_coins": bool(c)} for d, a, c in rows}
 
 
 def _repairs(j) -> list[dict]:

@@ -1107,6 +1107,12 @@ def _close_cut(s: str) -> str:
     return s + "." if s and s[-1] not in ".!?\"'”)" else s
 
 
+def _with_nudge(answer, nd: str) -> str:
+    """A nudge goes after the answer: on its own line after a list (11 Nov 2026), else after a space."""
+    a = str(answer or "").rstrip()
+    return f"{a}{chr(10) if chr(10) in a else ' '}{nd}".strip()
+
+
 def tidy_end(a: str) -> str:
     """Every answer reads as finished sentences (27 Oct night): 'Sir, The rupee' -> 'Sir, the rupee'; a last sentence with no full stop
     (a code-built line such as '... with realistic fills') gets one."""
@@ -1152,8 +1158,15 @@ def finish(reply: dict, question: str, model: bool) -> dict:
     field name is put into words (jarvis/india/askwords.py) before the answer is shown or spoken; the codes stay in "evidence"."""
     a = askwords.words(plain_codes(str(reply.get("answer") or "")))
     # 8 Nov audit: the model sometimes writes "Ananta:", "Next:", "Market:" as line labels; spoken, they are noise
-    a = re.sub(r"(?:^|\n)\s*(?:Ananta|Next|Market|Answer|Note|Summary|Bottom line)\s*:\s*", " ", a).strip()
-    a = re.sub(r"[ \t]*\n[ \t]*", " ", a)
+    # 11 Nov 2026 (R-059, flag 65): joining every line here (8 Nov) undid the 3 Nov recap's short lines; a list of three or more lines stays
+    # a list, each line a sentence, without labels or bullet marks (the voice reads it the same, sentence by sentence)
+    rows = []
+    for x in a.split("\n"):
+        x = re.sub(r"^[ \t]*[•\-–*][ \t]+", "", x)
+        x = re.sub(r"^[ \t]*(?:Ananta|Next|Market|Portfolio|Answer|Note|Summary|Bottom line)[ \t]*:[ \t]*", "", x).strip()
+        if x:
+            rows.append(x[:1].upper() + x[1:] if x[-1:] in ".!?:" else x[:1].upper() + x[1:] + ".")
+    a = "\n".join(rows) if len(rows) >= 3 else " ".join(rows)
     # 30 Oct outside grade (cv5.2): an answer that ends by promising an example or a list and gives none loses the dangling promise
     a = re.sub(r"\s*(?:Here(?:'s| is) (?:a |an )?(?:made-up |quick |simple )?example|For example|An example)[:.]?\s*$", "", a).rstrip()
     # 31 Oct (outsider r5, "a daily checklist, five lines"): the answer promised a list ("here are five lines ... in this order") and the model
@@ -1565,11 +1578,11 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         if wait and not early and not re.search(r"\b(?:drafts?|wait(?:s|ing)? for your yes|needs? your yes)\b", str(fixed.get("answer") or ""), re.I):
             nd = waiting_nudge(thread, wait)
             if nd:
-                fixed["answer"] = f"{str(fixed.get('answer') or '').rstrip()} {nd}".strip()
+                fixed["answer"] = _with_nudge(fixed.get("answer"), nd)
         if not guest and not stranger and not early:
             nd = oversight_nudge(thread, str(fixed.get("answer") or ""))
             if nd:
-                fixed["answer"] = f"{str(fixed.get('answer') or '').rstrip()} {nd}".strip()
+                fixed["answer"] = _with_nudge(fixed.get("answer"), nd)
         uid = uuid.uuid4().hex[:12]
         _append(thread, {"id": uid, "role": "user", "text": said, "t": int(time.time()), "voice": voice})
         rid = uuid.uuid4().hex[:12]
@@ -1829,11 +1842,11 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if wait and not batch and not re.search(r"\b(?:drafts?|waiting for your yes)\b", str(reply.get("answer") or ""), re.I):
         nd = waiting_nudge(thread, wait)              # 28 Oct (Madhav): said once per conversation, at the end of the answer
         if nd:
-            reply["answer"] = f"{str(reply.get('answer') or '').rstrip()} {nd}".strip()
+            reply["answer"] = _with_nudge(reply.get("answer"), nd)
     if not guest and not stranger and not batch and "about_ananta" not in f:
         nd = oversight_nudge(thread, str(reply.get("answer") or ""))   # 5 Nov (Madhav: "it can tell if something is not right"): once per conversation
         if nd:
-            reply["answer"] = f"{str(reply.get('answer') or '').rstrip()} {nd}".strip()
+            reply["answer"] = _with_nudge(reply.get("answer"), nd)
     if prev:
         reply["expanded"] = True
     ms = int((time.time() - t0) * 1000)
@@ -2344,8 +2357,17 @@ def readiness_flow(text: str) -> dict | None:
 MORNING = re.compile(r"\b(good morning|morning view|morning brief|today'?s view|view for (today|the day)|what'?s (good|the plan) (today|for today)|what (do you see|are we doing|is the plan) today|our chances today|chances (for )?today|start (my|the) (day|morning)|what should i watch today)\b", re.I)
 
 
+GREETING = re.compile(r"^\s*(?:(?:hi|hello|hey)\b[\s,!.]*)?good\s+morning\b[\s,!.]*(?:(?:ananta|sir|jarvis|there|again)\b[\s,!.]*)?", re.I)
+
+
 def morning_flow(text: str, who: str) -> dict | None:
     """"Good morning" / "morning view" / "our chances today": the morning view read back in code, one part at a time by voice."""
+    # 11 Nov 2026 (R-007, the 3 Nov audit; seen again in a dry run on 11 Nov): "Good morning Ananta, what happened in the Indian market today
+    # and what did we do?" got the stored morning view (and its old Nifty close) instead of the day's close and the books' moves. A greeting
+    # in front of another question is a greeting: that question is answered; only a request to hear the view gets the view.
+    rest = GREETING.sub("", text or "", count=1).strip(" ,.!?")
+    if rest and rest != (text or "").strip(" ,.!?") and not MORNING.search(rest) and len(rest.split()) >= 3:
+        return None
     if not MORNING.search(text) or len(text) > 90 or re.search(r"\b(review|reviewer|second opinion|agree|why|explain|compare|because|checklist|check list|"
                                                                 r"how (?:do|should|to) (?:i )?read|steps|guide|lines|tips)\b", text, re.I):      # 31 Oct: "a checklist for reading your morning view" is not the view
         return None                        # a question about the view, not a request to hear it: the model answers with the view in its facts

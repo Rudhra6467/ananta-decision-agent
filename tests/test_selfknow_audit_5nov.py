@@ -47,7 +47,7 @@ def test_what_the_self_check_found_fine_is_said_too(tmp_path, monkeypatch):
     assert len(fine) == 1 and fine[0].startswith("the same check (5 Nov 19:59 Toronto) found 2 items not right")
     assert "Claude answers" in fine[0] and "four services" in fine[0] and "no test card" in fine[0]
     assert "watchdog" not in fine[0] and "replay" not in fine[0]
-    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 10   # eleven checks: the $500 book check joined on 10 Nov (after the Mac-load, gates, reconstruction-order and self-scan ones)
+    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 11   # twelve checks: the $500 book check joined on 10 Nov (after the Mac-load, gates, reconstruction-order and self-scan ones), India's book check on 11 Nov
     monkeypatch.setattr(selfcheck, "FILE", tmp_path / "selfcheck.json")
     (tmp_path / "selfcheck.json").write_text(json.dumps({"at": time.time(), "at_words": "now", "items": []}))
     a = selfknow.about_ananta("is anything wrong", "crypto")
@@ -162,7 +162,7 @@ def test_the_self_check_reads_the_india_gates(tmp_path):
     assert "gates" in [k for k, _ in selfcheck.CHECKS] and selfcheck.SOURCE_CHECK["firewall"] == "gates"
     (tmp_path / "firewall.json").write_text(json.dumps({"static_scan": {"ok": True}, "_at": "x"}))
     assert selfcheck._gates(tmp_path) == []
-    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 10
+    assert selfcheck.fine({"at_words": "now", "items": []})[0].count(";") == 11      # 11 Nov: India's book check joined
 
 
 # ---- 6 Nov: the reconstruction audit ----

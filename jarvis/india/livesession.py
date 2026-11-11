@@ -588,6 +588,16 @@ def _quotebook_day_move(positions: list[dict]) -> dict | None:
 
 def managed_today(clk: dict, plan: dict, fetch=None) -> dict:
     """Today's managed-book plan against today's opening prices. The fills themselves are booked by the 19:00 Toronto job from the official day file."""
+    if plan and clk.get("state") in ("before_open", "pre_open") and plan.get("for_session") == clk.get("next_session"):
+        # 11 Nov 2026 (R-016, the 3 Nov audit): from the evening run that writes the next plan until the open this said nothing, so "what
+        # is the managed book doing" fell back to older facts. Before the open it is the plan itself, with no opening prices yet.
+        buys = [b for b in plan.get("buys") or [] if b.get("symbol")]
+        cuts = [c for c in plan.get("cuts") or [] if c.get("symbol")]
+        pairs = "; ".join(f"{b.get('for_cut')} -> {b['symbol']}" for b in buys if b.get("for_cut"))
+        head = f"The managed book's plan for {clk.get('next_session_words')}, written by the evening run at {_sched_at('com.ananta.india.evening')}: "
+        return {"pairs": pairs, "before_open": True,
+                "words": head + (f"{len(cuts)} cuts and {len(buys)} buys at the 09:15 IST open" + (f", each buy replacing a cut ({pairs})" if pairs else "")
+                                 + "; a buy that opens more than 2% above its last close is skipped." if cuts or buys else "no change at the open.")}
     if not plan or plan.get("for_session") != clk["latest_session"]:
         return {"words": None}
     buys = [b for b in plan.get("buys") or [] if b.get("symbol")]
@@ -668,6 +678,25 @@ def practice_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
     except Exception:  # noqa: BLE001
         return {"words": None}
     day = clk["latest_session"]
+    if clk["state"] == "before_open" and clk.get("today_is_session"):
+        # 11 Nov 2026 (R-016): once the 08:00 IST run has booked the last session, its trades are no longer "today's" and the new picks are
+        # dated that session, so this said nothing until the open. Say what the booking left: the open trades and the picks for the open.
+        exec_t = [t for t in (st.get("trades") or {}).values() if t.get("book") == "exec" and t.get("policy") == PRACTICE_POLICY and t.get("campaign") != "CTL"]
+        if exec_t and any(str(t.get("last_date") or "") >= day for t in exec_t):
+            open_n = sum(1 for t in exec_t if t.get("status") == "open")
+            new = []
+            for key, meta in sorted((st.get("decisions") or {}).items()):
+                if meta.get("status") == "pending" and key >= day:
+                    try:
+                        body = json.loads(((path.parent if path else DATA / "paper") / "decisions" / f"{key}.json").read_text())
+                    except Exception:  # noqa: BLE001
+                        continue
+                    new += [str(x.get("symbol")) for x in body.get("signals") or [] if x.get("campaign") != "CTL" and x.get("symbol")]
+            new = list(dict.fromkeys(new))
+            return {"held": open_n, "picks_next": new, "before_open": True,
+                    "words": (f"The practice book's {clk['latest_session_words']} session is booked (at {_sched_at('com.ananta.india.paper')}): "
+                              f"{open_n} trades open. " + (f"The picks for {clk['next_session_words']}, bought at the 09:15 IST open: {', '.join(new)}."
+                                                         if new else f"No new picks for {clk['next_session_words']}."))}
     trades = [t for t in (st.get("trades") or {}).values() if t.get("book") == "exec" and t.get("policy") == PRACTICE_POLICY
               and t.get("status") == "open" and t.get("campaign") != "CTL" and str(t.get("last_date") or "") < day]
     sizes = sorted(t.get("notional") or 0 for t in trades if t.get("notional"))
@@ -710,7 +739,8 @@ def practice_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
     when = "so far today" if clk["state"] == "open" else ("today" if day == clk["today_india"] else f"on {clk['latest_session_words']}")
     total = held_move + new_move
     w = (f"The practice book (paper, Rs {size:,.0f} a trade) is {'up' if total >= 0 else 'down'} about Rs {abs(total):,.0f} {when} on Kite's prices: "
-         f"its {n_held} open trades moved Rs {held_move:+,.0f} ({100 * held_move / held_base:+.2f}%)" if held_base else
+         f"its {n_held} open trades" + (f" with a price today (of {len(trades)}; the rest had no Kite price)" if n_held < len(trades) else "")
+         + f" moved Rs {held_move:+,.0f} ({100 * held_move / held_base:+.2f}%)" if held_base else
          f"The practice book (paper, Rs {size:,.0f} a trade) is {'up' if total >= 0 else 'down'} about Rs {abs(total):,.0f} {when} on Kite's prices")
     if filled:
         uniq = list({x["symbol"]: x for x in filled}.values())          # one stock picked by two rules is one name here

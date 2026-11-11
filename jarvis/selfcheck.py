@@ -144,6 +144,12 @@ def _leftovers(db: Path = CRYPTO_DB) -> list[dict]:
 BOOK500_START = 500.0          # the $500 book's starting cash in CAD (src/research/book500.START_CAD)
 
 
+def _utc(stamp: str) -> int:
+    """'2026-11-11 00:05' read as UTC, in seconds."""
+    import calendar
+    return calendar.timegm(time.strptime(stamp, "%Y-%m-%d %H:%M"))
+
+
 def _book500(db: Path = CRYPTO_DB) -> list[dict]:
     """10 Nov 2026 (Madhav: "Yes to all"): the $500 book's trades and its holdings agree. Every coin's buys less its sells must be what the
     book holds; on 28 Oct 0.008315 ETH left the holdings without a sale and nothing noticed for 13 days. Read-only."""
@@ -188,6 +194,37 @@ def _book500(db: Path = CRYPTO_DB) -> list[dict]:
                         "what": f"the nightly note of {note[0]} read the dial from the {d['candle']} candle, but the book stepped on {d['book_stepped_on']}"})
     except (ValueError, TypeError, AttributeError):
         pass
+    # 11 Nov 2026 (R-147, the 10 Nov outside grading): no check asked whether the night's value is its cash plus what the fills say the book
+    # holds, at the note's own prices; on 28 Oct it would have fired that night (the note valued 0.009683 ETH where the fills held 0.017998).
+    try:
+        acc = (json.loads(note[1] or "{}").get("account") or {}) if note else {}
+        step = str(acc.get("last_step") or "")
+        if acc.get("value_cad") is not None and acc.get("cash_cad") is not None and re.fullmatch(r"20\d\d-\d\d-\d\d \d\d:\d\d", step):
+            t_step = _utc(step)
+            con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2)
+            rows = con.execute("SELECT coin, side, qty FROM book500_fills WHERE t <= ?", (t_step + 180,)).fetchall()
+            try:
+                fix = con.execute("SELECT add_cad FROM book500_night_fixes WHERE day=?", (note[0],)).fetchone()
+            except sqlite3.Error:
+                fix = None
+            con.close()
+            q: dict[str, float] = {}
+            for coin, side, qty in rows:
+                q[coin] = q.get(coin, 0.0) + (qty if side == "BUY" else -qty)
+            pos = acc.get("positions") or {}
+            missing = [c for c, n in q.items() if n > 1e-9 and c not in pos]
+            px = {c: float((pos.get(c) or {}).get("last_price_cad") or 0) for c in q}
+            want = float(acc["cash_cad"]) + sum(n * px[c] for c, n in q.items() if n > 1e-9)
+            got = float(acc["value_cad"]) + (float(fix[0]) if fix else 0.0)
+            if missing:
+                out.append({"market": "crypto", "severity": "high", "source": "book check",
+                            "what": f"the nightly note of {note[0]} leaves out {', '.join(missing)}, which the book's fills say it holds"})
+            elif abs(want - got) > 0.5:
+                out.append({"market": "crypto", "severity": "high", "source": "book check",
+                            "what": (f"the nightly note of {note[0]} values the book at C${got:,.2f}, but its cash and what the fills say it holds, at "
+                                     f"the note's prices, come to C${want:,.2f}: the night's change is not explained by its holdings")})
+    except (ValueError, TypeError, AttributeError, sqlite3.Error):
+        pass
     for coin in sorted(set(net) | set(held)):
         diff = net.get(coin, 0.0) - held.get(coin, 0.0)
         if abs(diff) > 1e-9:
@@ -196,6 +233,12 @@ def _book500(db: Path = CRYPTO_DB) -> list[dict]:
                                  + ("was bought and never sold, yet is not held" if diff > 0 else "is held or sold with no buy on record")
                                  + ", so the book's value is wrong until it is put right")})
     return out
+
+
+def _india_book() -> list[dict]:
+    """11 Nov 2026 (R-062, flag 79): India's managed book against its own records, read by the India-app module (the firewall's allowlist)."""
+    from jarvis.india import selfparts
+    return selfparts.managed_book_check()
 
 
 def _restarts(now: float) -> list[dict]:
@@ -424,7 +467,7 @@ def refresh(now: float | None = None, opener=None, write: bool = True, post=None
     items: list[dict] = []
     for name, fn in (("runs", lambda: _runs(now)), ("services", lambda: _services(opener)), ("answers", _answers),
                      ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac), ("gates", _gates), ("rx_order", _rx_order),
-                     ("agree", lambda: _agree(now)), ("book500", _book500)):
+                     ("agree", lambda: _agree(now)), ("book500", _book500), ("india_book", _india_book)):
         try:
             items += fn()
         except Exception as exc:  # noqa: BLE001  one check failing is itself a finding, never a crash
@@ -481,12 +524,14 @@ CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hour
           ("mac", "the Mac has memory and CPU to spare"), ("gates", "the India firewall, leak check and integrity check pass"),
           ("rx_order", "the reconstruction cards come after the trials (India) and the missed-move review (crypto)"),
           ("agree", "the parts agree with each other: the right day, matching counts, no number stuck at zero, nothing waiting over a week"),
-          ("book500", "the $500 book's trades, holdings, cash and value agree, and the nightly note read the dial from the book's own candle"))
+          ("book500", "the $500 book's trades, holdings, cash and value agree, and the nightly note read the dial from the book's own candle"),
+          ("india_book", "the India managed book's value, costs, ledger and holdings agree with its own trades"))
 
 
 SOURCE_CHECK = {"lost-runs check": "runs", "services": "services", "nightly replay": "answers", "fact map": "answers", "approvals": "leftovers",
                 "watchdog": "watchdog", "Claude credit": "credit", "Mac load": "mac", "firewall": "gates", "leakcheck": "gates", "integrity": "gates",
-                "reconstruction order": "rx_order", "self-scan": "agree", "Mac asleep": "runs", "book check": "book500"}
+                "reconstruction order": "rx_order", "self-scan": "agree", "Mac asleep": "runs", "book check": "book500",
+                "India book check": "india_book"}
 
 
 def fine(c: dict) -> list[str]:
@@ -547,7 +592,11 @@ def nudge(market: str, state: Path, thread: str, now: float | None = None, answe
         state.write_text(json.dumps({"threads": th, "last": {"key": key, "t": now}}))
     except OSError:
         return ""
-    what = spoken("; and ".join(x["what"] for x in top))
+    # 11 Nov 2026 (a dry run of India questions): every India answer ended "One thing that isn't right, sir: explorer: a scan of all 10
+    # coins ...", a crypto part told with no side. Ananta is one system, so the other market's items are still told, with their side named.
+    other = {"india": "on the India side, ", "crypto": "on the crypto side, "}
+    what = spoken("; and ".join((other.get(x.get("market"), "") if x.get("market") not in (market, "both", None) else "") + x["what"]
+                                for x in top))
     return f"One thing that isn't right, sir: {what[:1].lower()}{what[1:]}. Ask me what's wrong for the details."
 
 

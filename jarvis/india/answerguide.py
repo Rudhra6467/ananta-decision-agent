@@ -228,15 +228,15 @@ def guide(text: str, f: dict | None = None) -> dict:
     if recap:
         # Madhav, 3 Nov: "for my simple question I want the answer simple ... point to point on what happened in the market? What happened with
         # Ananta? We bought so and so for this reason. We updated our portfolio. Changed position x for y."
-        lines.append("DAY RECAP SHAPE: short lines, each on its own line (separate them with a line break), each starting with its word, in this "
-                     "order: 'Market:' the Nifty and Bank Nifty for the day he means (close and % change, from FACTS.today_live), and one reason "
-                     "only if FACTS gives one; 'Ananta:' what the options line did, each trade in a few words (index, direction, option, how it "
-                     "stands); 'Portfolio:' what changed in the managed book, as 'sold X, bought Y' with the reason in a few words (for example "
-                     "'swapped JIOFIN for AJANTPHARM: JIOFIN weak, AJANTPHARM passed the tested filters'), or 'no change'; 'Next:' the one thing "
-                     "for the next session. Leave out a line that has nothing. One line each, no other topics (no studies, trials, research, "
-                     "valuation or the practice book unless he asks).")
-    lines.append("NO LABELS: do not write 'Decision:' or 'My read:' as labels; say what to do in plain words."
-                 + (" The recap's 'Market:', 'Ananta:', 'Portfolio:' and 'Next:' words are the exception." if recap else ""))
+        # 11 Nov 2026 (R-059): no line labels (8 Nov: spoken, they are noise, and the answer's exit takes them out); the lines stay lines
+        lines.append("DAY RECAP SHAPE: short lines, each on its own line (separate them with a line break), no labels, in this order: the "
+                     "Nifty and Bank Nifty for the day he means (close and % change, from FACTS.today_live), and one reason only if FACTS gives "
+                     "one; what the options line did, each trade in a few words (index, direction, option, how it stands); what changed in the "
+                     "managed book, as 'sold X, bought Y' with the reason in a few words (for example 'swapped JIOFIN for AJANTPHARM: JIOFIN "
+                     "weak, AJANTPHARM passed the tested filters'), or that it made no change; the one thing for the next session. Leave out a "
+                     "line that has nothing. One line each, no other topics (no studies, trials, research, valuation or the practice book unless "
+                     "he asks).")
+    lines.append("NO LABELS: do not write 'Decision:' or 'My read:' as labels; say what to do in plain words.")
     if not SIP_SAID.search(t):
         lines.append("Do not assume he (or his friend) has a SIP or already holds it; if it matters, say 'if you hold it' or 'if you start'.")
     n = 3 if (worry or SHORT_ASK.search(t)) else (5 if dec else 4)

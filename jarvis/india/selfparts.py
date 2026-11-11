@@ -161,3 +161,45 @@ def morning_review(full: bool = False) -> dict:
     from jarvis.india import views
 
     return selfknow.review_page(views.REG / "reviews") if full else selfknow.review_page(views.REG / "reviews", per_section=4, cap=1300)
+
+
+def managed_book_check(paper: Path | None = None) -> list[dict]:
+    """11 Nov 2026 (R-062, flag 79: crypto got its book checks on 10 Nov, India had none). The paper managed book's own records must agree:
+    its value is its cash, the options money and every holding at its last price; its costs are the sum of its trades' costs; every filled
+    line of its ledger is one of its trades; a stock it bought holds what it bought less what it sold. Read-only; each disagreement is a line."""
+    base = (paper or INDIA / "paper") / "managed"
+    st, view = _json(base / "state.json"), _json(base / "view.json")
+    if not isinstance(st, dict):
+        return []
+    out = []
+    item = lambda w, sev="high": {"market": "india", "severity": sev, "source": "India book check", "what": w}   # noqa: E731
+    pos = st.get("positions") or {}
+    held = sum(float(p.get("qty") or 0) * float(p.get("last") or 0) for p in pos.values())
+    worth = float(st.get("cash_inr") or 0) + float(st.get("options_inr") or 0) + held
+    if isinstance(view, dict) and isinstance(view.get("value_inr"), (int, float)) and abs(worth - float(view["value_inr"])) > 2:
+        out.append(item(f"the managed book's value reads Rs {float(view['value_inr']):,.0f} but its cash, options money and holdings add up to "
+                        f"Rs {worth:,.0f}: the two disagree"))
+    trades = st.get("trades") or []
+    cost = sum(float(t.get("cost_inr") or 0) for t in trades)
+    if isinstance(st.get("costs_inr"), (int, float)) and abs(cost - float(st["costs_inr"])) > 1:
+        out.append(item(f"the managed book's costs read Rs {float(st['costs_inr']):,.2f} but its trades' costs add up to Rs {cost:,.2f}", "medium"))
+    keys = {(t.get("plan"), t.get("symbol"), t.get("side"), int(t.get("qty") or 0)) for t in trades}
+    try:
+        led = [json.loads(x) for x in (base / "ledger.jsonl").read_text().splitlines() if x.strip()]
+    except (OSError, ValueError):
+        led = []
+    miss = [f"{x.get('side')} {x.get('qty')} {x.get('symbol')} ({x.get('plan')})" for x in led if x.get("filled")
+            and (x.get("plan"), x.get("symbol"), x.get("side"), int(x.get("qty") or 0)) not in keys]
+    if miss:
+        out.append(item(f"{len(miss)} filled line{'s' if len(miss) != 1 else ''} of the managed book's ledger {'are' if len(miss) != 1 else 'is'} not among its "
+                        f"trades: {', '.join(miss[:3])}"))
+    net: dict = {}
+    for t in trades:
+        net[t.get("symbol")] = net.get(t.get("symbol"), 0) + (int(t.get("qty") or 0) if t.get("side") == "BUY" else -int(t.get("qty") or 0))
+    for sym, p in pos.items():
+        if p.get("source") != "twin" and int(p.get("qty") or 0) != net.get(sym, 0):
+            out.append(item(f"the managed book holds {p.get('qty')} {sym} but its trades add up to {net.get(sym, 0)}"))
+    for sym, n in net.items():
+        if n > 0 and sym not in pos and not any(t.get("symbol") == sym and t.get("side") == "SELL" for t in trades):
+            out.append(item(f"the managed book bought {n} {sym} and never sold them, yet does not hold them"))
+    return out

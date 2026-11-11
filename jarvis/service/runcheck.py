@@ -350,6 +350,17 @@ def judge(part: dict, paths: dict, now: int, span: int) -> dict:
             res["misses"].append(_miss(part, "empty", s, hi, found=work, detail=(det or "")[:160]))
         else:
             res["ok"] += 1
+    # 11 Nov 2026 (a HIGH line all day in both Asks): one Explorer scan at 10 Nov 19:45 Toronto missed XRP while the service it reads was
+    # being restarted, and every scan after it was clean; the check called it HIGH for 24 hours. For a part that runs every 15 minutes or
+    # faster, one errored or short run followed by a clean run is a blip: it stays on the list, as low, saying the next run was clean.
+    if 0 < int(cad.get("every") or 0) <= 900 and res["misses"]:
+        bad_t = {m["t"] for m in res["misses"]}
+        after = dict(zip(slots, slots[1:]))
+        for m in res["misses"]:
+            n = after.get(m["t"])
+            if m["kind"] in ("errored", "empty") and n is not None and n not in bad_t:
+                m["severity"], m["blip"] = "low", True
+                m["detail"] = (m["detail"] + "; " if m["detail"] else "") + "the next run was clean"
     return res
 
 

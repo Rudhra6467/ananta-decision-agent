@@ -216,6 +216,25 @@ def stale_summaries(data: Path | None = None) -> list[dict]:
     return out
 
 
+def nifty_second_source(t: dict, rm: dict) -> dict | None:
+    """11 Nov 2026 (R-034, the 8 Nov audit): "Today screen Nifty = what Ananta says" passed on a wrong 24,986, because the screen and the
+    voice read the same source; an agreement check cannot see a shared error. Once the nightly data holds the session, the Nifty Ananta says
+    is checked against the official close there, a second source. None while the session trades or before the nightly data has it."""
+    clk = t.get("clock") or {}
+    live = ((t.get("index_now") or {}).get("rows") or {}).get("NIFTY 50") or {}
+    if live.get("last") is None or clk.get("state") == "open":
+        return None
+    from jarvis.india import ask as _ask
+    off = (_ask.latest_closes(rm) or {}).get("NIFTY 50") or {}
+    if off.get("close") is None or str(off.get("date") or "")[:10] != str(clk.get("latest_session") or ""):
+        return None
+    o, a = float(off["close"]), float(live["last"])
+    ok = abs(a - o) <= max(1.0, 0.0005 * o)
+    return {"check": "Nifty Ananta says = the official close in the nightly data", "state": "PASS" if ok else "FAIL",
+            "words": f"Ananta {a:,.2f} ({(t.get('index_now') or {}).get('kind')}); the nightly data {o:,.2f} for {clk.get('latest_session_words')} "
+                     f"({off.get('source')})" + ("" if ok else ": the screen and the voice can agree and both be wrong")}
+
+
 def same_number() -> list[dict]:
     """The screens against the Ask's today-block, on the numbers both show."""
     from jarvis.india import livesession, surfaces, views
@@ -233,6 +252,9 @@ def same_number() -> list[dict]:
         shown = float(re.sub(r"[^0-9.]", "", str(tile.get("value") or "0")) or 0)
         ok = abs(shown - live["last"]) < 1.0
         row("Today screen Nifty = what Ananta says", ok, f"screen {tile.get('label')} {tile.get('value')}; Ananta {live['last']:,.2f} ({t['index_now'].get('kind')})")
+    second = nifty_second_source(t, rm)                  # E1c (11 Nov, R-034): the same number from a second source
+    if second:
+        out.append(second)
     # E1b (4 Nov: the first box swipes up to Bank Nifty) the Bank Nifty page against what Ananta says
     bank = next((p for x in td.get("tiles") or [] for p in x.get("pages") or [] if p.get("label") == "Bank Nifty"), {})
     live_b = ((t.get("index_now") or {}).get("rows") or {}).get("NIFTY BANK") or {}

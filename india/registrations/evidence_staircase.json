@@ -19,7 +19,7 @@
   "ADMITTED": "Madhav (beats RANDOM and MARKET on 10+ independent sessions net of costs; leak check passes; pinned in the lock)",
   "LIVE_ELIGIBLE": "Madhav (the India gate and the live-readiness rules)"
  },
- "built_at": "2026-11-10T02:30:25+00:00",
+ "built_at": "2026-11-11T02:30:27+00:00",
  "rules": {
   "stock:BRK": {
    "what": "20-session breakout on volume",

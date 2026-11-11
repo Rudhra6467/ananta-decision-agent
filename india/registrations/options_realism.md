@@ -50,7 +50,7 @@ Rule: an options result can feed a decision only if it is positive at 2x, and it
 - F05 (O-04 synthetic) loses even with zero spread, so spread realism cannot rescue it; its doubt is the synthetic price itself (flat IV through the afternoon, which if anything flatters a long straddle, since implied volatility usually falls into expiry). R01 on recorded expiry days settles it.
 - Nothing options-related feeds a decision until (a) measured spreads exist (india.spreads, needs a Kite sign-in after 20:30 Toronto) and (b) the expiry-eve settle check below has rows.
 
-## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-11-09, 19727 contract-days, 34 sessions)
+## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-11-09, 20023 contract-days, 34 sessions)
 
 Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule scored) against the volume-weighted price actually traded in the last 30 minutes (Kite minutes from the recorder). Signed gap > 0: settle above what traded (overstates a seller's credit).
 
@@ -67,10 +67,10 @@ Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule 
 | BANKNIFTY | yes | 150+ | 99 | 1.0% | +5744.74% | 5744.74% | 8843140.74% |
 | NIFTY | no | <2 | 368 | 28.3% | +1.06% | 3.15% | 10.85% |
 | NIFTY | no | 2-5 | 453 | 15.7% | +0.21% | 2.13% | 9.06% |
-| NIFTY | no | 5-20 | 1213 | 6.8% | +0.21% | 1.50% | 6.01% |
-| NIFTY | no | 20-50 | 1102 | 4.7% | +0.06% | 1.22% | 4.50% |
-| NIFTY | no | 50-150 | 2135 | 5.6% | +0.00% | 0.99% | 3.99% |
-| NIFTY | no | 150+ | 6234 | 18.5% | +0.00% | 0.59% | 2.91% |
+| NIFTY | no | 5-20 | 1236 | 7.5% | +0.21% | 1.50% | 6.00% |
+| NIFTY | no | 20-50 | 1132 | 5.3% | +0.05% | 1.21% | 4.38% |
+| NIFTY | no | 50-150 | 2190 | 5.5% | +0.00% | 0.99% | 4.00% |
+| NIFTY | no | 150+ | 6422 | 18.4% | +0.00% | 0.59% | 2.89% |
 | NIFTY | yes | <2 | 29 | 0.0% | +3.16% | 3.36% | 8.53% |
 | NIFTY | yes | 2-5 | 21 | 0.0% | -2.55% | 2.80% | 4.72% |
 | NIFTY | yes | 5-20 | 20 | 0.0% | -6.89% | 8.20% | 13.71% |

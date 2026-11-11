@@ -6,57 +6,13 @@ picks over the same horizon. Coverage counts, among the best 20 rises per horizo
 a family fired but did not hold (PASSED), or nothing fired (NOT_COVERED). INFORMED hit rates score each participant's index-futures stance and that
 day's change on the next session's Nifty move; Ananta's daily call is scored the same way. Ratings are decision quality, not rupees.
 
-## League, trailing 20 review sessions (through 2026-11-09; 16 sessions)
+## League, trailing 20 review sessions (through 2026-11-10; 16 sessions)
 
 | H | sessions | HINDSIGHT | MARKET | RANDOM (median) | ANANTA | Ananta pct vs random | TAKEN | CONTROL | PASSED | NOT_COVERED | had a rule | took |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | 15 | +4.38% | -0.17% | -0.17% | -0.09% | 49% | 121 | 17 | 39 | 118 | 54% | 41% |
 | 5 | 11 | +10.86% | +1.51% | +1.58% | +0.56% | 15% | 126 | 17 | 7 | 70 | 60% | 57% |
 | 20 | 0 | | | | | | | | | | | |
-
-## Informed money and Ananta's call, next-session hit rates (last 20 scored sessions)
-
-| who | stance hit rate (n) | flow hit rate (n) | latest |
-|---|---|---|---|
-| FII | 40% (15) | 57% (14) | 2026-11-09: short -90741 index futures, added longs |
-| DII | 60% (15) | 57% (14) | 2026-11-09: long 30457 index futures, added shorts |
-| Pro | 40% (15) | 43% (14) | 2026-11-09: short -20475 index futures, added shorts |
-| Client | 60% (15) | 36% (14) | 2026-11-09: long 80759 index futures, added shorts |
-| ANANTA call | 33% (12) | | 2026-11-09: BEARISH |
-
-## 2026-11-09: best 1-session trips that closed on the day (entry 2026-11-06, 248 eligible, 2 dropped)
-
-| symbol | net | class | why | situation at entry |
-|---|---|---|---|---|
-| DIVISLAB | +11.76% | TAKEN | held by BRK (signal 2026-10-30) | to a 52-week high |
-| ZEEL | +8.68% | TAKEN | held by REV (signal 2026-10-26) | rising while below its 200-day average |
-| EXIDEIND | +7.37% | TAKEN | held by REV (signal 2026-11-02) | rising while below its 200-day average |
-| SANSERA | +7.26% | TAKEN | held by PULL (signal 2026-10-21) | inside its range in an uptrend, on 2.6x its 20-day volume |
-| AEGISLOG | +7.12% | TAKEN | held by PULL (signal 2026-11-05) | rebounding from a pullback in an uptrend |
-| DATAPATTNS | +6.44% | TAKEN | held by PULL, REV (signal 2026-10-21, 2026-10-26) | inside its range in an uptrend, on 2.5x its 20-day volume |
-| COCHINSHIP | +5.36% | TAKEN | held by REV (signal 2026-10-21) | rising while below its 200-day average |
-| UNIONBANK | +4.97% | NOT_COVERED | no family fired in the window | inside its range in an uptrend |
-| MANKIND | +4.67% | PASSED | BRK fired on 2026-11-09 and was chosen; no executed trade covered 2026-11-06..2026-11-09 | inside its range in an uptrend |
-| LAURUSLABS | +4.57% | TAKEN | held by BRK (signal 2026-10-27) | inside its range in an uptrend |
-
-Ananta's research picks open at 2026-11-06: 125, mean +0.63% to 2026-11-09; random band -0.28% .. +0.50% .. +1.16%; market +0.46%.
-
-## 2026-11-09: best 5-session trips that closed on the day (entry 2026-11-02, 248 eligible, 2 dropped)
-
-| symbol | net | class | why | situation at entry |
-|---|---|---|---|---|
-| KALYANKJIL | +20.56% | TAKEN | held by BRK, PULL, REV (signal 2026-10-23, 2026-10-27, 2026-11-06) | rebounding from a pullback in an uptrend |
-| CARTRADE | +18.86% | TAKEN | held by PULL, REV (signal 2026-10-28) | bouncing from oversold (RSI 23) |
-| LODHA | +18.76% | TAKEN | held by REV (signal 2026-10-23) | inside its range in an uptrend, on 2.2x its 20-day volume |
-| MOTILALOFS | +18.56% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-11-05) | rebounding from a pullback in an uptrend |
-| ASHOKLEY | +16.85% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
-| ANGELONE | +16.15% | CONTROL | held only by CTL, the random control draw: luck by construction | rising while below its 200-day average |
-| PATANJALI | +15.98% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
-| DIVISLAB | +15.98% | TAKEN | held by BRK (signal 2026-10-30) | to a 52-week high |
-| MUTHOOTFIN | +15.62% | TAKEN | held by REV (signal 2026-10-21) | rising while below its 200-day average, on 3.9x its 20-day volume |
-| M&M | +14.39% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
-
-Ananta's research picks open at 2026-11-02: 99, mean +2.85% to 2026-11-09; random band +2.49% .. +4.92% .. +6.74%; market +4.62%.
 
 ## History
 
@@ -84,3 +40,4 @@ Ananta's research picks open at 2026-11-02: 99, mean +2.85% to 2026-11-09; rando
 | 2026-11-07 | no session (weekend) | | | | | |
 | 2026-11-08 | no session (weekend) | | | | | |
 | 2026-11-09 | ok | +5.45% / +0.46% / +0.63% | +15.05% / +4.62% / +2.85% |  | 3 | 0 |
+| 2026-11-10 | no session (NSE holiday) | | | | | |

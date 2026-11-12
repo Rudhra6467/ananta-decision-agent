@@ -10,10 +10,10 @@ Madhav asked for this before any new research (flag 63): how wide and how good e
 | gold/features | 3,456,514 | 1995-2023 | - |
 | gold/hypothesis_map | 137 | - | - |
 | gold/universe | 6,812,969 | 1995-2023 | - |
-| silver/calendar | 8,383 | 1994-2026 | - |
+| silver/calendar | 8,384 | 1994-2026 | - |
 | silver/cm_bhavcopy | 9,883,851 | 1994-2023 | 2026-11-09 |
 | silver/corporate_actions | 326,262 | 1994-2026 | - |
-| silver/delivery | 7,664,008 | 2003-2023 | 2026-11-09 |
+| silver/delivery | 7,664,008 | 2003-2023 | 2026-11-10 |
 | silver/flows | 39,404 | 2000-2023 | 2026-11-09 |
 | silver/fo_bhavcopy | 157,536,583 | 2000-2023 | 2026-11-09 |
 | silver/fo_calendar | 4,489 | - | - |
@@ -25,7 +25,7 @@ Madhav asked for this before any new research (flag 63): how wide and how good e
 | silver/kite_index/day | 230,382 | 2003-2023 | 2026-11-09 |
 | silver/kite_index/minute | 5,146,641 | 2015-2023 | 2026-11-09 |
 | silver/macro | 85,056 | 1990-2026 | - |
-| silver/pr | 8,746,016 | 2010-2023 | 2026-11-06 |
+| silver/pr | 8,746,016 | 2010-2023 | 2026-11-09 |
 | silver/reference | 759 | - | - |
 | silver/security_master | 14,878 | - | - |
 | silver/valuation | 17,486 | 1999-2023 | 2026-11-09 |

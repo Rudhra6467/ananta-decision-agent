@@ -1,4 +1,4 @@
-# Every study in the ledger, in plain words (generated from the ledger by india.writeups, 2026-11-10)
+# Every study in the ledger, in plain words (generated from the ledger by india.writeups, 2026-11-11)
 
 HISTORICAL BACKTEST only: development 2000-2017, validation 2018-2023; the 2024+ years are sealed. A verdict here is the registry's rule applied to the registered numbers (one family-wide bar for every variant ever tried in that family); it is evidence, not a decision, and nothing is in the paper book because of this page. A researcher's write-up (the *_results_v1.md pages) is the better source where one exists; this page exists so that no finished study is unwritten.
 

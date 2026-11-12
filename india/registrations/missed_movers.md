@@ -32,3 +32,4 @@ manifests/missed_<date>.json. Drafts from the pattern rule (3+ sessions in 10): 
 | 2026-11-08 | no session (weekend) | | | | | |
 | 2026-11-09 | 26 up | caught 14 (Rs +77,363 so far, 66.7% of the top-20 move); control 1 (Rs +2,664) | a 3 / b 8 / c 0 | 34 down: held 26 (Rs -5,128) / b 7 / c 1 | up: breakout base, intraday run x5; down: downtrend fall, intraday selloff x2; down: downtrend fall, steady x2 | 1 |
 | 2026-11-10 | no session (NSE holiday) | | | | | |
+| 2026-11-11 | 23 up | caught 16 (Rs +104,478 so far, 76.9% of the top-20 move); control 2 (Rs +12,539) | a 3 / b 2 / c 0 | 26 down: held 19 (Rs +68,779) / b 7 / c 0 | down: uptrend pullback, intraday selloff x3; down: uptrend pullback, steady x2; up: breakout base, intraday run x1 | 0 |

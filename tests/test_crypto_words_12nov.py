@@ -164,7 +164,7 @@ def test_when_claude_fails_the_backups_denial_is_withheld_and_the_reason_kept():
     assert out["answer"] == ask.BACKUP_CANNOT_DENY
     note = j.db.execute("SELECT note FROM ask_messages WHERE role='assistant' ORDER BY t DESC LIMIT 1").fetchone()[0]
     assert "Claude is unavailable right now (TimeoutError after" in note and "so Gemini answered" in note
-    assert "the backup model's answer denied a record, so it was withheld" in note
+    assert "the backup model's answer was withheld (a question about our records)" in note  # D1: the question decides first
     assert "the call took too long" not in note                                             # the failure's kind, never its text
 
 
@@ -315,8 +315,8 @@ def test_the_backup_guard_reads_curly_apostrophes_and_lets_everyday_answers_thro
               "There are no trades open in the account.", "We haven't opened any new positions since 4 Nov.", "We have not held Bitcoin since 28 Oct.",
               "The night test has not run yet tonight; it runs after the close.", "There is no note for tonight yet; it comes after the close.",
               "We haven't recorded enough closed trades yet to judge the bold book.", "We did not trade today.",
-              "Not yet: the forward record of review 42 is held until 15 Dec.", "Nothing is open in any book.",
-              "There is no result in review 42 yet; it is held until 15 Dec."]
+              "Not yet: the forward record of review 42 is held until 15 Dec.", "Nothing is open in any book."]
+    # "There is no result in review 42 yet" is withheld on purpose since the second confirm check (tests/test_backup_guard_12nov.py)
     for said in withheld:
         r = {"kind": "answer", "answer": said}
         assert ask.backup_cannot_deny(r, "sonnet", "gemini") is True and r["answer"] == ask.BACKUP_CANNOT_DENY, said
@@ -342,7 +342,7 @@ def test_over_budget_the_withheld_answer_says_after_midnight(monkeypatch):
     out = a.ask("owner", "What did review 42 find about buying after drops?", mode="deep")
     assert out["answer"] == ask.BACKUP_CANNOT_DENY_BUDGET
     note = j.db.execute("SELECT note FROM ask_messages WHERE role='assistant' ORDER BY t DESC LIMIT 1").fetchone()[0]
-    assert "is used up, so Gemini answered" in note and "the backup model's answer denied a record, so it was withheld" in note
+    assert "is used up, so Gemini answered" in note and "the backup model's answer was withheld (a question about our records)" in note
 
 
 def test_the_note_the_eye_the_lookups_and_the_chain_name_the_exponential_line(monkeypatch, tmp_path):
@@ -425,25 +425,24 @@ def test_the_evidence_card_is_named_by_the_evening_it_was_made(monkeypatch, tmp_
 
 # ------------------------------------------------------------------------------------------------ repair 5's confirm check (C1 to C7)
 
-def test_the_guard_catches_the_confirm_checks_denials_and_passes_its_not_yets():
-    # C1 (S3): fourteen real denials got through; C2 (S4): true "not yet" answers about held or future records were hidden
-    import datetime as dt
-    today = dt.date(2026, 11, 12)
+def test_the_guard_catches_the_confirm_checks_denials_and_withholds_every_not_yet_about_a_record():
+    # C1 (S3): fourteen real denials got through. C2 (S4) asked for true "not yet" answers about held or future records to pass; the
+    # excuse that let them pass also let false denials through (D1), so since the second confirm check they are withheld on purpose
+    # while the backup stands in, and an answer that names no record word ("results") still passes
     for said in ("We never ran review 42.", "We haven't got a review 42.", "Review 42? We haven't run it.",
                  "We haven't run the extreme-drop study yet.", "We have not done any research on buying after drops.", "No review 42 exists.",
                  "No review 42 has been run.", "There has been no review 42.", "There have been no reviews of buying after drops.",
                  "We didn't do a review 42.", "I have never seen a review 42.", "I'm not aware of any review 42.",
-                 "We never tested buying after drops.", "Ananta has never run review 42.", "The 9 Nov review hasn't been written."):
-        assert ask.denies_a_record(said), said                                                    # no date in them: today's date not needed
-    for said in ("Review 42's forward record has not been published yet; it is held until 15 Dec.",
-                 "Review 42's results haven't been published yet; they are held until 15 Dec.",
+                 "We never tested buying after drops.", "Ananta has never run review 42.", "The 9 Nov review hasn't been written.",
+                 "We haven’t run a review 42 yet; it is held until 15 Dec.",
+                 "Review 42's forward record has not been published yet; it is held until 15 Dec.",
                  "There are no findings yet: review 42's forward record is held until 15 Dec.",
                  "The 14 Dec review hasn't been done yet; it comes after the close that day.",
-                 "Tonight's trade review hasn't been written yet; it comes after the close.",
-                 "The checkpoint hasn't been run yet; it is on 14 Dec.", "Review 41 showed no findings worth trading.",
+                 "Tonight's trade review hasn't been written yet; it comes after the close.", "The checkpoint hasn't been run yet; it is on 14 Dec."):
+        assert ask.denies_a_record(said), said
+    for said in ("Review 42's results haven't been published yet; they are held until 15 Dec.", "Review 41 showed no findings worth trading.",
                  "We haven't made any trades since review 41.", "Review 41 found no bounce after extreme drops."):
-        assert not ask.denies_a_record(said, today), said
-    assert ask.denies_a_record("We haven’t run a review 42 yet; it is held until 15 Dec.", today)   # speaking for us: never excused
+        assert not ask.denies_a_record(said), said
     r = {"kind": "answer", "answer": "We never ran review 42."}                                    # a visitor cannot raise a budget
     assert ask.backup_cannot_deny(r, "sonnet", "gemini", "Claude budget for today ($0.50) is used up, so Gemini answered", guest=True)
     assert r["answer"] == ask.BACKUP_CANNOT_DENY_GUEST and "Voice and model" not in r["answer"]

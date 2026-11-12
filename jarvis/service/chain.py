@@ -127,7 +127,7 @@ def evaluate(ex, coin: str, open_trades: list[dict], equity: float, zone_row: di
         struct = max([x for x in (support, e50 if e50 < price else None) if x], default=None)
         stop = struct - STOP_BUFFER_ATR * atr if struct else None
         src = "H14 hypothesis (stop 1 ATR beyond structure)"
-        what = f"under {'the swing low' if struct == support else 'the 50-day average'} with a 1-ATR buffer" if struct else ""
+        what = f"under {'the swing low' if struct == support else 'the 50-day exponential average'} with a 1-ATR buffer" if struct else ""
     stop_pct = (price - stop) / price if stop and stop < price else None
     gates.append(_g("INVALIDATION", stop_pct is not None, f"{what}: stop {stop:,.6g} ({100 * stop_pct:.1f}% away)" if stop_pct else
                     "no structure below the price to put a stop under", src,

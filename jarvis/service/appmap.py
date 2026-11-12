@@ -286,7 +286,7 @@ SPOTS = {
                   "portfolio.suggested": "suggested changes waiting", "portfolio.holdings": "the holdings list header",
                   "portfolio.holding:<SYM>": "one holding: value, return, rating"},
     "portfolio:explorer": {"explorer.value": "Explorer book value", "explorer.trade:<trade id>": "one open Explorer trade", "explorer.closed": "closed trades"},
-    "portfolio:mine": {"mine.value": "my paper book value", "mine.position:<SYM>": "one of my positions"},
+    "portfolio:mine": {"mine.value": "the manual book's value", "mine.position:<SYM>": "one of the manual book's positions"},
     "evidence": {"evidence.gate": "the Engine Acceptance Gate: how many of the 27 checks pass, by area",
                  "evidence.tracker": "the repair loop strip: looked, spotted, decided, scored, missed, sent, changed",
                  "evidence.clocks": "what is watching and how often", "evidence.limits": "every limit and what it stopped",

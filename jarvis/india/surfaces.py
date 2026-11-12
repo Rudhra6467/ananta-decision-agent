@@ -642,25 +642,53 @@ def _sp1_clock(clocks: list[dict]) -> None:
             c["so_far"] = f"Over {b['sessions']} sessions, scored to {_dw(str(b.get('updated'))[:10])} with realistic fills: " + "; ".join(parts) + "."
             un = _sp1_unscored()
             if un:
-                c["so_far"] += (f" Not in these figures: {len(un)} trade{'s' if len(un) != 1 else ''} with no result ("
+                c["so_far"] += (f" Not in these figures: {len(un)} trade{'s' if len(un) != 1 else ''} with no result yet ("
                                 + "; ".join(f"{_dw(r.get('date'))}, { {'NIFTY': 'Nifty', 'BANKNIFTY': 'Bank Nifty'}.get(r.get('index'), r.get('index')) }" for r in un[:3])
-                                + "): the exit fell on a special session the line's study leaves out, so it stays unscored and is shown here.")
+                                + "). A trade whose next open falls on a day that is no regular session is scored at the next regular open and "
+                                  "marked scored late (Madhav's decision of 12 Nov).")
 
 
-def _sp1_unscored() -> list[dict]:
-    """The options line's trades its scorer could not score (an outcome row with a note and no result). Madhav, 9 Nov 2026 19:51 Toronto
-    ("Yes to all your recommendations", recommendation 2): the 6 Nov Bank Nifty trade stays unscored and is shown as such, never left out."""
-    out = []
+def _sp1_outcomes() -> list[dict]:
+    """The options line's outcomes, one row per trade (date and index), in the ledger's order: the scored row when there is one, else the
+    note. 12 Nov 2026 (the keen audit, G-01; Madhav's yes of 12 Nov 01:52): a trade the scorer first noted 'not defined' is scored late,
+    and the ledger is append-only, so its note stays and the scored row follows it; no reader may list or count the trade twice."""
+    out: dict = {}
     try:
         for line in (DATA / "paper" / "sp1" / "outcomes.jsonl").read_text().splitlines():
             if not line.strip():
                 continue
             r = json.loads(line)
-            if r.get("kind") == "outcome" and r.get("note") and not r.get("index_proxy"):
-                out.append(r)
+            if r.get("kind", "outcome") != "outcome":
+                continue
+            k = (str(r.get("date")), str(r.get("index")))
+            if k not in out or "index_proxy" in r or "index_proxy" not in out[k]:
+                out[k] = r
     except (OSError, ValueError):
         return []
+    return list(out.values())
+
+
+def _sp1_unscored() -> list[dict]:
+    """The options line's trades with no result in its totals: a note and no score, or a score whose option had no price. Madhav decided on
+    9 Nov that the 6 Nov Bank Nifty trade stays unscored and shown; on 12 Nov (G-01) that it is scored late at the next regular open and
+    included, and until then every total says it leaves the trade out."""
+    out = []
+    for r in _sp1_outcomes():
+        opt = (r.get("legs") or {}).get("option")
+        if (r.get("note") and not r.get("index_proxy")) or (isinstance(opt, dict) and opt.get("net_rs_realistic") is None and opt.get("note")):
+            out.append(r)
     return out
+
+
+def sp1_left_out_words() -> str:
+    """'1 trade left out: Fri 6 Nov Bank Nifty, not scored yet', or '' (G-01): the one sentence every options total carries while it leaves
+    a trade out (the Options page, its By index, Account, Markets; Proof says it in its own words)."""
+    un = _sp1_unscored()
+    if not un:
+        return ""
+    return (f"{len(un)} trade{'s' if len(un) != 1 else ''} left out: "
+            + "; ".join(f"{_dw(r.get('date'))} { {'NIFTY': 'Nifty', 'BANKNIFTY': 'Bank Nifty'}.get(r.get('index'), r.get('index')) }" for r in un[:3])
+            + ", not scored yet")
 
 
 def proof(full: bool = True) -> dict:

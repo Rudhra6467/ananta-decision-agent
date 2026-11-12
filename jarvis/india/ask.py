@@ -316,7 +316,9 @@ def facts(owner: bool = False) -> dict:
                                                                    "the market section above, which is current through data_through. Mention it only when asked about "
                                                                    "the picks or the data, once.",
                                            "chosen": [{"symbol": x.get("symbol"), "campaign": x.get("campaign"), "close": x.get("close"), "why": x.get("why")} for x in d.get("chosen", [])]},
-            "index_line_sp1": (lambda s1: {"capital_inr": int(views.ACCOUNT_START), **{k: s1.get(k) for k in ("status", "words", "decisions", "errors", "date")}, "sessions": (s1.get("book") or {}).get("sessions")})(views.sp1_live(rm)),
+            "index_line_sp1": (lambda s1: {"capital_inr": int(views.ACCOUNT_START), **{k: s1.get(k) for k in ("status", "words", "decisions", "errors", "date")}, "sessions": (s1.get("book") or {}).get("sessions"),
+                                           # 12 Nov 2026 (G-01): the trade its totals leave out, in the screens' own words; say it with any total
+                                           "left_out": _sp1_left_out()})(views.sp1_live(rm)),
             "reference_traders_league": {"h1": lg.get("h1"), "informed": lg.get("informed"), "meaning": "HINDSIGHT = best trips the session offered; RANDOM = chance; MARKET = the liquid 250; coverage = of the top 20 trips, how many Ananta took / passed / had no rule for"},
             "missed_movers": (L.get("missed") or {}).get("line"),
             # 28 Oct outside round 3 re-grade: "3 open drafts" (this missed-moves file) contradicted the 12 waiting in the whole queue
@@ -414,6 +416,17 @@ def options_review_day() -> dict | None:
         scored = None
     return {"sessions_run": done, "through": through.isoformat(), "twentieth": twentieth.isoformat() if done <= 20 else None,
             "review": _ag.next_session_after(twentieth).isoformat() if done <= 20 else None, "scored_days": scored}
+
+
+def _sp1_left_out() -> str | None:
+    """The options line's trades its totals leave out, in the screens' own words (surfaces.sp1_left_out_words), or None. 12 Nov 2026 (the
+    keen audit, G-01): the 6 Nov Bank Nifty trade is scored late at the next regular open; until then every total says it leaves it out."""
+    try:
+        from jarvis.india import surfaces as _sf
+
+        return _sf.sp1_left_out_words() or None
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _options_review() -> dict:

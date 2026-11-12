@@ -404,8 +404,10 @@ def _scored(day: str) -> dict:
     """The options line's own scoring of a session (paper/sp1/outcomes.jsonl, written at 17:30 IST): how each trade actually ended."""
     out = {}
     for r in _jsonl(DATA / "paper" / "sp1" / "outcomes.jsonl"):
-        if r.get("date") == day:
-            out[(r.get("index"), r.get("point"))] = r
+        k = (r.get("index"), r.get("point"))
+        # 12 Nov (G-01): a trade scored late has its note and then its score in the append-only ledger; the score is the one said
+        if r.get("date") == day and (k not in out or "index_proxy" in r or "index_proxy" not in out[k]):
+            out[k] = r
     return out
 
 
@@ -464,15 +466,17 @@ def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
         if sc.get("note") and not sc.get("index_proxy"):
             # 9 Nov 2026 (the readiness review): the 6 Nov Bank Nifty trade was to close at the next session's open; the next session was the
             # Muhurat hour, which the line's study leaves out, so the scorer wrote "not defined" and the trade has no result. Said, not hidden.
-            x["unscored"] = ("it has no result on the record: its exit was the next session's open and that session was a special one the line's study "
-                             "leaves out; how to count it waits for Madhav's decision")
+            # 12 Nov 2026 (G-01, Madhav's yes of 12 Nov 01:52): it is scored at the next regular open, marked scored late, and included
+            x["unscored"] = ("it has no result on the record yet: its exit was the next session's open and that session was a special one the "
+                             "line's study leaves out; by Madhav's decision of 12 Nov it is scored at the next regular open and marked scored late, "
+                             "and until then the options line's totals leave it out and say so")
             continue
         ip, opt = sc.get("index_proxy") or {}, ((sc.get("legs") or {}).get("option") or {})
         x["closed"] = bool(ip.get("stopped")) or str(x.get("exit")).upper() != "NEXTOPEN"
         if x["closed"]:
             x["result"] = {"stopped": bool(ip.get("stopped")), "option_entry": opt.get("entry_realistic"), "option_exit": opt.get("exit"),
                            "net_inr": round(opt["net_rs_realistic"]) if opt.get("net_rs_realistic") is not None else None,
-                           "index_net_bps": ip.get("net_bps"), "how": opt.get("exit_rule")}
+                           "index_net_bps": ip.get("net_bps"), "how": opt.get("exit_rule"), "scored_late": bool(sc.get("scored_late"))}
             for k in ("paper_move_inr_per_lot", "option_price_now", "index_since_entry_words"):
                 x.pop(k, None)
     tw = []
@@ -491,6 +495,7 @@ def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
                   + (f", the option sold near Rs {res['option_exit']:,.2f} (bought near Rs {res['option_entry']:,.2f} at the next minute's fill)"
                      if res.get("option_exit") and res.get("option_entry") else "")
                   + (f", a paper result of about Rs {res['net_inr']:+,} for the lot after costs" if res.get("net_inr") is not None else "")
+                  + ("; it was scored late, at the next regular open (its next open fell on a special session)" if res.get("scored_late") else "")
                   + "; say it as a closed trade with this result, never today's option price")
         if x.get("unscored"):
             s += "; " + x["unscored"]

@@ -68,3 +68,16 @@ def test_a_holding_the_book_started_with_says_it_has_no_stop_and_leaves_by_its_g
     said = str(pts)
     assert "Ananta is wrong if" not in said and "not a stop" in said and "leaves only through its grade" in said
     assert IP.book_row(OWN[0])["sub"].endswith("no stop, leaves by its grade") and IP.book_row(OWN[2])["sub"].endswith("with a stop")
+
+
+def test_every_options_total_says_the_trade_it_leaves_out(india, monkeypatch):
+    """G-01 (Madhav's yes: score the 6 Nov Bank Nifty trade at the next regular open, marked scored late; until then the total says 'one
+    trade left out'): the Options hero and 'By index' carried no caveat; only Proof's clock did."""
+    monkeypatch.setattr(IS, "_sp1_unscored", lambda: [{"kind": "outcome", "date": "2026-11-06", "index": "BANKNIFTY", "note": "not defined"}])
+    page = IP.options_page()
+    hero = next(p for p in page["parts"] if p.get("t") == "hero")
+    kv = next(p for p in page["parts"] if p.get("t") == "kv" and p.get("title") == "By index")
+    assert "1 trade left out: Fri 6 Nov Bank Nifty, not scored yet" in hero["since"] and kv["foot"].startswith("1 trade left out")
+    assert "one trade left out" in str(IP.account()) and "one trade left out" in str(IP.markets())
+    monkeypatch.setattr(IS, "_sp1_unscored", lambda: [])
+    assert "left out" not in str(IP.options_page())                                      # once it is scored, nothing is said

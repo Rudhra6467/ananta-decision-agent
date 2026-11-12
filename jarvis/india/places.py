@@ -400,7 +400,7 @@ def markets(full: bool = True) -> dict:
              K.rows("Your Zerodha holdings", [holding_row(h) for h in hs[:3]], count=len(hs), more=K.to_page(hp), tags=["all"]) if hs else None,
              K.rows("Your Zerodha holdings", [holding_row(h) for h in hs], count=len(hs), tags=["holdings"]) if hs else None,
              K.rows("Options", [K.row(ob.get("open_words") and ("No open trade" if not ob.get("open") else f"{len(ob['open'])} open on paper") or "Options",
-                                      ((f"{ob.get('sessions')} of 20 sessions; one trade left out" if _left_out() else f"{ob.get('sessions')} of 20 sessions on record")
+                                      ((f"{ob.get('sessions')} of 20 sessions; {_left_n()}" if _left_n() else f"{ob.get('sessions')} of 20 sessions on record")
                                        if ob.get("sessions") is not None else None),
                                       right=_rs(ob.get("pnl_inr"), sign=True),
                                       right_tone=_tone(ob.get("pnl_inr")), to=K.place("options"))], tags=["all", "options"]) if ob else None]
@@ -475,7 +475,7 @@ def account(full: bool = True) -> dict:
              K.rows("Your Zerodha holdings", [holding_row(h) for h in hs[:3]], count=len(hs), sub=f"{len(hs)} · as you have them, graded", more=K.to_page(holdings_page(hs))) if hs else None,
              K.rows("Bought on paper", [K.row(_name(r.get("symbol")), f"For the {_name(r.get('for_cut'))} cut", right=_rs(r.get("value_inr")), right_sub=_pct(r.get("pnl_pct"), 1),
                                               right_tone=_tone(r.get("pnl_pct"))) for r in reps[:3]], count=len(reps)) if reps else None,
-             K.rows(None, [K.row("Options", "On paper; one trade left out" if _left_out() else "One lot at a time, on paper", right=_rs((m.get("options_book") or {}).get("pnl_inr"), sign=True), right_tone=_tone((m.get("options_book") or {}).get("pnl_inr")), to=K.place("options")),
+             K.rows(None, [K.row("Options", f"On paper; {_left_n()}" if _left_n() else "One lot at a time, on paper", right=_rs((m.get("options_book") or {}).get("pnl_inr"), sign=True), right_tone=_tone((m.get("options_book") or {}).get("pnl_inr")), to=K.place("options")),
                            K.row("The next session's plan", "No change" if (m.get("plan") or {}).get("no_change") else "Cuts and buys", to=K.place("plan"))], plain=True)]
     return K.page("Your account", parts, ask_q="Explain my account: the managed book, how it compares, what it holds and what happens next session.",
                   second={"label": "What changes next session?", "ask": "What will you change in my portfolio next session, and why?"})
@@ -775,6 +775,13 @@ def _left_out() -> str:
     12 Nov 2026 (audit repair 4, G-01; Madhav's yes of 12 Nov 01:52): the 6 Nov Bank Nifty trade is scored at the next regular open and
     marked scored late; until then no total may leave it out without saying so (the Options hero and By index said nothing)."""
     return IS._safe(IS.sp1_left_out_words) or ""
+
+
+def _left_n() -> str:
+    """'one trade left out', '2 trades left out', or '': Account's and Markets' options row (12 Nov 2026, the third confirm check of repair 4,
+    E4: they said "one trade left out" whatever the count, beside an Options page that said 2)."""
+    n = len(IS._safe(IS._sp1_unscored) or [])
+    return "" if not n else "one trade left out" if n == 1 else f"{n} trades left out"
 
 
 def _left_total() -> str:

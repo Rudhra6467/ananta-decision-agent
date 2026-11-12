@@ -656,7 +656,8 @@ def _sp1_clock(clocks: list[dict]) -> None:
                 waiting = [r for r in un if not (exp.get((str(r.get("date")), str(r.get("index")))) or "9") < _today_ist()]
                 c["so_far"] += (f" Not in these figures: {len(un)} trade{'s' if len(un) != 1 else ''}, "
                                 + "; ".join(_sp1_left_one(r, exp) for r in un[:3]) + "."
-                                + (" A trade left without a result is scored again at the next regular open while its option trades, and marked "
+                                # E1 (the third confirm check): a stop-exit trade is tried again too, the evening after, not at an open
+                                + (" A trade left without a result is tried again each evening while its option trades, and marked "
                                    "scored late (Madhav's decision of 12 Nov)." if waiting else ""))
 
 

@@ -88,7 +88,7 @@ def test_after_its_option_expires_the_options_lines_record_says_never_scored(tmp
     cl = [{"name": "the options line", "done": 10, "so_far": "x"}]
     IS._sp1_clock(cl)
     assert "Not in these figures: 1 trade, Fri 6 Nov Bank Nifty, not scored yet." in cl[0]["so_far"]
-    assert "scored again at the next regular open while its option trades" in cl[0]["so_far"]
+    assert "tried again each evening while its option trades" in cl[0]["so_far"]                  # E1: any exit
 
 
 # ---- 12 Nov 2026, the second confirm check of repair 4 (pkg4_confirm2.md): C4's rest, D3, D4 ----

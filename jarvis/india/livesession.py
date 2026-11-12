@@ -475,7 +475,10 @@ def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
 
             exp = _sf._sp1_expiries().get((str(day), str(x.get("index"))))
             x["unscored_never"] = bool(exp) and _sf._today_ist() > exp
+            # 12 Nov (the third confirm check of repair 4, E2): a trade noted because its own day's minute bars were short was given the
+            # special-session reason
             why = ("Kite had no price for its option at the exit" if no_price else
+                   "its own day's minute bars were not complete on Kite" if str(sc.get("note") or "").startswith("the day's minute bars are not complete") else
                    "its exit was the next session's open and that session was a special one the line's study leaves out")
             x["unscored"] = (f"it has no result on the record and never will: {why}, and its option expired on {_sf._dw(exp)} before it could "
                              "be scored, so the options line's totals leave it out and say so" if x["unscored_never"] else

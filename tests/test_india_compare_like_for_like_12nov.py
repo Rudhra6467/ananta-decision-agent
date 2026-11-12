@@ -11,6 +11,8 @@ from jarvis.india import places as IP
 from jarvis.india import surfaces as IS
 from tests.test_places_india import MONEY, india  # noqa: F401  (the places fixture: fixed inputs, no live data)
 
+_FIXTURES = (india,)                                                                     # the places fixture, used by name below
+
 ROWS = [{"day": "2026-10-29", "frozen_inr": 160536, "twin_inr": 160499, "nifty500_ret_pct": 1.13},
         {"day": "2026-10-30", "frozen_inr": 163076, "managed_inr": 160558, "managed_ret_pct": 0.04, "nifty500_ret_pct": 0.92},
         {"day": "2026-11-11", "frozen_inr": 170014, "managed_inr": 165234, "managed_ret_pct": 2.95, "nifty500_ret_pct": 9.6, "managed_sessions": 8}]

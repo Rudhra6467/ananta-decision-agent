@@ -9,7 +9,9 @@ from jarvis.india import places as IP
 from jarvis.india import surfaces as IS
 from tests.test_places_india import MONEY, india  # noqa: F401  (the places fixture: fixed inputs, no live data)
 
-SAID = "Options are counted at the options line's own value: ₹50,000 set aside, +₹33,000 from its 2 trades since the book started."
+_FIXTURES = (india,)                                                                     # the places fixture, used by name below
+
+SAID = "Options count at ₹50,000 set aside and +₹33,000 from 2 trades since the book began (30 Oct)."
 
 
 def _money(monkeypatch):
@@ -23,12 +25,12 @@ def test_where_it_sits_makes_the_total_with_the_options_line_at_its_own_value(in
     mo = _money(monkeypatch)
     page = IP.account()
     split = next(p for p in page["parts"] if p.get("t") == "split")["parts"]
-    assert split[1]["label"] == "Options, at the line's value" and split[1]["value"] == IP._rs(83000)       # it said "set aside", ₹50,000
+    assert split[1]["label"] == "Options, since the book began" and split[1]["value"] == IP._rs(83000)       # it said "set aside", ₹50,000
     hero = next(p for p in page["parts"] if p.get("t") == "hero")
     assert hero["value"] == IP._rs(mo["value_inr"]) == IP._rs(87111 + 83000 + 27614)                       # the three parts make it
     assert any(p.get("t") == "line" and p.get("text") == SAID for p in page["parts"])
     home = IP.home()
     box = next(p for p in home["parts"] if p.get("t") == "boxes")["items"][1]["pages"][1]
-    assert box["value"] == IP._rs(83000) and box["caption"] == "At the line's value"
+    assert box["value"] == IP._rs(83000) and box["caption"] == "Since the book began"
     assert any(p.get("t") == "line" and p.get("text") == SAID for p in IP.options_page()["parts"])
     assert K.problems("account", page) == [] and K.problems("home", home) == [] and K.problems("options", IP.options_page()) == []

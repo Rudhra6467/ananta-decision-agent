@@ -10,6 +10,8 @@ from jarvis.india import places as IP
 from jarvis.india import surfaces as IS
 from tests.test_places_india import india  # noqa: F401  (the places fixture: fixed inputs, no live data)
 
+_FIXTURES = (india,)                                                                     # the places fixture, used by name below
+
 DAY = (dt.date.today() - dt.timedelta(days=2)).isoformat()              # inside Activity's three weeks
 OLD = (dt.date.today() - dt.timedelta(days=3)).isoformat()
 SCORED = {"kind": "outcome", "date": OLD, "index": "BANKNIFTY", "point": "D2", "dir": -1, "exit": "ATRSTOP", "index_proxy": {"net_bps": -9.0},

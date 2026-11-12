@@ -62,9 +62,21 @@ def same_window(data: Path = DATA) -> dict:
     if "managed_stock_pct" in exp and "yours_stock_pct" in exp:
         ew = (f"Not equally in stocks: the managed book about {exp['managed_stock_pct']}%, your holdings about {exp['yours_stock_pct']}%, the index all"
               + (f"; stock for stock, your holdings {exp['yours_stock_for_stock_pct']:+.2f}%." if "yours_stock_for_stock_pct" in exp else "."))
+    # 12 Nov 2026 (the outside check of repair 4, N2): from G-11 the managed book's figure carries the options line's paper result, while
+    # your holdings keep their options money flat; said beside it, with the book like for like (its options money flat too)
+    ow, like = "", None
+    opt = last.get("managed_options_inr")
+    if isinstance(opt, (int, float)) and opt and last.get("managed_inr"):
+        start_v = float(last["managed_inr"]) / (1 + managed / 100)
+        pts = 100 * float(opt) / start_v
+        like = managed - pts
+        ow = (f"The book counts the options line's result ({'+' if opt >= 0 else '−'}₹{abs(opt):,.0f}, about {pts:.1f} points); "
+              f"with its options flat, as yours are, it is {like:+.2f}%.")             # a screen's line: 22 words at most
     return {"ready": True, "since": str(start), "since_words": _day(start), "through": last["day"], "through_words": _day(last["day"]),
             "managed_pct": round(managed, 2), "yours_pct": round(yours, 2), "nifty500_pct": round(n500, 2),
             "managed_minus_yours_pts": round(managed - yours, 2), "sessions": s, "exposure": exp, "exposure_words": ew,
+            "managed_options_inr": opt if isinstance(opt, (int, float)) else None,
+            "managed_like_for_like_pct": round(like, 2) if like is not None else None, "options_words": ow,
             "words": (f"From the {_day(start)} close (the managed book's start) to {_day(last['day'])}: the managed book {managed:+.2f}%, "
-                      f"your holdings as you have them {yours:+.2f}%, the Nifty 500 {n500:+.2f}% (price index). " + (ew + " " if ew else "")
-                      + f"Session {s} of 60; nothing is read into the gap before session 60.")}
+                      f"your holdings as you have them {yours:+.2f}%, the Nifty 500 {n500:+.2f}% (price index). " + (ow + " " if ow else "")
+                      + (ew + " " if ew else "") + f"Session {s} of 60; nothing is read into the gap before session 60.")}

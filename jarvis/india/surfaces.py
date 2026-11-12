@@ -192,7 +192,8 @@ def _account_tile(mb: dict, acct: dict, clk: dict | None, fetch=None) -> dict:
     p1 = {"label": "Stocks", "value": _inr(stocks) if isinstance(stocks, (int, float)) else "—", "focus": "holdings",
           "sub": f"{n_st} stocks" if n_st else ("managed book" if is_mb else "account"),
           "sub2": f"Cash {_inr(cash)}" if isinstance(cash, (int, float)) else ""}
-    opt = own.get("options_inr") or 0
+    # 12 Nov (the outside check of repair 4, N8): the options part at the line's own value, as the total counts it (G-11), so the parts add up
+    opt = (own.get("options_value_inr") if isinstance(own.get("options_value_inr"), (int, float)) else own.get("options_inr")) or 0
     p2 = {"label": "Options", "value": _inr(opt) if opt else "—", "focus": "options", "sub": "No open trade", "sub2": "One lot a trade"}
     if clk:
         try:
@@ -347,7 +348,9 @@ def _holdings_points(hs: list[dict], bench: dict) -> list[str]:
     from jarvis.india import compare as _cmp
     sw = _cmp.same_window()                                   # 5 Nov: one window for all three (jarvis/india/compare.py)
     if sw.get("ready"):
-        pts.append(_tidy(f"Since {sw['since_words']}: managed {sw['managed_pct']:+.2f}% · your holdings {sw['yours_pct']:+.2f}% · Nifty 500 {sw['nifty500_pct']:+.2f}%"))
+        like = sw.get("managed_like_for_like_pct")              # 12 Nov (N2): the options line's result is in the managed figure
+        pts.append(_tidy(f"Since {sw['since_words']}: managed {sw['managed_pct']:+.2f}%" + (f" ({like:+.2f}% with its options flat, as yours)" if like is not None else "")
+                         + f" · your holdings {sw['yours_pct']:+.2f}% · Nifty 500 {sw['nifty500_pct']:+.2f}%"))
     elif bench.get("frozen_ret_pct") is not None and bench.get("nifty500_ret_pct") is not None:
         pts.append(_tidy(f"Since {_dw(bench.get('frozen_day')).split(' ', 1)[-1]}: your holdings {bench['frozen_ret_pct']:+.2f}% · Nifty 500 {bench['nifty500_ret_pct']:+.2f}%"))
     pts += [_why_point(x["symbol"], str(x.get("action") or "").upper(), x.get("why")) for x in hs if x.get("symbol")]
@@ -559,7 +562,7 @@ def today(full: bool = True) -> dict:
             "numbers": [{"label": "Nifty · " + str(nifty.get("sub2") or ""), "value": nifty.get("value"), "sub": nifty.get("sub")},
                         # 3 Nov (the Map's change 3): the account's value has one owner, the managed book (the twin is folded into it)
                         ({"label": "Your account", "value": _inr(mb["value_inr"]),
-                          "sub": f"managed book · {mb.get('positions')} stocks, ₹{mb.get('options_inr') or 0:,.0f} options"} if mb.get("value_inr") else
+                          "sub": f"managed book · {mb.get('positions')} stocks, ₹{(mb.get('options_value_inr') if isinstance(mb.get('options_value_inr'), (int, float)) else mb.get('options_inr')) or 0:,.0f} options"} if mb.get("value_inr") else   # N8
                          {"label": "Your account", "value": (_inr(acct["value_inr"]) if acct.get("value_inr") else "—"),
                           "sub": f"NSE close · {acct.get('positions') and len(acct['positions'])} stocks, ₹{acct.get('options_inr', 0):,.0f} options" if acct else "no snapshot yet"})],
             "waiting": {"count": waiting.get("count") or 0, "words": waiting.get("words")},
@@ -586,6 +589,7 @@ def money(full: bool = True) -> dict:
     sw = _cmp.same_window()
     books_note = "Nothing is read into the gap before session 60."
     books_exposure = sw.get("exposure_words") if sw.get("ready") else None    # 12 Nov (G-12): how much of each line is in stocks
+    books_options = (sw.get("options_words") or None) if sw.get("ready") else None   # 12 Nov (N2): the options line's result, said beside
     clock = {"sessions": bm.get("sessions"), "of": 60, "finish_words": None, "words": f"Session {bm.get('sessions')} of 60" if bm.get("sessions") is not None else None, "since": bm.get("frozen_day")}
     if sw.get("ready"):
         books[0]["ret_pct"], books[1]["ret_pct"], books[2]["ret_pct"] = sw["yours_pct"], sw["managed_pct"], sw["nifty500_pct"]
@@ -606,7 +610,7 @@ def money(full: bool = True) -> dict:
             "value_owner": "the managed book" if own is mb else "the account book (the managed book has no value yet)",
             "as_of": f"NSE close {_dw(asof_day)}" if asof_day else None, "as_of_day": asof_day,
             "books": books, "clock": clock,
-            "books_note": books_note, "books_exposure": books_exposure,
+            "books_note": books_note, "books_exposure": books_exposure, "books_options": books_options,
             "plan": {"for_session": plan.get("for_session"), "brief": plan_sentence(plan) if not plan.get("error") else plan.get("brief"), "words": plan.get("words"), "cuts": len(plan.get("cuts") or []), "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons")} for b in plan.get("buys") or []],
                      "no_change": plan.get("no_change"), "error": plan.get("error")} if plan else None,
             "managed": {"value_inr": mb.get("value_inr"), "return_pct": mb.get("return_pct"), "clock": (mb.get("clock") or {}).get("words"), "replacements": mb.get("replacements") or []},
@@ -684,15 +688,37 @@ def _sp1_unscored() -> list[dict]:
     return out
 
 
+def _sp1_expiries() -> dict:
+    """(date, index) -> the option contract's expiry day of each decided trade, from the options line's decisions ledger."""
+    out: dict = {}
+    try:
+        for line in (DATA / "paper" / "sp1" / "decisions.jsonl").read_text().splitlines():
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            exp = str(((r.get("contracts") or {}).get("option") or {}).get("expiry") or "")[:10]
+            if r.get("kind") == "decision" and exp:
+                out[(str(r.get("date")), str(r.get("index")))] = exp
+    except (OSError, ValueError):
+        pass
+    return out
+
+
 def sp1_left_out_words() -> str:
     """'1 trade left out: Fri 6 Nov Bank Nifty, not scored yet', or '' (G-01): the one sentence every options total carries while it leaves
-    a trade out (the Options page, its By index, Account, Markets; Proof says it in its own words)."""
+    a trade out (the Options page, its By index, Account, Markets; Proof says it in its own words). 12 Nov (the outside check of repair 4,
+    N12): once a left-out trade's option contract has expired it can never be scored (Kite serves no candles for it), and it says so."""
     un = _sp1_unscored()
     if not un:
         return ""
-    return (f"{len(un)} trade{'s' if len(un) != 1 else ''} left out: "
-            + "; ".join(f"{_dw(r.get('date'))} { {'NIFTY': 'Nifty', 'BANKNIFTY': 'Bank Nifty'}.get(r.get('index'), r.get('index')) }" for r in un[:3])
-            + ", not scored yet")
+    exp, today = _sp1_expiries(), dt.datetime.now(IST).date().isoformat()
+    name = {"NIFTY": "Nifty", "BANKNIFTY": "Bank Nifty"}
+
+    def one(r: dict) -> str:
+        e = exp.get((str(r.get("date")), str(r.get("index"))))
+        what = f"{_dw(r.get('date'))} {name.get(r.get('index'), r.get('index'))}"
+        return f"{what}, never scored (its option expired {_dw(e)})" if e and today > e else f"{what}, not scored yet"
+    return f"{len(un)} trade{'s' if len(un) != 1 else ''} left out: " + "; ".join(one(r) for r in un[:3])
 
 
 def proof(full: bool = True) -> dict:

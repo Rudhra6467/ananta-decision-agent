@@ -7,6 +7,8 @@ from jarvis.india import places as IP
 from jarvis.india import surfaces as IS
 from tests.test_places_india import india  # noqa: F401  (the places fixture: fixed inputs, no live data)
 
+_FIXTURES = (india,)                                                                     # the places fixture, used by name below
+
 OWN = [{"symbol": "TATAPOWER", "qty": 48, "last": 380.0, "value_inr": 18240, "source": "from the account", "pnl_pct": 24.0},
        {"symbol": "JIOFIN", "qty": 14, "last": 230.0, "value_inr": 3220, "source": "from the account", "pnl_pct": -11.5},
        {"symbol": "AJANTPHARM", "qty": 3, "last": 2600.0, "value_inr": 7800, "source": "replacement", "pnl_pct": 1.2}]

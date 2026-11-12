@@ -1,12 +1,13 @@
 """12 Nov 2026, the keen outside audit, audit repair 4 (open-list flag 120), G-23 (trader's wording on India): 'Bank Nifty · short' was a
 bought put shown with no strike, expiry or premium; 'One point a session' sat under a chart of 7 closes beside 'Session 6 of 60'; a coin
 flip was said to score 9 of 15 with no word that chance alone averages 7.5. Each check failed against the code before."""
-import json
 
 from jarvis import placekit as K
 from jarvis.india import places as IP
 from jarvis.india import views
 from tests.test_places_india import india  # noqa: F401  (the places fixture: fixed inputs, no live data)
+
+_FIXTURES = (india,)                                                                     # the places fixture, used by name below
 
 PUT = {"kind": "outcome", "date": "2026-11-09", "index": "BANKNIFTY", "dir": -1, "exit": "ATRSTOP", "index_proxy": {"net_bps": -9.0},
        "legs": {"option": {"tradingsymbol": "BANKNIFTY26NOV59100PE", "lot": 30.0, "entry_realistic": 797.6, "exit": 602.4, "net_rs_realistic": -6053.6}}}

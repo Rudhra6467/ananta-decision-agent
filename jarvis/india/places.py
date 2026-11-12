@@ -339,6 +339,7 @@ def home(full: bool = True) -> dict:
     at_value = isinstance(m.get("options_value_inr"), (int, float))
     opts = (m.get("options_value_inr") if at_value else m.get("options_inr")) or 0
     tot = (stocks + opts + cash) or 1
+    out_words = _left_total() if at_value else ""          # 12 Nov (the outside check of repair 4, N4): a total that leaves a trade out says so
     did = [r for _d, _o, r in _events(full)]
     seen, top = set(), []
     for r in did:
@@ -350,12 +351,13 @@ def home(full: bool = True) -> dict:
             break
     day = m.get("as_of_day") or mb.get("day")          # 12 Nov (G-03): the close the big number is marked at, from the book it comes from
     parts = [K.hero(f"Your paper account · {IS._dw(day)} close" if day else "Your paper account", _rs(value), change=(f"{_rs(value - start, sign=True)} ({_pct(ret)})" if isinstance(value, (int, float)) and isinstance(start, (int, float)) and isinstance(ret, (int, float)) else _pct(ret) if ret is not None else None),
-                    tone=_tone(ret), since=f"since {IS._dw(mb.get('start_day'))}" if mb.get("start_day") else None,
+                    tone=_tone(ret), since=(f"since {IS._dw(mb.get('start_day'))}" + (f"; {out_words}" if out_words else "")) if mb.get("start_day") else None,
                     status={"ok": bool((t.get("running") or {}).get("ok")), "words": "Running" if (t.get("running") or {}).get("ok") else "Needs a look"}),
              K.today(label, line, sub, to=K.place("plan")),
              K.boxes([K.paged(_index_boxes(t)),
                       K.paged([K.box("In stocks", _rs(stocks), bar=[round(stocks / tot, 3), round(opts / tot, 3)], caption=f"{mb.get('positions') or len(m.get('holdings') or [])} stocks", to=K.place("stocks")),
-                               K.box("Options", _rs(opts), bar=[0, round(opts / tot, 3)], caption="At the line's value" if at_value else _options_caption(t, m),
+                               # 12 Nov (N4, N5): it said "At the line's value", a second meaning beside the Options page's own figure
+                               K.box("Options", _rs(opts), bar=[0, round(opts / tot, 3)], caption=(out_words or "Since the book began") if at_value else _options_caption(t, m),
                                      to=K.place("options"))])]),
              {"t": "needs", "title": "Needs you", "badge": True, "more": K.place("notices")},
              K.rows("What Ananta did", top, more=K.tab("activity")) if top else None,
@@ -392,8 +394,9 @@ def markets(full: bool = True) -> dict:
              {**K.rows(None, [K.row("The Nifty is in an uptrend" if up else "The Nifty is not in an uptrend",
                                     (f"{round(int(breadth.group(1)) / 10)} in 10 big stocks above long-term average" if breadth else None), to=K.to_page(morning_page(mv)))], plain=True), "tags": ["all"]} if trend else None,
              K.rows("Morning view", [_split_row(x) for x in pick], sub=f"before the {mv.get('session_words') or 'last'} open", more=K.to_page(morning_page(mv)), tags=["all", "view"]) if pick else None,
-             K.rows("Your holdings", [holding_row(h) for h in hs[:3]], count=len(hs), more=K.to_page(hp), tags=["all"]) if hs else None,
-             K.rows("Your holdings", [holding_row(h) for h in hs], count=len(hs), tags=["holdings"]) if hs else None,
+             # 12 Nov (the outside check of repair 4, item 3): "Your Zerodha holdings", as Account and Your stocks name them since G-06
+             K.rows("Your Zerodha holdings", [holding_row(h) for h in hs[:3]], count=len(hs), more=K.to_page(hp), tags=["all"]) if hs else None,
+             K.rows("Your Zerodha holdings", [holding_row(h) for h in hs], count=len(hs), tags=["holdings"]) if hs else None,
              K.rows("Options", [K.row(ob.get("open_words") and ("No open trade" if not ob.get("open") else f"{len(ob['open'])} open on paper") or "Options",
                                       ((f"{ob.get('sessions')} of 20 sessions; one trade left out" if _left_out() else f"{ob.get('sessions')} of 20 sessions on record")
                                        if ob.get("sessions") is not None else None),
@@ -444,14 +447,16 @@ def account(full: bool = True) -> dict:
     order = {"managed": 0, "yours": 1, "index": 2}
     label = {"managed": "The managed book", "yours": "Your holdings, as you have them", "index": "Nifty 500"}
     day = m.get("as_of_day") or mb.get("day")          # 12 Nov (G-03): the hero says which close it is marked at
+    out_words = _left_total() if at_value else ""      # 12 Nov (the outside check of repair 4, N4): the total says what it leaves out
     parts = [K.hero("The managed book · on paper", _rs(value), change=(f"{_rs(value - start, sign=True)} ({_pct(ret)})" if isinstance(value, (int, float)) and isinstance(start, (int, float)) and isinstance(ret, (int, float)) else None),
-                    tone=_tone(ret), since=(f"since {IS._dw(mb.get('start_day'))}" + (f", at the {IS._dw(day)} close" if day else "")) if mb.get("start_day") else None),
+                    tone=_tone(ret), since=(f"since {IS._dw(mb.get('start_day'))}" + (f", at the {IS._dw(day)} close" if day else "") + (f"; {out_words}" if out_words else ""))
+                    if mb.get("start_day") else None),
              K.chart([{"values": ml, "style": "main", "color": "bronze"}], left=IS._dw(dates[0]) if dates else None, right=IS._dw(dates[-1]) if dates else None,
                      # 12 Nov 2026 (the keen audit, G-23): "One point a session" under 7 points beside "Session 6 of 60"; the first point is the start
                      caption=(f"The {IS._dw(dates[0])} close it started at, then the {len(ml) - 1} session{'s' if len(ml) != 2 else ''} since, each at its close."
                               if dates else "One point a session, at the close."), label="The managed book's value at each close") if len(ml) > 1 else None,
              K.split([{"label": f"Stocks · {mb.get('positions') or len(hs)}", "value": _rs(stocks), "share": round(stocks / tot, 3), "shade": "ink"},
-                      {"label": "Options, at the line's value" if at_value else "Options, set aside", "value": _rs(opts), "share": round(opts / tot, 3), "shade": "dim"},
+                      {"label": "Options, since the book began" if at_value else "Options, set aside", "value": _rs(opts), "share": round(opts / tot, 3), "shade": "dim"},   # N5
                       {"label": "Cash", "value": _rs(cash), "share": round(cash / tot, 3), "shade": "faint"}], title="Where it sits"),
              K.line(str(m.get("options_counted"))) if m.get("options_counted") else None,
              K.kv([K.kvrow(label.get(b.get("id"), b.get("label")), _pct(b.get("ret_pct")) if b.get("ret_pct") is not None else (b.get("words") or "—"), tone=_tone(b.get("ret_pct")), bold=(b.get("id") == "managed"))
@@ -460,6 +465,7 @@ def account(full: bool = True) -> dict:
                   foot=((f"All since {IS._dw(mb.get('start_day'))}, the same start as above (counted from the {IS._dw(clock.get('since'))} close). "
                          if mb.get("start_day") and str(clock.get("since") or "") < str(mb.get("start_day")) else f"All from the {IS._dw(clock.get('since'))} close. ")
                         + f"{clock.get('words')}: too early to judge." if clock.get("since") and clock.get("words") else m.get("books_note"))),
+             K.line(str(m.get("books_options"))) if m.get("books_options") else None,            # 12 Nov (N2): the options' result in the figure
              K.line(str(m.get("books_exposure"))) if m.get("books_exposure") else None,          # 12 Nov 2026 (G-12): not equally in stocks
              # 12 Nov 2026 (audit repair 4, G-06): the book's own positions under its own total; your Zerodha holdings, as you have them, apart
              K.rows("In the managed book", [book_row(x) for x in own[:3]], count=len(own), sub=f"{len(own)} · on paper, at its own sizes",
@@ -615,7 +621,9 @@ def stock_points() -> list[tuple[str, float]]:
         if not d or not isinstance(v, (int, float)):
             continue
         cash = cash_now - sum(delta(f) for f in fills if str(f.get("for_session") or "") > d)
-        out.append((d, round(v - opts - cash)))
+        # 12 Nov (the outside check of repair 4, N1): from G-11 a row's value holds the options line's result too ("managed_options_inr");
+        # it comes out with the money set aside, or the stocks would read the options' gains (+41% where they were +3.0%)
+        out.append((d, round(v - opts - float(r.get("managed_options_inr") or 0) - cash)))
     stocks_now = mb.get("stocks_inr")
     if out and isinstance(stocks_now, (int, float)) and str(mb.get("day") or "") >= out[-1][0]:
         out[-1] = (out[-1][0], stocks_now)                                           # the book's own figure for its last close
@@ -767,6 +775,14 @@ def _left_out() -> str:
     return IS._safe(IS.sp1_left_out_words) or ""
 
 
+def _left_total() -> str:
+    """'1 options trade left out', or '': the few words an account total carries while it leaves an options trade out (12 Nov 2026, the
+    outside check of repair 4, N4: from G-11 the totals hold the options line's result, so each says what it leaves out, as Madhav
+    decided for G-01). A box caption holds six words."""
+    n = len(IS._safe(IS._sp1_unscored) or [])
+    return f"{n} options trade{'s' if n != 1 else ''} left out" if n else ""
+
+
 def option_trades_page(rows: list[dict]) -> dict:
     return K.page("Options trades", [K.hero("Options trades", str(len(rows)), since="on paper, one option lot each"),
                                      K.rows(None, [_trade_row(r) for r in rows], plain=True),
@@ -781,8 +797,12 @@ def _option_bought(r: dict) -> tuple[str, str]:
     sym = str(opt.get("tradingsymbol") or "")
     kind = "put" if sym.endswith("PE") else "call" if sym.endswith("CE") else ("put" if r.get("dir") == -1 else "call")
     m = re.match(r"^(?:NIFTY|BANKNIFTY)\d{2}([A-Z]{3})(\d+)(?:CE|PE)$", sym)
+    # 12 Nov (the outside check of repair 4, N10): a weekly contract is named by its expiry day, NIFTY26N0323300CE (3 of 14 trades)
+    w = None if m else re.match(r"^(?:NIFTY|BANKNIFTY)\d{2}([1-9OND])(\d{2})(\d+)(?:CE|PE)$", sym)
+    wk = {"O": "Oct", "N": "Nov", "D": "Dec", **{str(k): dt.date(2026, k, 1).strftime("%b") for k in range(1, 10)}}
     paid = opt.get("entry_realistic") * opt.get("lot") if isinstance(opt.get("entry_realistic"), (int, float)) and isinstance(opt.get("lot"), (int, float)) else None
-    detail = ", ".join(x for x in ((f"{int(m.group(2)):,} {m.group(1).title()}" if m else ""), (f"paid {_rs(paid)}" if paid else "")) if x)
+    strike = (f"{int(m.group(2)):,} {m.group(1).title()}" if m else f"{int(w.group(3)):,}, expiring {int(w.group(2))} {wk[w.group(1)]}" if w else "")
+    detail = ", ".join(x for x in (strike, (f"paid {_rs(paid)}" if paid else "")) if x)
     return f"{IDX.get(r.get('index'), r.get('index'))} {kind}", detail
 
 

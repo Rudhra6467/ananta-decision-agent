@@ -653,10 +653,11 @@ def _sp1_clock(clocks: list[dict]) -> None:
             un = _sp1_unscored()
             if un:                                       # C4: in the same words as every total, never "no result yet" after the expiry
                 exp = _sp1_expiries()
-                c["so_far"] += (f" Not in these figures: {len(un)} trade{'s' if len(un) != 1 else ''} ("
-                                + "; ".join(_sp1_left_one(r, exp) for r in un[:3])
-                                + "). A trade whose next open falls on a day that is no regular session is scored at the next regular open and "
-                                  "marked scored late (Madhav's decision of 12 Nov).")
+                waiting = [r for r in un if not (exp.get((str(r.get("date")), str(r.get("index")))) or "9") < _today_ist()]
+                c["so_far"] += (f" Not in these figures: {len(un)} trade{'s' if len(un) != 1 else ''}, "
+                                + "; ".join(_sp1_left_one(r, exp) for r in un[:3]) + "."
+                                + (" A trade left without a result is scored again at the next regular open while its option trades, and marked "
+                                   "scored late (Madhav's decision of 12 Nov)." if waiting else ""))
 
 
 def _sp1_outcomes(data: Path | None = None) -> list[dict]:
@@ -847,8 +848,9 @@ def portfolio_chart(data: Path | None = None) -> dict:
     sw = _safe(_cmp.same_window, data) or {}
     lw = sw.get("left_out_words") if sw.get("ready") else ""
     if sw.get("ready") and sw.get("managed_options_inr") and sw.get("managed_like_for_like_pct") is not None:
-        ow = (f"Of that, about {sw['managed_pct'] - sw['managed_like_for_like_pct']:.1f} points are the options line's paper result; with its "
-              f"options flat, like the untouched holdings, {sw['managed_like_for_like_pct']:+.2f}%" + (f"; {lw}" if lw else "") + ". ")
+        pts_ = sw["managed_pct"] - sw["managed_like_for_like_pct"]
+        ow = (f"Of that, about {abs(pts_):.1f} points are the options line's paper {'result' if pts_ >= 0 else 'loss'}; with its options flat, "
+              f"like the untouched holdings, {sw['managed_like_for_like_pct']:+.2f}%".replace("-", "−") + (f"; {lw}" if lw else "") + ". ")
     else:
         ow = f"{lw}. " if lw else ""
     words = (f"Drawn from {_dw(dates[0])} to {_dw(dates[-1])}. "
@@ -857,6 +859,7 @@ def portfolio_chart(data: Path | None = None) -> dict:
              + "From the snapshot" + (f" of {_dw(since)} ({_inr(start)})" if since and start else "") + ": "
              + f"the same holdings left untouched {_inr(last.get('frozen_inr') or 0)} ({pct('frozen_ret_pct'):+.2f}%)"
              + (f"; the Nifty 500 {pct('nifty500_ret_pct'):+.2f}% on its own path." if last.get("nifty500_ret_pct") is not None else "."))
+    words = _re.sub(r"(?<![\w.])-(?=\d)", "−", words)           # 12 Nov (the second confirm check, D4): a minus sign, as the money beside it
     return {"name": "Your account on paper", "kind": "portfolio", "as_of": dates[-1], "start_inr": start, "sessions": len(rows),
             "chart": {"dates": dates, "yours": managed, "untouched": untouched, "managed": managed, "nifty500": n500, "twin": yours},
             "legend": {"yours": "your account on paper (the managed book)", "untouched": "the same holdings left alone", "nifty500": "the Nifty 500, same rupees at its reference day"},

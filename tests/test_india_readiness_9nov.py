@@ -209,5 +209,6 @@ def test_a_trade_with_no_result_is_shown_beside_the_options_lines_record(tmp_pat
     cl = [{"name": "the options line", "done": 10, "so_far": "x"}]
     surfaces._sp1_clock(cl)
     # 12 Nov (the confirm check of repair 4, C4): in the words every total uses, which say "never scored" once the option has expired
-    assert "Not in these figures: 1 trade (Fri 6 Nov Bank Nifty, not scored yet)" in cl[0]["so_far"]
-    assert "scored at the next regular open and marked scored late" in cl[0]["so_far"] and "stays unscored" not in cl[0]["so_far"]
+    assert "Not in these figures: 1 trade, Fri 6 Nov Bank Nifty, not scored yet." in cl[0]["so_far"]
+    assert "scored again at the next regular open while its option trades, and marked scored late" in cl[0]["so_far"]
+    assert "stays unscored" not in cl[0]["so_far"]

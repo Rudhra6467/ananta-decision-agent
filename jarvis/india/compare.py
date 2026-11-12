@@ -81,17 +81,22 @@ def same_window(data: Path | None = None) -> dict:
         lo = len(_sf._sp1_unscored(data) if given else _sf._sp1_unscored())
     except Exception:  # noqa: BLE001
         lo = 0
-    left_words = f"{lo} options trade{'s' if lo != 1 else ''} left out" if lo else ""
+    # the second confirm check (D3): a figure written before the options line was counted (no managed_options_inr in its row) holds no
+    # options result, so nothing is "left out" of it
+    counts_options = "managed_options_inr" in last
+    left_words = f"{lo} options trade{'s' if lo != 1 else ''} left out" if lo and counts_options else ""
     ow, like = "", None
     opt = last.get("managed_options_inr")
+    pm = lambda x, d=2: f"{x:+.{d}f}".replace("-", "−")      # noqa: E731   a minus sign, as the money beside it (D4)
     if isinstance(opt, (int, float)) and opt and last.get("managed_inr"):
         start_v = float(last["managed_inr"]) / (1 + managed / 100)
         pts = 100 * float(opt) / start_v
         like = managed - pts
         sign = f"{'+' if opt >= 0 else '−'}₹{abs(opt):,.0f}"
-        ow = (f"The book counts the options line's result ({sign}, about {pts:.1f} points); with options flat, like yours, {like:+.2f}%; "
+        ow = (f"The book counts the options line's result ({sign}, about {abs(pts):.1f} points); with options flat, like yours, {pm(like)}%; "
               f"{left_words}." if left_words else
-              f"The book counts the options line's result ({sign}, about {pts:.1f} points); with its options flat, as yours are, it is {like:+.2f}%.")
+              f"The book counts the options line's result ({sign}, about {abs(pts):.1f} points); with its options flat, as yours are, it is "
+              f"{pm(like)}%.")
     return {"ready": True, "since": str(start), "since_words": _day(start), "through": last["day"], "through_words": _day(last["day"]),
             "managed_pct": round(managed, 2), "yours_pct": round(yours, 2), "nifty500_pct": round(n500, 2),
             "managed_minus_yours_pts": round(managed - yours, 2), "sessions": s, "exposure": exp, "exposure_words": ew,

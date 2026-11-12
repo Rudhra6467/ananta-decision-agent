@@ -75,7 +75,7 @@ def _last_session_line(live: dict) -> str:
         res = (x.get("result") or {}).get("net_inr")
         took.append(f"{name.get(x.get('index'), x.get('index'))} {x.get('direction')} at {x.get('at')} IST"
                     + (f", closed about {'+' if res >= 0 else '−'}₹{abs(res):,} on paper" if isinstance(res, (int, float)) else
-                       (", with no result on the record yet" if x.get("unscored") else ", still open on paper")))
+                       ((", with no result on the record" + ("" if x.get("unscored_never") else " yet")) if x.get("unscored") else ", still open on paper")))
     return (f"On {day} it took " + "; ".join(took) + "." if took else f"On {day} it passed at every decision point.")
 
 

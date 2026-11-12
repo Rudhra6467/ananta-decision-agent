@@ -463,13 +463,24 @@ def options_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
         sc = scored.get((x["index"], x["point"]))
         if not sc:
             continue
-        if sc.get("note") and not sc.get("index_proxy"):
+        opt0 = (sc.get("legs") or {}).get("option") or {}
+        no_price = bool(sc.get("index_proxy")) and bool(opt0.get("note")) and opt0.get("net_rs_realistic") is None
+        if (sc.get("note") and not sc.get("index_proxy")) or no_price:
             # 9 Nov 2026 (the readiness review): the 6 Nov Bank Nifty trade was to close at the next session's open; the next session was the
             # Muhurat hour, which the line's study leaves out, so the scorer wrote "not defined" and the trade has no result. Said, not hidden.
-            # 12 Nov 2026 (G-01, Madhav's yes of 12 Nov 01:52): it is scored at the next regular open, marked scored late, and included
-            x["unscored"] = ("it has no result on the record yet: its exit was the next session's open and that session was a special one the "
-                             "line's study leaves out; by Madhav's decision of 12 Nov it is scored at the next regular open and marked scored late, "
-                             "and until then the options line's totals leave it out and say so")
+            # 12 Nov 2026 (G-01, Madhav's yes of 12 Nov 01:52): it is scored at the next regular open, marked scored late, and included.
+            # 12 Nov (the second confirm check of repair 4, C4 and D1): once its option has expired it can never be scored, and a trade
+            # scored with no price for its option is left out and tried again too
+            from jarvis.india import surfaces as _sf
+
+            exp = _sf._sp1_expiries().get((str(day), str(x.get("index"))))
+            x["unscored_never"] = bool(exp) and _sf._today_ist() > exp
+            why = ("Kite had no price for its option at the exit" if no_price else
+                   "its exit was the next session's open and that session was a special one the line's study leaves out")
+            x["unscored"] = (f"it has no result on the record and never will: {why}, and its option expired on {_sf._dw(exp)} before it could "
+                             "be scored, so the options line's totals leave it out and say so" if x["unscored_never"] else
+                             f"it has no result on the record yet: {why}; by Madhav's decision of 12 Nov it is scored again while its option "
+                             "trades and marked scored late, and until then the options line's totals leave it out and say so")
             continue
         ip, opt = sc.get("index_proxy") or {}, ((sc.get("legs") or {}).get("option") or {})
         x["closed"] = bool(ip.get("stopped")) or str(x.get("exit")).upper() != "NEXTOPEN"

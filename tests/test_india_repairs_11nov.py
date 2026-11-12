@@ -37,7 +37,8 @@ def test_the_options_line_window_is_said_one_way():
 def test_the_fear_gauge_says_its_change_as_the_days():
     # board 190: "-5.63% the swing traders expect over 30 days" put the day's change beside what the gauge means
     src = (ROOT / "jarvis" / "india" / "places.py").read_text()
-    assert 'since="the swing traders expect over 30 days"' not in src and 'since="on the day" if isinstance(pct, (int, float))' in src
+    # 12 Nov (audit repair 2, G-05): the gauge's own day comes from the index read; the candle path says "on the day" only on a good read
+    assert 'since="the swing traders expect over 30 days"' not in src and 'since="on the day" if ok and isinstance(pct, (int, float))' in src
     assert "how much traders expect the Nifty to swing over the next 30 days" in src
 
 

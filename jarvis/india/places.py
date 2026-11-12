@@ -333,7 +333,9 @@ def home(full: bool = True) -> dict:
     if fs and upcoming and fs < upcoming:
         label = f"Last plan · {IS._dw(fs)}"
         at = _evening_at()
-        sub = f"The plan for {IS._dw(upcoming)} is written at {at}." if at else f"The plan for {IS._dw(upcoming)} is not written yet."
+        # 12 Nov (the outside check of repair 4, N11): "The plan for Fri 13 Nov is written at 8:20 pm Toronto (06:50 IST)." was 14 words,
+        # one over the block's second line for most of the day
+        sub = f"Plan for {IS._dw(upcoming)}: written at {at}." if at else f"The plan for {IS._dw(upcoming)} is not written yet."
     stocks, cash = m.get("stocks_inr") or 0, m.get("cash_inr") or 0
     # 12 Nov 2026 (G-11): the options money at the options line's own value, as the total counts it, so the parts make the total
     at_value = isinstance(m.get("options_value_inr"), (int, float))

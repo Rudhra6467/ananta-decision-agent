@@ -687,11 +687,21 @@ def kite_callback(request: Request, request_token: str = "", status: str = "", a
                       f"{st.get('expires_at_ist')}; after that the phone will ask for a fresh sign-in. You can close this tab.")
 
 
+def _engine_owner_only(who: str) -> None:
+    """The engine's own status pages read Madhav's service, not a guest's practice book; a guest's screens never call them."""
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="This page shows Madhav's own engine.")
+
+
 @app.get("/v3/kite/status")
 def kite_status(who: str = Depends(owner)) -> dict:
+    """12 Nov 2026 (the third outside check of audit repair 1, F1, a sibling of G-51): any signed-in account, a guest too, read the Zerodha
+    account's id and its holder's full name here. Now the owner only, and the answer leaves both out (nothing in the app reads them)."""
     from src.india import kite_auth
 
-    return kite_auth.status()
+    if is_guest(who):
+        raise HTTPException(status_code=403, detail="This is Madhav's own Zerodha connection.")
+    return kite_auth._for_log(kite_auth.status())
 
 
 @app.get("/health")
@@ -1593,6 +1603,7 @@ def scoreboard_board(who: str = Depends(owner)) -> dict:
 @app.get("/v3/watches")
 def watches_registry(who: str = Depends(owner)) -> dict:
     """The watch registry: every watch by section, where it runs, its entry, exit and evidence status; plus the eye's state."""
+    _engine_owner_only(who)
     from jarvis.service import eye, scoreboard
 
     return {**scoreboard.registry(J()), "eye": eye.status(_main())}
@@ -1600,6 +1611,7 @@ def watches_registry(who: str = Depends(owner)) -> dict:
 
 @app.get("/v3/eye")
 def eye_status(who: str = Depends(owner)) -> dict:
+    _engine_owner_only(who)                       # 12 Nov (third outside check): the engine's own status, not a guest's
     from jarvis.service import eye
 
     return eye.status(_main())
@@ -1607,6 +1619,7 @@ def eye_status(who: str = Depends(owner)) -> dict:
 
 @app.get("/v3/health/parts")
 def health_parts(who: str = Depends(owner)) -> dict:
+    _engine_owner_only(who)                       # 12 Nov (third outside check): the engine's own status, not a guest's
     from jarvis.service import health as _h
 
     return _h.status(_main())

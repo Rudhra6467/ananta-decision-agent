@@ -90,3 +90,18 @@ def test_old_test_leftovers_no_longer_feed_the_chip_ranking_or_the_misunderstood
     assert shown and "Old test chip" not in shown
     assert j.db.execute("SELECT count(*) FROM ask_chips WHERE text='Old test chip'").fetchone()[0] == 1   # kept, only not counted
     assert all(m["question"] != "an old test question" for m in A.stats()["misunderstood"])
+
+
+def test_the_instant_answers_mark_a_test_question_too():
+    """The third outside check (F3): the navigation answer, the planned-downtime answer and the grader's handover still wrote unmarked
+    rows, so their threads were not seen as tests and their questions counted toward the day's limit."""
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": _reply("not used")})
+    for text in ("take me home", "I'm turning the laptop off for an hour", "Grader here."):
+        out = A.ask("owner", text, mode="everyday", source="eval")
+        assert out.get("model") == "instant", (text, out.get("model"))
+        rows = j.db.execute("SELECT role, COALESCE(mode, '') FROM ask_messages WHERE thread=?", (out["thread"],)).fetchall()
+        assert len(rows) == 2 and all(m.startswith("eval:") for _, m in rows), (text, rows)
+    assert A.today_count() == 0                                                       # tests never use up his questions
+    out = A.ask("owner", "take me home", mode="everyday")                             # his own stays unmarked
+    assert {m for (m,) in j.db.execute("SELECT COALESCE(mode, '') FROM ask_messages WHERE thread=?", (out["thread"],))} == {"nav"}

@@ -2139,7 +2139,7 @@ def allocation_flow(text: str, who: str) -> dict | None:
         cur = json.loads(p.read_text())
     except (OSError, ValueError):
         pass
-    rec = {"mode": mode, "options_inr": cur.get("options_inr") or 50000.0, "set_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), "set_by": who, "paper": True,
+    rec = {"mode": mode, "options_inr": cur.get("options_inr") or 50000.0, "set_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), "set_by": decided_by(who), "paper": True,
            "note": "set by voice or chat"}
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(rec, indent=1))

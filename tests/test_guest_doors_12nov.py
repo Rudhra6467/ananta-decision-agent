@@ -5,6 +5,7 @@ read model, the history, the options record, the account's value at every close 
 delete Madhav's conversations; on crypto a guest could open More, Proof and Why, built from his account. A caller's own thread text was
 used as a file path. And any caller on the Mac was the owner, whatever name or origin it came under. Now: a guest passes one gate that
 lets through the market pages only; a thread's name is checked; a local call must name this Mac and come from Ananta's own pages."""
+import json
 import types
 
 import pytest
@@ -193,7 +194,8 @@ def test_a_decision_keeps_the_role_never_the_sign_in_name():
 
     root = pathlib.Path(service.__file__).parent
     for f in ("service.py", "ask.py"):
-        assert '"by": who' not in (root / f).read_text(), f              # every writer of a decision row goes through decided_by
+        src = (root / f).read_text()
+        assert '"by": who' not in src and '"set_by": who' not in src, f     # every writer of a decision or a setting goes through decided_by
 
 
 def test_india_health_says_no_more_than_it_must(client):
@@ -230,3 +232,40 @@ def test_the_kite_sign_in_pages_answer_only_a_browser_on_this_mac(client_host, h
         with pytest.raises(HTTPException) as e:
             crypto_app._local_only(_mac_req(client_host, **headers))
         assert e.value.status_code == 403
+
+
+
+# ---- 12 Nov 2026, the third outside check (F1, F4): the Zerodha connection's page and a guest's coin page ----
+
+@pytest.fixture
+def crypto_two(monkeypatch):
+    """The real crypto app on a test service: a guest's and the owner's tokens, and a Kite status made up here (no token file is read)."""
+    from src.india import kite_auth
+    from tests.test_ask_ananta import _jarvis
+
+    j, ex = _jarvis()
+    j.join(j.invite("Friend", "friend@x.com")["code"], "Friend", "", "guest pass 123")
+    gtok, otok = j.login("friend@x.com", "guest pass 123"), j.login("o@x.com", "pw pw pw pw 1")
+    for k, v in (("_J", j), ("_JG", {}), ("_A", {})):
+        monkeypatch.setattr(crypto_app, k, v)
+    monkeypatch.setattr(kite_auth, "status", lambda: {"connected": True, "user_id": "AB1234", "user_name": "A Holder", "expires_at_ist": "x"})
+    return TestClient(crypto_app.app), {"Authorization": f"Bearer {gtok}"}, {"Authorization": f"Bearer {otok}"}, ex
+
+
+def test_the_zerodha_connection_page_is_the_owners_and_never_names_the_account(crypto_two):
+    c, guest, mine, ex = crypto_two
+    assert c.get("/v3/kite/status", headers=guest).status_code == 403                   # it gave a guest the account's id and holder's name
+    r = c.get("/v3/kite/status", headers=mine)
+    assert r.status_code == 200 and r.json()["connected"] is True
+    assert "AB1234" not in r.text and "A Holder" not in r.text                         # nothing in the app reads them, the owner's either
+    for path in ("/v3/eye", "/v3/health/parts", "/v3/watches"):                         # the engine's own status pages
+        assert c.get(path, headers=guest).status_code == 403, path
+
+
+def test_a_guests_coin_page_holds_market_facts_only(crypto_two):
+    c, guest, mine, ex = crypto_two
+    coin = next(iter(ex.st["engines"]))
+    out = crypto_app.place(f"coin:{coin}", "crypto", who="guest:friend@x.com")
+    text = json.dumps(out, default=str).lower()
+    for word in ("position", "holding", "units", "paid", "pnl", "profit", "trade_id", "entry_price", "c$"):
+        assert word not in text, word

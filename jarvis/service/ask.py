@@ -2671,7 +2671,7 @@ class Ask:
                 if source != "eval" and mode != "worker":
                     _sc.note_downtime(hrs, f"Madhav, in chat with Ananta (crypto): \"{text[:120]}\"", "Madhav")
                 asked = bool(re.match(r"\s*(?:can|could|may|shall|should|is it)\b", text or "", re.I)) or "?" in (text or "")
-                return self._instant(text, thread, voice, _sc.downtime_answer(hrs, "crypto", asked), "Planned downtime noted")
+                return self._instant(text, thread, voice, _sc.downtime_answer(hrs, "crypto", asked), "Planned downtime noted", source=source)
         except Exception:  # noqa: BLE001
             pass
         quick = self._quick(who, text, thread, voice, source, context)
@@ -3094,7 +3094,8 @@ class Ask:
             if vid == "madhav" and here and not r and not people.RELAY.search(text):
                 r = {"kind": "back"}
             elif vid == "other" and not here and not r and voiceid.needs_owner_check(text, vm, False):
-                return self._instant(text, thread, voice, "Who am I speaking with? If it's you, sir, say \"it's me\".", "Asked who is speaking")
+                return self._instant(text, thread, voice, "Who am I speaking with? If it's you, sir, say \"it's me\".", "Asked who is speaking",
+                                     source=source)
         except Exception:  # noqa: BLE001
             return None
         if not r:
@@ -3123,11 +3124,12 @@ class Ask:
         reply = {"kind": "answer", "stage": "", "answer": say, "breakdown": [], "evidence": [], "assumption": "", "options": [],
                  "follow_ups": [], "show": [], "actions": [], "ui": [], "tour": None, "model_label": "Instant", "mode": "people", "cost_usd": 0.0,
                  "note": f"Talking with {name} now", "route": "people", "timing": {"brief_ms": 0, "model_ms": 0, "rounds": 0, "lookups": 0, "out_tokens": 0}}
+        test = "eval:" if source == "eval" else ""         # 12 Nov (the third outside check, F3): a test question's rows say so
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
-                          (uid, thread, now, "user", text, "local", ("voice:" if voice else "") + "people"))
+                          (uid, thread, now, "user", text, "local", test + ("voice:" if voice else "") + "people"))
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, route) "
                           "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0,
-                                                                   json.dumps([{"tool": "handover", "args": {"name": name}}]), 0.0, "people", "people"))
+                                                                   json.dumps([{"tool": "handover", "args": {"name": name}}]), 0.0, test + "people", "people"))
         self.j.db.commit()
         vid = _pre_voice(context, say)
         if vid:
@@ -3135,18 +3137,19 @@ class Ask:
         return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply,
                 "talking_to": _speaker(self.j, thread)}
 
-    def _instant(self, text: str, thread: str, voice: bool, say: str, note: str) -> dict:
-        """An answer given by code at once (no model), stored like any other."""
+    def _instant(self, text: str, thread: str, voice: bool, say: str, note: str, source: str = "") -> dict:
+        """An answer given by code at once (no model), stored like any other (a test question's rows marked eval:, 12 Nov, F3)."""
         now = int(self.j.now())
         uid, aid = uuid.uuid4().hex[:12], uuid.uuid4().hex[:12]
         reply = {"kind": "answer", "stage": "", "answer": say, "breakdown": [], "evidence": [], "assumption": "", "options": [],
                  "follow_ups": [], "show": [], "actions": [], "ui": [], "tour": None, "model_label": "Instant", "mode": "people", "cost_usd": 0.0,
                  "note": note, "route": "people", "timing": {"brief_ms": 0, "model_ms": 0, "rounds": 0, "lookups": 0, "out_tokens": 0}}
+        test = "eval:" if source == "eval" else ""
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
-                          (uid, thread, now, "user", text, "local", ("voice:" if voice else "") + "people"))
+                          (uid, thread, now, "user", text, "local", test + ("voice:" if voice else "") + "people"))
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, route) "
                           "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0,
-                                                                   "[]", 0.0, "people", "people"))
+                                                                   "[]", 0.0, test + "people", "people"))
         self.j.db.commit()
         return {"id": aid, "thread": thread, "provider": "local", "model": "instant", "ms": 0, "lookups": [], **reply,
                 "talking_to": _speaker(self.j, thread)}
@@ -3173,7 +3176,8 @@ class Ask:
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, text, provider, mode) VALUES (?,?,?,?,?,?,?)",
                           (uid, thread, now, "user", text, "local", ("eval:" if source == "eval" else "") + ("voice:" if voice else "") + "nav"))
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, route) "
-                          "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0, "[]", 0.0, "nav", "app"))
+                          "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (aid, thread, now + 1, "assistant", json.dumps(reply), "local", "instant", 0, 0, 0, "[]", 0.0,
+                                                                   ("eval:" if source == "eval" else "") + "nav", "app"))
         self.j.db.commit()
         vid = _pre_voice(context, q["say"] if not q.get("tour") else [st["say"] for st in q["tour"]])
         if vid and not q.get("tour"):

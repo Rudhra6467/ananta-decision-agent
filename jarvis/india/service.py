@@ -471,7 +471,7 @@ def allocation_set(b: Allocation, who: str = Depends(signed_in)) -> dict:
             raise HTTPException(status_code=400, detail="options amount out of range")
         rec = {"mode": mode, "options_inr": b.options_inr or 50000.0,
                "note": b.note or ("Ananta moves capital between stocks, options and cash on paper, inside the regime table" if mode == "autonomous" else "options fixed; Ananta rates, ranks and suggests"),
-               "set_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), "set_by": who, "paper": True}
+               "set_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"), "set_by": india_ask.decided_by(who), "paper": True}
         p = india_views.DATA / "paper" / "allocation.json"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(rec, indent=1))

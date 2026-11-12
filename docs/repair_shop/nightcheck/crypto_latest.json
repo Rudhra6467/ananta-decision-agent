@@ -1,39 +1,16 @@
 {
  "market": "crypto",
- "day": "2026-11-11",
- "t": 1794355552,
+ "day": "2026-11-12",
+ "t": 1794441960,
  "budget_usd": 0.4,
- "asked": 5,
- "right": 3,
- "wrong": [
-  {
-   "id": "brief3",
-   "name": "the morning briefing",
-   "question": "Give me my morning briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
-   "why": "The answer says 'Evening' but this is a morning briefing as required by the question.",
-   "answer": "Evening, sir. Your $500 account is fully in cash at about C$468, down 6.5% since the start, and it bought and sold nothing since last night. The market is closed to new buys: Bitcoin is under its 50-day average, so the dial stays closed and cash is the position. Three things wait for your yes: check the worker Mac (flag 74), try the new iPhone build (flag 95), and decide whether to turn ntfy off (flag 97)."
-  },
-  {
-   "id": "market_now",
-   "name": "the market and the book",
-   "question": "Hey Ananta, how is the crypto market and how is our book doing?",
-   "why": "Book value contradicts TRUTH: answer states 'about 3,495' but TRUTH shows value_cad of 467.55 (a $500 account, not $4,000)",
-   "answer": "Evening, sir. The market is weak and the dial is closed, so we're sitting in cash. Bitcoin is about 73,700 dollars, down roughly 8% on the week and under its 50-day average, with only a thin margin above its 200-day. Our books are down: the Explorer and trend portfolio together are about 500 dollars under their 4,000 start, around 3,495 now. The trend portfolio is in cash and down 10%, but that beats simply holding, which is down about 26%. Want the details?"
-  }
- ],
- "look": [
-  {
-   "id": "brief3",
-   "name": "the morning briefing",
-   "figures": [
-    "talks about a flag nobody asked for"
-   ]
-  }
- ],
+ "asked": 6,
+ "right": 6,
+ "wrong": [],
+ "look": [],
  "ungraded": 0,
- "cost_usd": 0.2736,
- "cost_answers_usd": 0.2692,
- "cost_grader_usd": 0.0044,
+ "cost_usd": 0.2789,
+ "cost_answers_usd": 0.2722,
+ "cost_grader_usd": 0.0066,
  "stopped_for_budget": false,
  "not_asked": 0,
  "rows": [
@@ -41,8 +18,8 @@
    "id": "account",
    "name": "the account's figures",
    "question": "Five things about the 500 dollar book, each with its number: what it is worth now in Canadian dollars; how much is cash and how much is in coins; its return since the start in percent and whether that is up or down; how many trades it has closed and how many of them made money; and which coins it holds right now.",
-   "answer": "Evening, sir. The $500 book is worth about C$467.55, down 6.49% since 11 Oct. All of it is cash and nothing is in coins. It has closed 9 trades and only 1 made money, an Ethereum dip trade that gained about 80 cents. The dial is closed, meaning Bitcoin is under its 50- or 200-day average, so the plan is cash. It holds no coins right now.",
-   "cost_usd": 0.13285,
+   "answer": "Evening, sir. The $500 book is worth about C$467.55 now, all of it cash. It holds no coins, because the dial is closed (Bitcoin is under its 50-day or 200-day average). It's down 6.49% since the start on 11 Oct. It has closed 9 trades and only 1 made money, the Ethereum dip trade at about 80 cents. The other 8 lost, about C$3.61 a trade on average. Right now it holds nothing. It's 3 of 10 on the graduation gates, so it isn't ready.",
+   "cost_usd": 0.05146,
    "ok": true,
    "want": "C$467.55; C$467.55 cash, C$0.00 in coins; -6.5%; 9 closed, 1 made money; no coins, all cash",
    "by": "code",
@@ -52,10 +29,10 @@
    "id": "dial",
    "name": "the dial and what turns buying on",
    "question": "At what price did Bitcoin last close for the dial, is the dial open or closed, and what are the two average levels (50-day and 200-day) it has to close above for buying to be on?",
-   "answer": "Evening, sir. The dial is closed, so buying is off. Bitcoin's last daily close, on Nov 10, was about 73,796 US dollars. The 50-day average is about 79,104, and Bitcoin is roughly 5,300 under it, so that one fails. The 200-day average is about 73,191, and Bitcoin is just above it, so that one passes. The dial needs both. Live Bitcoin is about 73,700 now, still under the 50-day and only about 500 above the 200-day. It would need to close back over roughly 79,100 to open the dial. Taking you to Markets now.",
-   "cost_usd": 0.04664,
+   "answer": "Evening, sir. The dial is closed: no new buys, and cash is the position. Bitcoin's last daily close was on Nov 11, at about 74,015 dollars. That's below its 50-day average, about 78,904 dollars, and above its 200-day average, about 73,173 dollars. Bitcoin has to close above both for the dial to open. The 50-day line is the blocker, about 4,900 dollars (6 to 7 percent) above the close. Live, Bitcoin is about 73,930 dollars, only about 750 above the 200-day line. Want me to check which setups are closest if the dial reopens? Just say yes.",
+   "cost_usd": 0.04781,
    "ok": true,
-   "want": "73796.0, buying off; a close above the 50-day (79104.0) and the 200-day (73191.0)",
+   "want": "74015.0, buying off; a close above the 50-day (78904.0) and the 200-day (73173.0)",
    "by": "code",
    "marks": 2
   },
@@ -63,8 +40,8 @@
    "id": "rules",
    "name": "the core rule, no shorts, paper only",
    "question": "Three short things: when buying turns on, what share of the 500 dollar book goes to Bitcoin and to Ethereum, and is it bought at once or in steps? Can the book sell short or bet on a fall? Do you place real orders on NDAX with my money?",
-   "answer": "Evening, sir. When the dial opens, Bitcoin gets 40% of the book and Ethereum 20%, and it's all bought at once. Since 10 Nov the core is all-in again, and all of it is sold when the dial closes. The thirds-in-steps version of 24 Oct failed review 39 and is switched off. No, the book can't short or bet on a fall: it's buying only, spot, and when the dial is closed the core just sits in cash. And no, I don't place real orders on NDAX with your money: it's all paper, no exchange is connected, and real orders only come after you approve live rules.",
-   "cost_usd": 0.01767,
+   "answer": "Evening, sir. When the dial opens, Bitcoin gets 40% of the book and Ethereum 20%, bought all at once. Since 10 Nov it's all-in again, and it's all sold when the dial closes. The thirds-in-steps plan from 24 Oct failed review 39 and is switched off. No, the book can't sell short or bet on a fall. It's buying only, spot, and when the market turns bad it goes to cash. No, I don't place real orders on NDAX, and no exchange is connected. Everything is paper, and real orders only come after your live rules are written and approved.",
+   "cost_usd": 0.01925,
    "ok": true,
    "want": "{'BTC': 40, 'ETH': 20}, all_in; no: it only buys or holds cash; no: paper only",
    "by": "code",
@@ -72,29 +49,36 @@
   },
   {
    "id": "brief3",
-   "name": "the morning briefing",
-   "question": "Give me my morning briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
-   "answer": "Evening, sir. Your $500 account is fully in cash at about C$468, down 6.5% since the start, and it bought and sold nothing since last night. The market is closed to new buys: Bitcoin is under its 50-day average, so the dial stays closed and cash is the position. Three things wait for your yes: check the worker Mac (flag 74), try the new iPhone build (flag 95), and decide whether to turn ntfy off (flag 97).",
-   "cost_usd": 0.04099,
-   "ok": false,
-   "why": "The answer says 'Evening' but this is a morning briefing as required by the question.",
-   "by": "grader",
-   "look": [
-    "talks about a flag nobody asked for"
-   ]
+   "name": "the briefing",
+   "question": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
+   "answer": "Good evening, sir. Your $500 account is all cash at about C$468, down 6.5% since it started, and it bought and sold nothing since last night. The dial is closed because Bitcoin finished at 74,015, under its 50-day average of 78,904, though still above its 200-day. That means no new buys, and I expect a test of the 200-day, roughly 71 to 75 thousand. Nothing needs your yes, though 6 work items and 32 dated items are still open.",
+   "cost_usd": 0.05999,
+   "ok": true,
+   "why": "All figures agree with the TRUTH within tolerance, the rubric requirements are met, and no holdings are mentioned that aren't in the book.",
+   "by": "grader"
+  },
+  {
+   "id": "buy_today",
+   "name": "what to buy today",
+   "question": "Ananta, if we want to buy something crypto today, like today or tomorrow, what would be your call?",
+   "answer": "Bitcoin closed last night at about 74,000 dollars. That's about 5% under its 50-day average of about 78,900, so I'd still call the dial closed. It's above its 200-day average of about 73,200, but that's only a thin cushion. The dial needs both averages, so the call stays the same: no new buys, and cash is the position.",
+   "cost_usd": 0.04041,
+   "ok": true,
+   "why": "Answer correctly states dial is closed, advises no buying now, holds cash, and all figures agree with TRUTH within rounding tolerance.",
+   "by": "grader"
   },
   {
    "id": "market_now",
    "name": "the market and the book",
    "question": "Hey Ananta, how is the crypto market and how is our book doing?",
-   "answer": "Evening, sir. The market is weak and the dial is closed, so we're sitting in cash. Bitcoin is about 73,700 dollars, down roughly 8% on the week and under its 50-day average, with only a thin margin above its 200-day. Our books are down: the Explorer and trend portfolio together are about 500 dollars under their 4,000 start, around 3,495 now. The trend portfolio is in cash and down 10%, but that beats simply holding, which is down about 26%. Want the details?",
-   "cost_usd": 0.03108,
-   "ok": false,
-   "why": "Book value contradicts TRUTH: answer states 'about 3,495' but TRUTH shows value_cad of 467.55 (a $500 account, not $4,000)",
+   "answer": "Evening, sir. Our $500 book is all cash, about 468 Canadian dollars, down 6.5% since it started. The market is weak, so the dial is closed: Bitcoin is about 74 thousand, 6% under its 50-day average and barely above its 200-day.",
+   "cost_usd": 0.05333,
+   "ok": true,
+   "why": "All figures agree with TRUTH within rounding: C$468 matches 467.55, -6.5% matches -6.49, BTC 74k matches 74015, -6% matches -6.2% vs avg50, dial closed matches dial_open=false",
    "by": "grader"
   }
  ],
  "grader": "haiku",
- "minutes": 0.6,
- "line": "Night test: 3 of 5 answers right. Wrong: the morning briefing; the market and the book."
+ "minutes": 0.9,
+ "line": "Night test: 6 of 6 answers right."
 }

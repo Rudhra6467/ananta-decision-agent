@@ -1,1 +1,2 @@
 {"day": "2026-11-11", "t": 1794355552, "asked": 5, "right": 3, "ungraded": 0, "cost_usd": 0.2736, "cost_answers_usd": 0.2692, "cost_grader_usd": 0.0044, "stopped_for_budget": false, "not_asked": 0, "minutes": 0.6, "wrong": ["brief3", "market_now"], "look": 1}
+{"day": "2026-11-12", "t": 1794441960, "asked": 6, "right": 6, "ungraded": 0, "cost_usd": 0.2789, "cost_answers_usd": 0.2722, "cost_grader_usd": 0.0066, "stopped_for_budget": false, "not_asked": 0, "minutes": 0.9, "wrong": [], "look": 0}

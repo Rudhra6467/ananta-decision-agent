@@ -699,9 +699,14 @@ PLACES = {"home": home, "markets": markets, "activity": activity, "more": more, 
           "vix": lambda full=True: index_page("vix", full)}
 
 
+# 12 Nov 2026 (the keen audit, G-51): a guest was refused seven pages by name and got the rest (the options record, Proof, More, the people
+# list, the morning view). The list now says what a guest MAY open, the three index pages, so a new page is closed to guests by default.
+GUEST_PLACES = ("nifty", "banknifty", "vix")
+
+
 def _guest(name):
     def f(full: bool = True):
-        if not full and name in ("home", "account", "holdings", "plan", "activity", "markets", "stocks"):
+        if not full and name not in GUEST_PLACES:
             return {"ready": False, "kind": "place", "name": name, "words": "This page shows Madhav's account. A guest's own book is on the practice screens."}
         return PLACES[name](full=full)
     return f

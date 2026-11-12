@@ -48,7 +48,7 @@ def test_every_india_screen_is_plain(tmp_path, monkeypatch):
     monkeypatch.setattr(service, "READMODEL", rm / "latest.json")
     monkeypatch.setattr(views, "DATA", tmp_path)
     monkeypatch.setattr(views, "REG", tmp_path / "registrations")
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     for name in views.ROUTES:
         if name.startswith("ask/"):
             continue

@@ -1632,7 +1632,9 @@ def place(name: str, m: str = "crypto", who: str = Depends(owner)) -> dict:
     from jarvis.service import places
 
     market = "india" if m == "india" else "crypto"
-    if is_guest(who) and name not in ("people", "more", "needs", "notices", "openlist", "why", "proof") and not name.startswith("coin:"):
+    # 12 Nov 2026 (the keen audit, G-51): a guest could open More, Proof and Why, which are built from Madhav's own account (the night
+    # test's note on Proof carried the account's value). A guest opens the coin pages and the people page; everything else is his.
+    if is_guest(who) and name not in ("people", "needs", "notices", "openlist") and not name.startswith("coin:"):
         return {"ready": False, "kind": "place", "name": name, "words": "This page shows Madhav's account. A guest's own book is on the practice screens."}
     if is_guest(who) and name in ("needs", "notices", "openlist"):
         return {"ready": True, "market": market, "count": 0, "rows": [], "kind": "page", "title": "Notices", "parts": [{"t": "line", "text": "Nothing needs you here: only Madhav decides."}]}

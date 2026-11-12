@@ -27,7 +27,7 @@ def lake(tmp_path, monkeypatch):
 
 
 def test_readmodel_brief_page_and_health(lake):
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     assert c.get("/health").json()["data_through"] == "2026-10-21"
     j = c.get("/api/readmodel").json()
     assert j["market"]["nifty_close"] == 22811.35 and "served_at" in j and j["age_hours"] is not None
@@ -43,7 +43,7 @@ def test_readmodel_brief_page_and_health(lake):
 
 def test_missing_read_model_is_named_not_guessed(lake):
     service.READMODEL.unlink()
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     r = c.get("/api/readmodel")
     assert r.status_code == 503 and "no India read model yet" in r.json()["detail"]
     assert c.get("/health").json()["ok"] is False
@@ -64,7 +64,7 @@ def test_speak_refuses_empty_and_caps_sentences(lake, monkeypatch):
         return R()
 
     monkeypatch.setattr(service.requests, "post", fake_post)
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     assert c.post("/api/speak", json={"sentences": ["", "  "]}).status_code == 400
     out = c.post("/api/speak", json={"sentences": [f"s{i}" for i in range(30)], "lang": "en"}).json()
     assert out["duration"] == 1.0 and seen["url"].endswith("8200/speak") and len(seen["body"]["sentences"]) == service.MAX_SENTENCES and seen["body"]["voice"] == service.INDIA_VOICE
@@ -73,7 +73,7 @@ def test_speak_refuses_empty_and_caps_sentences(lake, monkeypatch):
 
 
 def test_through_the_tunnel_needs_the_app_token(lake, monkeypatch):
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     cf = {"CF-Connecting-IP": "1.2.3.4"}
     assert c.get("/india/api/readmodel", headers=cf).status_code == 401                     # came through Cloudflare, no token
     calls = []
@@ -104,7 +104,7 @@ def test_v3_contract_routes_fill_from_the_read_model(lake, monkeypatch):
 
     monkeypatch.setattr(views, "DATA", lake)
     monkeypatch.setattr(views, "REG", lake / "registrations")
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     h = c.get("/v3/home").json()
     assert set(h) >= {"summary", "feed", "mission"} and h["mission"]["account"]["start_cad"] == 50000.0 and h["mission"]["market"]["btc"] == 22811.35
     assert h["mission"]["market"]["regime"] == "DOWNTREND" and h["summary"]["portfolio"]["mode"] == "PAPER"
@@ -126,7 +126,7 @@ def test_india_ask_is_grounded_threaded_and_honest_offline(lake, monkeypatch):
     monkeypatch.setattr(ia, "ENV_FILE", lake / "no.env")
     monkeypatch.setattr(ia, "LIVE_OVERRIDE", {})            # 9 Nov: the offline answer leads with today's block when there is one; this lake has none
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     r = c.post("/v3/ask", json={"text": "What did you decide?"}).json()                 # no key: the read model's own words, said so
     assert r["kind"] == "answer" and "Nifty 22,811" in r["answer"] and r["provider"] == "none" and "read model only" in r["note"]
     assert r["thread"] and r["id"] and isinstance(r["follow_ups"], list)
@@ -179,7 +179,7 @@ def test_india_voice_routes_use_the_local_voice_server(lake, monkeypatch):
         return R()
 
     monkeypatch.setattr(iv.requests, "post", fake_post)
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     assert c.post("/v3/voice/transcribe", json={"audio_b64": "x", "mime": "audio/webm"}).json()["text"] == "what did you decide"
     t = c.post("/india/v3/voice/turn", json={"audio_b64": "x", "mime": "audio/webm"}).json()
     assert t["heard"] == "what did you decide" and "Nifty 22,811" in t["answer"] and t["thread"]
@@ -284,7 +284,7 @@ def test_reconstruction_card_staircase_and_filing(lake, monkeypatch):
     rm["reconstruction"] = {"status": "ok", "headline": "2026-10-22: a card", "built_at": card["built_at"], "league_words": "l", "reviews": {"count": 0}, "findings": card["findings"],
                             "staircase": {"words": "Nothing is ADMITTED yet.", "rules": {"stock:BRK": {"step": "SHADOW", "shadow_sessions": 3, "shadow_bar": 20, "beats": 2, "beats_bar": 10}}, "admitted": [], "queue": {"to_file": 1, "DRAFT": 1}}}
     service.READMODEL.write_text(json.dumps(rm))
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     r = c.get("/v3/reconstruction").json()
     assert r["ready"] and r["headline"] == "22 Oct: a card" and r["findings"][0]["lane"] == "SAFE" and r["cards"] == 1, "dates read as people say them"
     ev = c.get("/v3/evidence/live").json()["rebuild"]
@@ -332,7 +332,7 @@ def test_drafts_decide_by_screen_and_by_voice_and_notes(lake, monkeypatch):
          {"type": "LEAGUE_GAP", "key": "LEAGUE_GAP:b", "lane": "DECISION", "state": "DRAFT", "words": "second", "day": "2026-10-23"},
          {"type": "DATA_GAP", "key": "DATA_GAP:c", "lane": "SAFE", "state": "to_file", "words": "safe", "day": "2026-10-23"}]
     (lake / "registrations" / "reconstruction_queue.jsonl").write_text("\n".join(json.dumps(x) for x in q) + "\n")
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     d = c.get("/v3/reconstruction/drafts").json()["drafts"]
     assert [x["n"] for x in d] == [1, 2] and d[0]["key"] == "MISS_PATTERN:a"
     r = ask.draft_flow("what drafts are waiting for me?", "owner")
@@ -354,7 +354,7 @@ def test_morning_view_route_words_reviewer_ledger_and_voice(lake, monkeypatch):
     import india.paths as _ip                                   # the reviewer's odds go to the records repo's forecast ledger: point it at the fixture, never the real one
     monkeypatch.setattr(_ip, "data_dir", lambda: lake)
     (lake / "paper").mkdir(exist_ok=True)
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     assert c.get("/v3/morning").json()["ready"] is False
     d = lake / "paper" / "morningview"
     d.mkdir(parents=True)
@@ -403,7 +403,7 @@ def test_add_more_of_my_voice_reaches_the_speaker_service_from_the_india_side(mo
 
     calls = []
     monkeypatch.setattr(india_voice, "speaker_call", lambda path, body=None, post=None: calls.append((path, body)) or {"ok": True})
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     for prefix in ("", "/india"):
         assert c.post(f"{prefix}/v3/voice/speaker/start", json={"add": True}).status_code == 200
         assert c.post(f"{prefix}/v3/voice/speaker/start").status_code == 200        # a fresh print (Teach Ananta my voice), as before

@@ -857,7 +857,9 @@ class Lookups:
     # had left a real $100 Solana card worded "Madhav asked to buy Solana now", and Ananta offered it to him for four days.
     TEST_WRITES = frozenset({"propose_paper_order", "propose_levels", "propose_switch", "propose_portfolio_decision", "propose_alert",
                              "propose_alert_off", "propose_setting", "propose_mandate_change", "log_request", "comment_flag",
-                             "choose_fix", "remember", "watch", "change_watch", "start_research"})
+                             "choose_fix", "remember", "watch", "change_watch", "start_research",
+                             # 12 Nov 2026 (the keen audit, G-55): a test's news check could overwrite the day's news verdict
+                             "news_check"})
 
     def _test_write(self, name: str, args: dict) -> dict:
         summary = name.replace("_", " ") + ": " + ", ".join(f"{k}={v}" for k, v in args.items() if v not in (None, ""))
@@ -2921,7 +2923,7 @@ class Ask:
         if reply["kind"] == "clarify" and tries >= 2:
             reply = {**reply, "kind": "not_understood", "options": [],
                      "answer": "Sorry, I still don't understand what you're asking. Here are things I can answer:", "follow_ups": EXAMPLES[:3]}
-        if reply["kind"] in ("clarify", "not_understood"):
+        if reply["kind"] in ("clarify", "not_understood") and source != "eval":     # 12 Nov (G-55): a test question is not his
             self.j.db.execute("INSERT INTO ask_misunderstood VALUES (?,?,?,?,?)", (now, thread, text, reply["kind"], used))
         ms = int(1000 * (time.time() - t0))
         reply["show"] = _clean_show(reply.get("show"))
@@ -2994,8 +2996,12 @@ class Ask:
                            usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0) + usage.get("cache_write_1h", 0), usage.get("out", 0), json.dumps(log), cost, mode_label, note,
                            route_name, json.dumps(timing)))
         self.j.db.commit()
-        _log_chips(self.j, thread, aid, reply)
-        self.j.audit(who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
+        # 12 Nov 2026 (the keen audit, G-55): a test question left suggestion chips, an audit row saying the owner asked, and a row in
+        # the misunderstood table. A test's own question and answer stay in the chat table (its thread is marked eval on the question,
+        # which is how every reader tells them apart); nothing else of it is kept, and the audit row says a test asked.
+        if source != "eval":
+            _log_chips(self.j, thread, aid, reply)
+        self.j.audit("test" if source == "eval" else who, "ask", text[:200], f"{used} {reply['kind']} {ms}ms ${cost:.4f}")
         te = reply.pop("speak_te", None)
         te = te if isinstance(te, str) and re.search(r"[\u0C00-\u0C7F]", te) else None
         if voice or te:

@@ -15,6 +15,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -52,21 +53,65 @@ _TOKENS: dict[str, tuple[float, str]] = {}                               # token
 TOKEN_TTL = 300
 
 app = FastAPI(title="Ananta India", docs_url=None, redoc_url=None)
-app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.getenv("ANANTA_INDIA_ORIGINS", "https://livetrading247.com,https://www.livetrading247.com,"
-                   "https://app.livetrading247.com,http://localhost:8081,http://127.0.0.1:8300,http://127.0.0.1:8301").split(",") if o.strip()],
+_OWN_ORIGINS = [o.strip().lower() for o in os.getenv("ANANTA_INDIA_ORIGINS", "https://livetrading247.com,https://www.livetrading247.com,"
+                "https://app.livetrading247.com,http://localhost:8081,http://127.0.0.1:8300,http://127.0.0.1:8301").split(",") if o.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=_OWN_ORIGINS,
                    allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type", "X-Ananta-Quiet"])
 r = APIRouter()
 
 
+# 12 Nov 2026 (the keen audit, G-51): "guests cannot see the owner's numbers" was false on India. Every route took the caller's identity
+# and most never used it: a signed-in guest could read the read model, the history, the options record, the account's value at every close
+# and the people list, and could list, read, export and delete Madhav's conversations. India has no guest book: it is Madhav's own paper
+# account. So a guest is refused everything here except the market pages, by one gate that every route passes (a new route is closed to
+# guests unless it is added to GUEST_OK on purpose).
+GUEST_OK = re.compile(r"^/(?:india/)?(?:health$|v3/place/|v3/candles/|v3/chart/)")
+GUEST_WORDS = "India is Madhav's own paper account. A guest can open the Nifty, Bank Nifty and fear gauge pages; everything else here is his."
+LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
+
+
+def is_guest(who: str) -> bool:
+    return str(who).startswith("guest:")
+
+
+def _guest_gate(request: Request, who: str) -> str:
+    if is_guest(who) and not GUEST_OK.match(request.url.path):
+        raise HTTPException(status_code=403, detail=GUEST_WORDS)
+    return who
+
+
+def _from_this_mac(request: Request) -> bool:
+    """A call made on this Mac itself: a loopback client with no tunnel header. 12 Nov 2026 (the keen audit, G-53): it must also name this
+    Mac in its Host header and, when it carries an Origin, come from one of Ananta's own pages; a web page elsewhere that points its own
+    name at 127.0.0.1, or posts across origins, is not the owner."""
+    if request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for"):
+        return False
+    if not (request.client and request.client.host in ("127.0.0.1", "::1")):
+        return False
+    if _hostname(request.headers.get("host")) not in LOCAL_HOSTS:
+        return False
+    origin = (request.headers.get("origin") or "").strip().lower()
+    if not origin:
+        return True                                  # curl, the scheduled jobs, a page's own GET
+    return origin != "null" and (_hostname(origin) in LOCAL_HOSTS or origin in _OWN_ORIGINS)
+
+
+def _hostname(value: str | None) -> str:
+    """The host of a Host or Origin header, without scheme, port or brackets: 'http://127.0.0.1:8110' and '[::1]:8110' give '127.0.0.1', '::1'."""
+    s = (value or "").strip().lower().split("://", 1)[-1].split("/", 1)[0]
+    if s.startswith("["):
+        return s[1:s.index("]")] if "]" in s else s
+    return s.rsplit(":", 1)[0] if s.count(":") == 1 else s
+
+
 def signed_in(request: Request, authorization: str = Header(default="")) -> str:
-    """Who is asking. A call from this Mac itself (no Cloudflare header, loopback client) passes as the owner, so the local page works;
-    anything that came through the tunnel must carry the app's sign-in token, which the Jarvis service checks (/v3/me, marked quiet so it
-    does not count as use). India keeps no accounts of its own: one login, one place."""
+    """Who is asking. A call from this Mac itself (_from_this_mac) passes as the owner, so the local page and the scheduled jobs work;
+    anything else must carry the app's sign-in token, which the Jarvis service checks (/v3/me, marked quiet so it does not count as use).
+    India keeps no accounts of its own: one login, one place. A guest passes only to the market pages (_guest_gate)."""
     import hashlib
     import time
 
-    through_tunnel = bool(request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for"))
-    if not through_tunnel and request.client and request.client.host in ("127.0.0.1", "::1"):
+    if _from_this_mac(request):
         return "owner"
     token = authorization.removeprefix("Bearer ").strip()
     if not token:
@@ -74,7 +119,7 @@ def signed_in(request: Request, authorization: str = Header(default="")) -> str:
     key = hashlib.sha256(token.encode()).hexdigest()
     hit = _TOKENS.get(key)
     if hit and time.time() - hit[0] < TOKEN_TTL:
-        return hit[1]
+        return _guest_gate(request, hit[1])
     try:
         resp = requests.get(f"{JARVIS_URL}/v3/me", headers={"Authorization": f"Bearer {token}", "X-Ananta-Quiet": "1"}, timeout=10)
     except requests.RequestException as e:
@@ -83,7 +128,7 @@ def signed_in(request: Request, authorization: str = Header(default="")) -> str:
         raise HTTPException(status_code=401, detail="not signed in")
     who = str(resp.json().get("who") or "someone")
     _TOKENS[key] = (time.time(), who)
-    return who
+    return _guest_gate(request, who)
 
 
 def readmodel() -> dict:
@@ -242,7 +287,7 @@ def ask_export(thread: str, who: str = Depends(signed_in)) -> dict:
 
 @r.post("/v3/ask/thread/{thread}/delete")
 def ask_delete(thread: str, who: str = Depends(signed_in)) -> dict:
-    return india_ask.delete_thread(thread)
+    return _ask_run(india_ask.delete_thread, thread)             # a name that is not a conversation's is a 400, never a path
 
 
 @r.get("/v3/ask/thread/{thread}")
@@ -641,8 +686,11 @@ CHART_ALIAS = {"NIFTY": "NIFTY 50", "NIFTY50": "NIFTY 50", "BANKNIFTY": "NIFTY B
 @r.get("/v3/chart/{name}")
 def chart(name: str, who: str = Depends(signed_in)) -> dict:
     """The chart of one index or stock with its support and resistance zones (Phase 4.5, 30 Oct 2026): the last 120 closes, the 50- and 200-day
-    averages and the swing levels, from the technicals panel (daily closes, display only; the same pivots the Ask describes). Everyone may read it."""
+    averages and the swing levels, from the technicals panel (daily closes, display only; the same pivots the Ask describes). Everyone may read
+    an index; the portfolio and the stocks (his picks and holdings) are Madhav's only (12 Nov 2026, the keen audit, G-51)."""
     key = name.upper().replace("%20", " ").strip()
+    if is_guest(who) and CHART_ALIAS.get(key.replace(" ", ""), key) not in CHART_ALIAS.values():
+        raise HTTPException(status_code=403, detail=GUEST_WORDS)
     if key == "PORTFOLIO":                                     # 7 Nov 2026 (Madhav): the portfolio box opens its performance over time
         from jarvis.india import surfaces as _sf
 

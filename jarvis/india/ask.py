@@ -757,8 +757,18 @@ def _alloc_facts() -> dict:
 
 # ---------------------------------------------------------------------------------------------------------------- threads
 
+# 12 Nov 2026 (the keen audit, G-52): the thread's name comes from the caller and was used as a file path with no check, so a caller could
+# make the Ask append its rows to any .jsonl file on the Mac ("../paper/managed/plans"). A thread name is letters, digits, - and _ only,
+# and never the name of the folder's own index.
+THREAD_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+RESERVED_THREADS = ("threads",)
+
+
 def _tpath(thread: str) -> Path:
-    return ASK_DIR / f"{thread}.jsonl"
+    name = str(thread or "")
+    if not THREAD_NAME.match(name) or name in RESERVED_THREADS:
+        raise ValueError("that is not a conversation's name")
+    return ASK_DIR / f"{name}.jsonl"
 
 
 def thread_messages(thread: str) -> list[dict]:
@@ -829,8 +839,9 @@ def export(thread: str) -> str:
 
 
 def delete_thread(thread: str) -> dict:
+    p = _tpath(thread)                               # a bad name is refused (ValueError), never turned into a path
     try:
-        _tpath(thread).unlink()
+        p.unlink()
     except OSError:
         pass
     rows = [r for r in _index() if r.get("thread") != thread]
@@ -1399,6 +1410,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     if today_count() >= DAILY_LIMIT:
         raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
     thread = thread or uuid.uuid4().hex[:12]
+    _tpath(thread)                                    # 12 Nov (G-52): a name that is not a conversation's is refused before anything is written
     said = text                                       # his words as said, for the thread; text may become the question left after "it's me"
     # 27 Oct: who is speaking, decided in code before anything else (jarvis/india/speaker.py): a handover, Madhav coming back, a guest asking
     # for something only Madhav can give, or a message that could be either

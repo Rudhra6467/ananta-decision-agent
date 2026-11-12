@@ -65,7 +65,7 @@ def test_the_chart_endpoint_serves_the_portfolio(tmp_path, monkeypatch):
     (acct / "benchmark.jsonl").write_text(json.dumps({"day": "2026-11-05", "twin_inr": 1, "frozen_inr": 1, "start_inr": 1, "nifty500_ret_pct": 0}) + "\n"
                                            + json.dumps({"day": "2026-11-06", "twin_inr": 2, "frozen_inr": 2, "start_inr": 1, "nifty500_ret_pct": 100}) + "\n")
     monkeypatch.setattr(surfaces, "DATA", tmp_path)
-    c = TestClient(service.app, client=("127.0.0.1", 50000))
+    c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     r = c.get("/v3/chart/portfolio")
     assert r.status_code == 200 and r.json()["chart"]["twin"] == [1, 2] and r.json()["chart"]["nifty500"] == [1, 2]
     assert surfaces.views.ROUTES["chart/portfolio"] is surfaces.portfolio_chart

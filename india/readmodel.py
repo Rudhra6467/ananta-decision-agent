@@ -258,8 +258,24 @@ def sp1(day: str) -> dict:
     trades = [f"{q['index']} at {q.get('point')} ({'long' if (r.get('choice') or {}).get('dir', 1) > 0 else 'short'}, exit {q.get('exit')})"
               for q, r in zip(decisions, [r for r in rows if r.get("kind") == "decision"]) if q.get("action")]
     bi = book.get("by_index") or {}
-    scored = "; ".join(f"{k}: {v.get('trades')} scored trade(s), index {v.get('index_proxy_sum_bps', 0):+.0f} bp, one option lot Rs {v.get('option_1lot_rs_realistic_fill', 0):,.0f} "
+    scored = "; ".join(f"{k}: {v.get('trades')} scored trade(s)" + (f" ({v['scored_late']} scored late)" if v.get("scored_late") else "")
+                       + f", index {v.get('index_proxy_sum_bps', 0):+.0f} bp, one option lot Rs {v.get('option_1lot_rs_realistic_fill', 0):,.0f} "
                        f"with realistic fills" for k, v in bi.items() if v.get("trades"))
+    # 12 Nov 2026 (the keen audit, G-01; Madhav's yes of 12 Nov 01:52): no total leaves a trade out without saying so. A trade with a note
+    # and no result (the 6 Nov Bank Nifty trade, whose next open fell on the Muhurat hour) is named beside the book until it is scored late.
+    outs = [r for r in _jsonl(d / "outcomes.jsonl") if r.get("kind") == "outcome"]
+    have = {(r.get("date"), r.get("index")) for r in outs if "index_proxy" in r}
+    left: list[dict] = []
+    for r in outs:
+        if "index_proxy" not in r and (r.get("date"), r.get("index")) not in have and not any((x["date"], x["index"]) == (r.get("date"), r.get("index")) for x in left):
+            left.append({"date": r.get("date"), "index": r.get("index")})
+
+    def _dw(s):
+        try:
+            x = dt.date.fromisoformat(str(s))
+            return f"{x:%a} {x.day} {x:%b}"
+        except ValueError:
+            return str(s)
     words = (f"{when}: session lost: " + errors[0]) if status == "lost" and errors else (
         f"{when}: {len(decisions)} index decisions recorded" + (f", traded {', '.join(trades)}" if trades else ", no trade") if decisions else f"{when}: no SP1 rows")
     # 9 Nov 2026 (morning review): the day plan records which inputs were stale (Mon 9 Nov: the cash-market file for the Diwali Muhurat session of
@@ -272,8 +288,12 @@ def sp1(day: str) -> dict:
         words += f" (marked: planned on stale inputs: {'; '.join(stale)})"
     if scored:
         words += f". Book over {book.get('sessions')} scored session(s): {scored}"
+    if left:
+        words += (f". Not in these figures: {len(left)} trade{'s' if len(left) != 1 else ''} with no result yet ("
+                  + "; ".join(f"{x['index']} {_dw(x['date'])}" for x in left[:3]) + ")")
     return {"status": status, "date": newest, "source": f"{d / 'decisions.jsonl'} and {d / 'book.json'}", "decisions": decisions, "errors": errors[:3],
-            "inputs": inputs, "book": {"sessions": book.get("sessions"), "by_index": bi}, "capital_inr": _options_capital(), "words": words}
+            "inputs": inputs, "book": {"sessions": book.get("sessions"), "by_index": bi}, "capital_inr": _options_capital(), "words": words,
+            "left_out": left}
 
 
 SP1_STALE_WORDS = {"us_qqq": "the US close (QQQ)", "participant_oi": "the participants' open interest",

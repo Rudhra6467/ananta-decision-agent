@@ -780,16 +780,40 @@ def _leg_price(a: dict, day: dt.date, bar: int, kind: str) -> float | None:
     return float(v) if v == v else None
 
 
+def _retry_late(r: dict, day: dt.date) -> bool:
+    """A trade noted 'not defined' is tried again only while it can still be scored: its exit is the next open and its option contract still
+    trades (Kite serves no candles for an expired contract), so a note is never tried again for ever."""
+    if (r.get("choice") or {}).get("exit") != "NEXTOPEN":
+        return False
+    exp = str(((r.get("contracts") or {}).get("option") or {}).get("expiry") or "")[:10]
+    try:
+        return day <= dt.date.fromisoformat(exp)
+    except ValueError:
+        return day <= dt.date.fromisoformat(r["date"]) + dt.timedelta(days=30)
+
+
+def _dw(x: dt.date) -> str:
+    return f"{x:%a} {x.day} {x:%b}"
+
+
 def score(day: dt.date | None = None, log=print) -> dict:
-    """Outcomes of every traded decision up to `day` not yet scored, once its exit is known (NEXTOPEN: after the next session's close)."""
+    """Outcomes of every traded decision up to `day` not yet scored, once its exit is known (NEXTOPEN: after the next session's close).
+    12 Nov 2026 (the keen outside audit, G-01; Madhav's yes of 12 Nov 01:52, which re-opens the 9 Nov decision R-048): a NEXTOPEN exit is the
+    next REGULAR session's open. The 6 Nov Bank Nifty trade's next day in Kite's candles was the Muhurat hour of Sun 8 Nov, no full session,
+    so the study's outcome was 'not defined', the trade had no result and every total left it out. A weekend or special session is now
+    skipped; a trade noted 'not defined' is tried again while its contract trades, scored once, and marked scored late. The ledger is
+    append-only: the note stays where it is and the late row follows it; a note is never written twice."""
     day = day or _ist_now().date()
     k = kite.Kite()
-    scored = {(r["date"], r["index"]) for r in _rows(OUTCOMES) if r.get("kind") == "outcome"}
-    todo = [r for r in _rows(DECISIONS) if r.get("kind") == "decision" and r.get("choice") and r.get("tradable") and (r["date"], r["index"]) not in scored
-            and dt.date.fromisoformat(r["date"]) <= day]
+    outs = [r for r in _rows(OUTCOMES) if r.get("kind") == "outcome"]
+    done = {(r["date"], r["index"]) for r in outs if "index_proxy" in r}
+    noted = {(r["date"], r["index"]): r for r in outs if "index_proxy" not in r}
+    todo = [r for r in _rows(DECISIONS) if r.get("kind") == "decision" and r.get("choice") and r.get("tradable") and (r["date"], r["index"]) not in done
+            and dt.date.fromisoformat(r["date"]) <= day and ((r["date"], r["index"]) not in noted or _retry_late(r, day))]
     res = []
     specials = _specials()
     for r in todo:
+        key = (r["date"], r["index"])
         d = dt.date.fromisoformat(r["date"])
         plan = json.loads(_plan_path(d).read_text())
         sym, name = r["index"], scenario.IDX[r["index"]]
@@ -806,7 +830,8 @@ def score(day: dt.date | None = None, log=print) -> dict:
         if d not in have or not index[name]["ok"][have.index(d)]:
             log(f"{r['date']} {sym}: the day's bars are not complete yet")
             continue
-        nxt = [x for x in have if x > d]
+        nxt = [x for x in have if x > d and x.weekday() < 5 and x not in specials]          # G-01: the next REGULAR session
+        skipped = [x for x in have if x > d and (x.weekday() >= 5 or x in specials) and (not nxt or x < nxt[0])]
         days_all = [prev, d] + nxt[:1]
         st_rows = pd.DataFrame([{"date": prev, "index": sym, "atr14_prev": np.nan},
                                 {"date": d, "index": sym, "atr14_prev": plan["overnight"][sym]["atr14_prev"]}])
@@ -818,6 +843,9 @@ def score(day: dt.date | None = None, log=print) -> dict:
         if hit.empty:
             if r["choice"]["exit"] == "NEXTOPEN" and not nxt:
                 log(f"{r['date']} {sym}: NEXTOPEN, held overnight; scored after the next session")
+                continue
+            if key in noted:
+                log(f"{r['date']} {sym}: still not defined; its note stands (a note is never written twice)")
                 continue
             res.append(_append(OUTCOMES, {"kind": "outcome", "date": r["date"], "index": sym, "point": r["point"], "action": r["choice"]["action"],
                                           "note": "the study's outcome is not defined for this day (e.g. NEXTOPEN with no usable next session)", "decision_hash": r["hash"]}))
@@ -841,7 +869,9 @@ def score(day: dt.date | None = None, log=print) -> dict:
                 continue
             dirc = r["choice"]["dir"]
             out_leg = {"tradingsymbol": ct["tradingsymbol"], "lot": lot, "entry_study": p_in, "entry_realistic": p_in2, "exit": p_out,
-                       "exit_rule": "next session 09:16 open" if next_day else ("close of the index stop minute" if stopped else "open of the time-exit minute")}
+                       "exit_rule": (("next session 09:16 open" if not skipped else
+                                      f"next regular session's 09:16 open ({_dw(day_out)}; {', '.join(_dw(x) for x in skipped)} is no regular session)")
+                                     if next_day else ("close of the index stop minute" if stopped else "open of the time-exit minute"))}
             for tag, pi in (("study", p_in), ("realistic", p_in2)):
                 if pi is None:
                     continue
@@ -866,6 +896,17 @@ def score(day: dt.date | None = None, log=print) -> dict:
                "index_proxy": {"entry": float(h["entry"]), "exit_px": float(h["exit_px"]), "exit_min": tx, "stopped": stopped, "next_day": next_day,
                                "gross_bps": float(h["gross_bps"]), "cost_bps": float(h["cost_bps"]), "net_bps": float(h["net_bps"]),
                                "pred_net_bps": float(r["choice"]["pred_net"])}, "legs": legs}
+        if next_day and skipped:
+            row["skipped_days"] = [x.isoformat() for x in skipped]
+        if key in noted:
+            if (r.get("contracts") or {}).get("option") and "net_rs_realistic" not in legs.get("option", {}):
+                log(f"{r['date']} {sym}: scored again, but the option's candles are not on Kite; it stays left out and is tried again tomorrow")
+                continue
+            row["scored_late"] = True
+            row["late_why"] = ((f"Its next open fell on {', '.join(_dw(x) for x in skipped)}, which is no regular session, so it was first left "
+                                f"without a result; it is scored at the next regular open ({_dw(day_out)})" if next_day and skipped else
+                                "It was first left without a result; it is scored now")
+                               + " and included, by Madhav's decision of 12 Nov 2026.")
         res.append(_append(OUTCOMES, row))
         log(f"{r['date']} {sym} {r['point']} {row['exit']} {row['dir']:+d}: index proxy {row['index_proxy']['net_bps']:.1f} bp; "
             + ", ".join(f"{k2} Rs {v.get('net_rs_study', float('nan')):,.0f}" for k2, v in legs.items() if "net_rs_study" in v))
@@ -874,9 +915,10 @@ def score(day: dt.date | None = None, log=print) -> dict:
 
 
 def write_book() -> dict:
-    """The paper record, derived from the two ledgers every time (never edited by hand)."""
+    """The paper record, derived from the two ledgers every time (never edited by hand). One scored row per trade (date and index): a late
+    score follows its note in the append-only ledger (G-01), and a trade is never counted twice."""
     dec = [r for r in _rows(DECISIONS) if r.get("kind") == "decision"]
-    outc = [r for r in _rows(OUTCOMES) if r.get("kind") == "outcome" and "index_proxy" in r]
+    outc = list({(r["date"], r["index"]): r for r in _rows(OUTCOMES) if r.get("kind") == "outcome" and "index_proxy" in r}.values())
     days = sorted({r["date"] for r in dec if r.get("tradable") or r.get("choice") is None})
     out = {"updated": _ist_now().isoformat(timespec="seconds"), "sessions": len(days), "by_index": {}}
     for sym in sp1.IDX:
@@ -888,7 +930,8 @@ def write_book() -> dict:
         sessions = len({r["date"] for r in dec if r["index"] == sym})
         out["by_index"][sym] = {"sessions": sessions, "trades": len(o), "index_proxy_sum_bps": round(sum(net), 2),
                                 "index_proxy_mean_daily_bps": round(sum(net) / sessions, 2) if sessions else None,
-                                "future_1lot_rs": round(sum(fut), 0), "option_1lot_rs_study_fill": round(sum(opt), 0), "option_1lot_rs_realistic_fill": round(sum(opt_r), 0)}
+                                "future_1lot_rs": round(sum(fut), 0), "option_1lot_rs_study_fill": round(sum(opt), 0), "option_1lot_rs_realistic_fill": round(sum(opt_r), 0),
+                                "scored_late": sum(1 for r in o if r.get("scored_late"))}
     ROOT.mkdir(parents=True, exist_ok=True)
     (ROOT / "book.json").write_text(json.dumps(out, indent=1))
     return out

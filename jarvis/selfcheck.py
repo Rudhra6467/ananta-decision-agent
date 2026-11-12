@@ -13,6 +13,7 @@ What it looks at:
   credit      a one-word Claude call: an empty API balance is refused at once (5 Nov 14:53)
   mac         free memory, swap and load on the Mac: a starved service looks frozen (5 Nov 19:34)
   gates       the India firewall, leak check and integrity check, from their manifests (6 Nov: the firewall had failed unseen for a day)
+  kite        a read Zerodha refused for a reason other than the sign-in, from the Kite client's own log (12 Nov: it left no trace)
 """
 from __future__ import annotations
 
@@ -317,6 +318,38 @@ def _gates(manifests: Path = INDIA_MANIFESTS) -> list[dict]:
     return out
 
 
+KITE_REFUSALS = HOME / "ananta_runs" / "kite_refusals.log"
+
+
+def _kite_refusals(now: float, log: Path | None = None) -> list[dict]:
+    """12 Nov 2026 (the keen outside audit, G-54): a read Zerodha refused for a reason other than the sign-in (no permission, a bad request,
+    their own server) became a cached error with no phone note, no log line and nothing here. The Kite client now writes one line per
+    refused read (time, status, Kite's error type, the path; never a token or a parameter). This says how many in the last 24 hours."""
+    import datetime as dt
+    try:
+        lines = (log or KITE_REFUSALS).read_text().splitlines()[-500:]
+    except OSError:
+        return []
+    rows = []
+    for ln in lines:
+        p = ln.split(" ", 3)
+        if len(p) < 4:
+            continue
+        try:
+            t = dt.datetime.fromisoformat(p[0]).timestamp()
+        except ValueError:
+            continue
+        if 0 <= now - t < 86400:
+            rows.append((t, p[1], p[2], p[3]))
+    if not rows:
+        return []
+    t, status, kind, path = rows[-1]
+    n = len(rows)
+    return [{"market": "india", "severity": "medium" if n >= 3 else "low", "source": "Zerodha reads",
+             "what": f"Zerodha refused {n} read{'s' if n != 1 else ''} in the last 24 hours for a reason other than the sign-in (the latest: {status}"
+                     f"{' ' + kind if kind != '-' else ''} on {path}, {_when(t)}); what that read feeds may be old"}]
+
+
 INDIA_PAPER = HOME / "ananta_data" / "india" / "paper"
 
 
@@ -467,7 +500,8 @@ def refresh(now: float | None = None, opener=None, write: bool = True, post=None
     items: list[dict] = []
     for name, fn in (("runs", lambda: _runs(now)), ("services", lambda: _services(opener)), ("answers", _answers),
                      ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac), ("gates", _gates), ("rx_order", _rx_order),
-                     ("agree", lambda: _agree(now)), ("book500", _book500), ("india_book", _india_book)):
+                     ("agree", lambda: _agree(now)), ("book500", _book500), ("india_book", _india_book),
+                     ("kite", lambda: _kite_refusals(now))):
         try:
             items += fn()
         except Exception as exc:  # noqa: BLE001  one check failing is itself a finding, never a crash
@@ -525,13 +559,14 @@ CHECKS = (("runs", "every scheduled part of both markets ran in the last 24 hour
           ("rx_order", "the reconstruction cards come after the trials (India) and the missed-move review (crypto)"),
           ("agree", "the parts agree with each other: the right day, matching counts, no number stuck at zero, nothing waiting over a week"),
           ("book500", "the $500 book's trades, holdings, cash and value agree, and the nightly note read the dial from the book's own candle"),
-          ("india_book", "the India managed book's value, costs, ledger and holdings agree with its own trades"))
+          ("india_book", "the India managed book's value, costs, ledger and holdings agree with its own trades"),
+          ("kite", "Zerodha refused no read for a reason other than the sign-in"))
 
 
 SOURCE_CHECK = {"lost-runs check": "runs", "services": "services", "nightly replay": "answers", "fact map": "answers", "approvals": "leftovers",
                 "watchdog": "watchdog", "Claude credit": "credit", "Mac load": "mac", "firewall": "gates", "leakcheck": "gates", "integrity": "gates",
                 "reconstruction order": "rx_order", "self-scan": "agree", "Mac asleep": "runs", "book check": "book500",
-                "India book check": "india_book"}
+                "India book check": "india_book", "Zerodha reads": "kite"}
 
 
 def fine(c: dict) -> list[str]:

@@ -120,6 +120,13 @@ def status() -> dict:
 LOGIN_ENV = PRIVATE / "kite_login.env"
 LOCK_FILE = PRIVATE / "kite_autologin.lock"
 LOG_FILE = Path(os.path.expanduser("~/ananta_runs/kite_autologin.log"))
+# 12 Nov 2026 (the keen outside audit, G-54): a read that found the token dead (india/kite.py, behind any page or question) started this
+# password sign-in every time, with no pause and no limit. The scheduled job (06:05 IST and its two retries) owns the sign-in. An on-demand
+# one is held back unless ON_DEMAND_PAUSE_S have passed since the last attempt of any kind, and at most ON_DEMAND_LIMIT of them run in 24
+# hours. The stamp holds times, kinds and whether it worked: nothing about the account.
+ATTEMPTS_FILE = Path(os.path.expanduser("~/ananta_runs/kite_auto_attempts.json"))
+ON_DEMAND_PAUSE_S = 1800
+ON_DEMAND_LIMIT = 3
 KITE_WEB = "https://kite.zerodha.com"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 
@@ -165,6 +172,52 @@ def totp_secret(raw: str) -> str:
     return v
 
 
+class HeldBack(RuntimeError):
+    """An on-demand sign-in that did not run: too soon after the last attempt, or the day's few are used."""
+
+
+def attempts(now: float | None = None) -> list[dict]:
+    """The sign-in attempts of the last 48 hours, oldest first: [{'t': epoch seconds, 'kind': 'scheduled' | 'on_demand', 'ok': bool}]."""
+    import time
+    now = now or time.time()
+    try:
+        rows = json.loads(ATTEMPTS_FILE.read_text())
+    except (OSError, ValueError):
+        return []
+    return [r for r in rows if isinstance(r, dict) and isinstance(r.get("t"), (int, float)) and now - r["t"] < 48 * 3600]
+
+
+def on_demand_ok(now: float | None = None) -> tuple[bool, str]:
+    """May an on-demand sign-in run now? (allowed, why not)."""
+    import time
+    now = now or time.time()
+    rows = attempts(now)
+    if rows and now - rows[-1]["t"] < ON_DEMAND_PAUSE_S:
+        return False, f"the last sign-in attempt was {int((now - rows[-1]['t']) / 60)} minutes ago; an on-demand one waits {ON_DEMAND_PAUSE_S // 60} minutes"
+    used = sum(1 for r in rows if r.get("kind") == "on_demand" and now - r["t"] < 24 * 3600)
+    if used >= ON_DEMAND_LIMIT:
+        return False, f"{used} on-demand sign-ins already ran in the last 24 hours (the limit is {ON_DEMAND_LIMIT}); the scheduled job or a sign-in by hand is next"
+    return True, ""
+
+
+def _note_attempt(kind: str, ok: bool, now: float | None = None, last: bool = False) -> None:
+    """Write one attempt to the stamp (or, with last=True, mark the newest one as having worked)."""
+    import time
+    now = now or time.time()
+    rows = attempts(now)
+    if last and rows:
+        rows[-1]["ok"] = ok
+    else:
+        rows.append({"t": int(now), "kind": kind, "ok": ok})
+    try:
+        ATTEMPTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        tmp = ATTEMPTS_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(rows[-50:]))
+        tmp.replace(ATTEMPTS_FILE)
+    except OSError:
+        pass
+
+
 def _log(line: str) -> None:
     try:
         LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -176,6 +229,8 @@ def _log(line: str) -> None:
 
 def _ntfy(text: str) -> None:
     """Phone nudge through the same ntfy topic the Jarvis alerts use (name read from the agent .env; never a secret)."""
+    if os.environ.get("ANANTA_NTFY_TOPIC") == "":      # 12 Nov (audit G-57): set and empty means off (the tests' switch); it used to fall
+        return                                         # through to the .env file and reach the real phone
     topic = os.getenv("ANANTA_NTFY_TOPIC")
     if not topic:
         env = Path(os.path.expanduser("~/code/ananta-decision-agent/.env"))
@@ -217,9 +272,10 @@ def _request_token_from_redirects(s: requests.Session, url: str, hops: int = 8) 
     raise RuntimeError(f"no request_token in the Kite redirect chain (last status {last}); the Kite Connect app's redirect URL or the session may have changed")
 
 
-def auto(force: bool = False, min_left: int = 1800) -> dict:
+def auto(force: bool = False, min_left: int = 1800, on_demand: bool = False) -> dict:
     """Sign in with no browser. Skipped when the stored token still has more than min_left seconds, unless force.
-    Returns status() plus an 'auto' line; raises RuntimeError with the reason when a step is refused."""
+    Returns status() plus an 'auto' line; raises RuntimeError with the reason when a step is refused. on_demand (a read that found the
+    token dead, not the scheduled job) raises HeldBack instead of signing in when on_demand_ok() says no."""
     import fcntl
     import time
 
@@ -241,6 +297,11 @@ def auto(force: bool = False, min_left: int = 1800) -> dict:
         st = status()
         if st["connected"] and st["seconds_left"] > min_left and not force:
             return {**st, "auto": "skipped: token already refreshed"}
+        if on_demand:
+            ok, why = on_demand_ok()
+            if not ok:
+                raise HeldBack(why)
+        _note_attempt("on_demand" if on_demand else "scheduled", False)     # counted before the password is sent, so a crash still counts
         key, _ = creds()
         connect_url = f"{KITE_WEB}/connect/login?v=3&api_key={key}"
         s = requests.Session()
@@ -266,6 +327,7 @@ def auto(force: bool = False, min_left: int = 1800) -> dict:
             raise RuntimeError(f"two-factor step refused: {refused}")
         request_token = _request_token_from_redirects(s, connect_url + "&skip_session=true")
         out = exchange(request_token)
+        _note_attempt("", True, last=True)
         _log(f"auto sign-in ok until {out.get('expires_at_ist')}")       # 9 Nov 2026: no account id in a log
         return {**out, "auto": "signed in"}
 
@@ -287,8 +349,12 @@ if __name__ == "__main__":
             print(json.dumps({"ok": False, "why": "auto sign-in is off: no ~/ananta_private/kite_login.env"}))
             sys.exit(2)
         try:
-            out = auto(force="--force" in sys.argv)
+            out = auto(force="--force" in sys.argv, on_demand="--on-demand" in sys.argv)
             print(json.dumps(_for_log(out)))
+        except HeldBack as e:    # not a failure and not a sign-in: one log line (worded so the lost-runs check does not read it as a run), no phone note
+            _log(f"on-demand sign-in held back: {str(e)[:200]}")
+            print(json.dumps({"ok": False, "held_back": str(e)[:200]}))
+            sys.exit(3)
         except Exception as e:   # noqa: BLE001 - every reason goes to the log and the phone, never a secret
             why = str(e)[:300]
             _log(f"auto sign-in FAILED: {why}")
@@ -296,5 +362,5 @@ if __name__ == "__main__":
             print(json.dumps({"ok": False, "why": why}))
             sys.exit(1)
     else:
-        print("usage: python -m src.india.kite_auth [status|auto [--force]]")
+        print("usage: python -m src.india.kite_auth [status|auto [--force] [--on-demand]]")
         sys.exit(64)

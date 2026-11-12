@@ -121,7 +121,7 @@ def test_a_sign_off_cut_after_a_comma_leaves_no_fragment():
     assert not r["answer"].rstrip(".").endswith(("all of", "and")) and r["answer"].endswith(".")
 
 
-def test_semicolon_cut_and_codes_are_cleaned():
+def test_semicolon_cut_and_codes_are_cleaned(india_reference):
     r = ask.finish({"answer": "Both are marked after the close and noisy; all of this is paper only."}, "is that risky", True)
     assert "all of" not in r["answer"]
     r = ask.finish({"answer": "Four are on the cut list: TRIM JIOFIN, REDUCE IEX, TIDY IDEA."}, "cut list", True)

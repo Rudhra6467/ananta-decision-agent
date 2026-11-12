@@ -15,6 +15,7 @@ def private(tmp_path, monkeypatch):
     monkeypatch.setattr(kite_auth, "PRIVATE", tmp_path)
     monkeypatch.setattr(kite_auth, "ENV_FILE", tmp_path / "kite.env")
     monkeypatch.setattr(kite_auth, "TOKEN_FILE", tmp_path / "kite_token.json")
+    monkeypatch.setattr(kite_auth, "ATTEMPTS_FILE", tmp_path / "kite_auto_attempts.json")   # 12 Nov: a test never writes the real stamp
     (tmp_path / "kite.env").write_text("KITE_API_KEY=abc123\nKITE_API_SECRET='s3cret'\n")
     return tmp_path
 
@@ -183,3 +184,67 @@ def test_a_scheduled_run_never_prints_whose_account_it_is():
     """9 Nov 2026 (the outsider readiness review): the sign-in log held the account holder's name and user id on every line."""
     shown = kite_auth._for_log({"connected": True, "user_id": "AB1234", "user_name": "Someone", "expires_at_ist": "2026-11-10 06:00 IST", "auto": "signed in"})
     assert shown == {"connected": True, "expires_at_ist": "2026-11-10 06:00 IST", "auto": "signed in"}
+
+
+# --- the on-demand sign-in's pause and limit (12 Nov 2026, the keen outside audit, G-54) ------------------------------------------------
+# Before: a read that found the token dead started a password sign-in every time. Now the scheduled job owns the sign-in; an on-demand one
+# waits 30 minutes after any attempt and runs at most three times in 24 hours.
+
+def _signed_in(monkeypatch):
+    fake = _FakeSession()
+    monkeypatch.setattr(kite_auth.requests, "Session", lambda: fake)
+    monkeypatch.setattr(kite_auth, "exchange", lambda rt: {"connected": True, "user_id": "AB1234", "expires_at_ist": "x"})
+    return fake
+
+
+def test_an_on_demand_sign_in_is_held_back_right_after_any_attempt(login_env, monkeypatch):
+    fake = _signed_in(monkeypatch)
+    assert kite_auth.auto(force=True, on_demand=True)["auto"] == "signed in"          # the first one runs
+    rows = kite_auth.attempts()
+    assert [(r["kind"], r["ok"]) for r in rows] == [("on_demand", True)]
+    n = len(fake.calls)
+    with pytest.raises(kite_auth.HeldBack, match="waits 30 minutes"):
+        kite_auth.auto(force=True, on_demand=True)                                     # the second, a moment later, does not
+    assert len(fake.calls) == n                                                        # and nothing was sent to Zerodha
+    assert len(kite_auth.attempts()) == 1                                              # a held-back try is not an attempt
+
+
+def test_a_failed_scheduled_attempt_also_starts_the_pause_and_the_scheduled_job_is_never_held(login_env, monkeypatch):
+    fake = _FakeSession(password_ok=False)
+    monkeypatch.setattr(kite_auth.requests, "Session", lambda: fake)
+    with pytest.raises(RuntimeError, match="password step refused"):
+        kite_auth.auto()                                                               # the scheduled job, refused by Zerodha
+    assert [(r["kind"], r["ok"]) for r in kite_auth.attempts()] == [("scheduled", False)]
+    with pytest.raises(kite_auth.HeldBack):
+        kite_auth.auto(on_demand=True)
+    with pytest.raises(RuntimeError, match="password step refused"):
+        kite_auth.auto()                                                               # its own retry still runs
+    assert len(kite_auth.attempts()) == 2
+
+
+def test_at_most_three_on_demand_sign_ins_in_a_day(login_env, monkeypatch):
+    import time
+    now = time.time()
+    rows = [{"t": int(now - h * 3600), "kind": "on_demand", "ok": False} for h in (20, 10, 2)]
+    kite_auth.ATTEMPTS_FILE.write_text(json.dumps(rows))
+    ok, why = kite_auth.on_demand_ok(now)
+    assert not ok and "limit is 3" in why
+    assert kite_auth.on_demand_ok(now + 5 * 3600) == (True, "")                        # the oldest has aged out of the 24 hours
+    rows[0]["kind"] = "scheduled"                                                      # the scheduled job's attempts do not use the limit
+    kite_auth.ATTEMPTS_FILE.write_text(json.dumps(rows))
+    assert kite_auth.on_demand_ok(now) == (True, "")
+
+
+def test_the_stamp_holds_no_account_details_and_a_held_back_line_is_not_read_as_a_run(login_env, monkeypatch):
+    import re
+
+    from jarvis.service import runcheck_parts
+    _signed_in(monkeypatch)
+    kite_auth.auto(force=True, on_demand=True)
+    stamp = kite_auth.ATTEMPTS_FILE.read_text()
+    assert "AB1234" not in stamp and "pw" not in stamp and set(json.loads(stamp)[0]) == {"t", "kind", "ok"}
+    part = next(p for p in runcheck_parts.PARTS if p["id"] == "india_autologin")
+    line = "2026-11-12T10:20:00+00:00 on-demand sign-in held back: the last sign-in attempt was 3 minutes ago"
+    assert not re.search(part["proof"]["regex"], line, re.M)
+    assert re.search(part["proof"]["regex"], "2026-11-12T00:35:10+00:00 auto sign-in ok until 2026-11-13 06:00 IST", re.M)
+

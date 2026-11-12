@@ -105,7 +105,7 @@ def test_a_request_to_note_is_still_filed(text):
     assert india_ask.flag_intent(text) is not None
 
 
-def test_the_options_line_review_day_is_the_open_after_the_20th_session(tmp_path, monkeypatch):
+def test_the_options_line_review_day_is_the_open_after_the_20th_session(tmp_path, monkeypatch, india_reference):
     rec, data = tmp_path / "records", tmp_path / "data"
     (rec / "india" / "registrations").mkdir(parents=True)
     (rec / "india" / "registrations" / "sp1r_v1.json").write_text(json.dumps({"questions": ["Is Bank Nifty's margin the cause?"], "why": "x"}))

@@ -41,7 +41,7 @@ PROOF = {"studies": {"run": 1440, "held_up": 44, "conditional": 38}, "exam": {"w
 
 
 @pytest.fixture()
-def india(tmp_path, monkeypatch):
+def india(tmp_path, monkeypatch, india_reference):
     monkeypatch.setattr(IS, "today", lambda full=True: json.loads(json.dumps(TODAY)))
     monkeypatch.setattr(IS, "money", lambda full=True: json.loads(json.dumps(MONEY)))
     monkeypatch.setattr(IS, "proof", lambda full=True: json.loads(json.dumps(PROOF)))
@@ -101,7 +101,7 @@ def _stub(syms):
     return {s: {"last_price": table[s][0], "ohlc": {"open": table[s][0], "high": table[s][0], "low": table[s][0], "close": table[s][1]}} for s in syms if s in table}
 
 
-def test_before_the_open_the_index_box_keeps_the_last_sessions_change(tmp_path, monkeypatch):
+def test_before_the_open_the_index_box_keeps_the_last_sessions_change(tmp_path, monkeypatch, india_reference):
     monkeypatch.setattr(L, "DATA", tmp_path)
     (tmp_path / "manifests").mkdir()
     (tmp_path / "manifests" / "technicals.json").write_text(json.dumps({"indices": {"NIFTY 50": {"close": 25044.65, "prev_close": 24986.4, "as_of": "2026-11-09"},

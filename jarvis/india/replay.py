@@ -284,6 +284,8 @@ def run(hours: float = 24.0, use_bank: bool = True, notify=None) -> dict:
 
 def _ntfy(title: str, body: str) -> None:
     """The phone, the same way the watchdog reaches it (ntfy topic from the agent .env)."""
+    if os.environ.get("ANANTA_NTFY_TOPIC") == "":      # 12 Nov (audit G-57): set and empty means off (the tests' switch); this read the
+        return                                         # topic straight from the .env file, whatever the switch said
     env = {}
     try:
         for line in Path(ask.ENV_FILE).read_text().splitlines():

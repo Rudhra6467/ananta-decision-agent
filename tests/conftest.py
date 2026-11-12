@@ -1,8 +1,50 @@
 """Tests never push to a real phone, even when run on the laptop where .env holds the ntfy topic; and they never reach the web
 or touch the live paid-search counters."""
 import os
+import socket
+import tempfile
 
 import pytest
+
+# 12 Nov 2026, the keen outside audit (G-57: "test isolation is a list of nine past leaks, not a wall"). Two walls, put up before any of
+# Ananta's own modules is imported, so every path a module works out from the home folder lands inside them:
+#
+# 1. The home folder. Tests run with HOME set to an empty folder of their own. Only the two code checkouts are linked in (read as code);
+#    the live data, the run logs, the private folder, the sign-in files, the live database and the .env file are simply not there, so a
+#    test that forgets to point a path at its own folder writes into the wall's folder, never into Madhav's.
+# 2. The network. A test may open a connection only to this machine, and not to the live services' own ports: a phone note, a model
+#    call or a web page from a test fails at once with "tests never reach the network".
+REAL_HOME = os.path.expanduser("~")
+TEST_HOME = tempfile.mkdtemp(prefix="ananta-tests-home-")
+os.makedirs(os.path.join(TEST_HOME, "code"))
+for _repo in ("ananta-agent-research", "ananta-records"):
+    if os.path.isdir(os.path.join(REAL_HOME, "code", _repo)):
+        os.symlink(os.path.join(REAL_HOME, "code", _repo), os.path.join(TEST_HOME, "code", _repo))
+os.environ["HOME"] = TEST_HOME
+
+LIVE_PORTS = (8001, 8100, 8110, 8200, 8215, 8300, 8302, 11434)      # the services running on this Mac: a test never talks to them
+_real_connect, _real_connect_ex = socket.socket.connect, socket.socket.connect_ex
+
+
+def _walled(address) -> None:
+    if isinstance(address, (str, bytes)):                            # a unix socket on this machine
+        return
+    host, port = str(address[0]), int(address[1])
+    if host not in ("127.0.0.1", "::1", "localhost") or port in LIVE_PORTS:
+        raise RuntimeError(f"tests never reach the network ({host}:{port})")
+
+
+def _connect(self, address, *a, **k):
+    _walled(address)
+    return _real_connect(self, address, *a, **k)
+
+
+def _connect_ex(self, address, *a, **k):
+    _walled(address)
+    return _real_connect_ex(self, address, *a, **k)
+
+
+socket.socket.connect, socket.socket.connect_ex = _connect, _connect_ex
 
 os.environ["ANANTA_NTFY_TOPIC"] = ""
 os.environ["ANANTA_APPLE_PUSH"] = "0"
@@ -127,3 +169,19 @@ def _no_live_india_timing(tmp_path, monkeypatch):
             return real(*a, **k)
 
     monkeypatch.setattr(india_ask, "_timing_log", _timing_log)
+
+
+@pytest.fixture
+def india_reference(monkeypatch):
+    """12 Nov 2026 (the wall found them): four tests read NSE's holiday calendar and the company-name list from Madhav's live India data
+    through the code under test. A test that needs them asks for this fixture: a small calendar and name list of the tests' own."""
+    import datetime as dt
+    import time
+
+    from jarvis.india import answerguide, askwords
+
+    monkeypatch.setattr(answerguide, "_holidays", lambda: {dt.date(2026, 11, 10)})          # Diwali-Balipratipada, the one in the tests' dates
+    monkeypatch.setitem(askwords._NAMES, "t", time.time())
+    monkeypatch.setitem(askwords._NAMES, "v", {"TATAPOWER": "Tata Power", "JIOFIN": "Jio Financial", "ETERNAL": "Eternal", "LICI": "LIC of India",
+                                               "IEX": "Indian Energy Exchange", "IDEA": "Vodafone Idea"})
+

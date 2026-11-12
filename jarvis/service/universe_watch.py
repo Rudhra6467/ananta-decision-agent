@@ -867,16 +867,14 @@ def run_daily(j) -> dict:
         out["graduation"] = graduation.book500_card(j)
     except Exception as exc:  # noqa: BLE001
         out["graduation_error"] = str(exc)[:200]
-    try:  # the officer's note (Oct 13): the brain narrates the account's day, once, after the close
+    try:  # the officer's note (Oct 13). 12 Nov 2026 (audit repair 3, G-26): written here, it came before the night's work was done (the
+        # bold measuring book bought ZEC 3.5 minutes later); now the step keeps what the note needs, and the 15-minute loop
+        # (jarvis/service/app.py background_jobs) writes the note after the bold book's step, then starts the night test (Madhav, 10 Nov)
         from jarvis.service import officer
 
-        out["officer_note"] = (officer.write(j, out, push=_phone_push()) or {}).get("ok")
+        out["officer_note"] = officer.night_ready(j, out)
     except Exception as exc:  # noqa: BLE001
         out["officer_error"] = str(exc)[:200]
-    try:  # 10 Nov 2026 (Madhav: "yes, lets build it"): the night test asks Ananta its questions once the note is written
-        out["night_test_started"] = start_night_test(j)
-    except Exception as exc:  # noqa: BLE001
-        out["night_test_error"] = str(exc)[:200]
     # RX-CR v1 (Madhav, 24 Oct 2026, discipline item 9): the reconstruction card is made by the 15-minute loop (jarvis/service/app.py)
     # from 00:30 UTC, after the day's missed moves are reviewed; made here at 00:05 it saw none of them (6 Nov 2026 audit)
     try:  # OD-SHADOW-LANE (Oct 20): the blind shadow lane logs each pre-registered rule's trigger state; it shows no result and touches no book

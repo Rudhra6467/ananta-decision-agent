@@ -639,7 +639,9 @@ export function fmtAmount(v: number | null | undefined, ccy: string, signed = fa
   return `${sign}${ccy}${group(v, dp, ccy === "₹")}`;
 }
 function tLabel(t: number, tz: number, intraday: boolean, withDay: boolean) {
-  const d = new Date((t + tz * 60) * 1000);
+  // 12 Nov 2026 (audit repair 3, G-28): a daily bar that opens at 00:00 UTC (crypto's) is that UTC day's candle; shifted by Toronto's
+  // offset, the 10 Nov candle was named Mon 9 Nov. Intraday times, and daily bars that open at another hour (India's), keep the shift.
+  const d = new Date((t + (!intraday && t % 86400 === 0 ? 0 : tz * 60)) * 1000);
   const day = `${DAYS3[d.getUTCDay()]} ${d.getUTCDate()} ${MON3[d.getUTCMonth()]}`;
   if (!intraday) return day;
   const hm = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;

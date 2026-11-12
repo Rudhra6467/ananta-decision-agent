@@ -9,7 +9,6 @@ conflicts it would not decide by itself (a named card that does not exist, say) 
 """
 from __future__ import annotations
 
-import calendar
 import json
 import time
 from pathlib import Path
@@ -163,8 +162,14 @@ def window(j) -> dict | None:
     w = strategy_status.load().get("evidence_window") or {}
     if not w.get("start"):
         return None
-    d0 = calendar.timegm(time.strptime(w["start"], "%Y-%m-%d"))
-    dayn = int((int(j.now()) - d0) // 86400) + 1
+    # 12 Nov 2026 (audit repair 3, G-27): one evening had three days of the window: 29 here (counted on UTC days, so the note written at
+    # 7 pm Toronto was a day ahead), 28 on the screens (Toronto days), 27 in the Ask (counted back from the checkpoint dates). One count
+    # now, the screens' own: the Toronto date, day 1 on the start date.
+    import datetime as _dtm
+    from zoneinfo import ZoneInfo
+
+    today = _dtm.datetime.fromtimestamp(int(j.now()), ZoneInfo("America/Toronto")).date()
+    dayn = (today - _dtm.date.fromisoformat(w["start"])).days + 1
     loop: dict = {}
     try:
         r = j.db.execute("SELECT t, match FROM rebuild_log WHERE source='brain' ORDER BY t DESC LIMIT 1").fetchone()

@@ -157,7 +157,8 @@ def test_the_corrected_nights_are_read_and_drawn():
     db.execute("INSERT INTO book500_night_fixes VALUES ('2026-10-28', 27.36, 1, 'w', 0, 'b'), ('2026-11-06', 28.06, 0, 'w', 0, 'b')")
     assert surfaces._night_fixes(j) == {"2026-10-28": {"add_cad": 27.36, "in_coins": True}, "2026-11-06": {"add_cad": 28.06, "in_coins": False}}
     src = Path(surfaces.__file__).read_text()
-    assert 'rec[close_day] = round(float(v) + (nf.get(str(day)[:10]) or {}).get("add_cad", 0.0), 2)' in src
+    # 12 Nov 2026 (audit repair 3, G-37): the chart, the coin share and the Home box charts read the repaired nights from one reader
+    assert "for day, n in night_book(j).items():" in src and '"value_cad": round(float(v) + add, 2)' in src
     assert "nights before it are drawn with it put back" in src
     assert "Like for like (Bitcoin bought at the book's first NDAX price and held, in C$)" in src
     places = Path(surfaces.__file__).with_name("places.py").read_text()

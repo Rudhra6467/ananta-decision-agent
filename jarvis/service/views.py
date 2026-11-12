@@ -916,9 +916,9 @@ def mission(j) -> dict:
     except Exception as exc:  # noqa: BLE001
         out["jarvis_error"] = str(exc)[:120]
     try:                                                   # Oct 13: the account (the $500 NDAX book) and the officer's note, first on Home
-        from jarvis.service import exposure, ndax_book, officer, strategy_status
+        from jarvis.service import exposure, officer, strategy_status
 
-        st = ndax_book.status(j)
+        st = officer.book_status(j)                  # 12 Nov 2026 (audit repair 3, G-35): the brake record as every reader reports it
         d = exposure.state(j)
         notes = officer.latest(j, 1)
         lab = []

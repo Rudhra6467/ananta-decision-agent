@@ -1769,9 +1769,9 @@ def surface_chart(name: str, who: str = Depends(owner)) -> dict:
 
 @app.get("/v3/book500")
 def book500(who: str = Depends(owner)) -> dict:
-    from jarvis.service import ndax_book
+    from jarvis.service import officer
 
-    return ndax_book.status(J())
+    return officer.book_status(J())                  # 12 Nov 2026 (audit repair 3, G-35): the brake record as every reader reports it
 
 
 @app.post("/v3/book500/resume")
@@ -2194,6 +2194,12 @@ def background_jobs() -> dict:
         out["bold"] = bold.run(J())                                     # fix A8: off until Madhav approves (two locks)
     except Exception as exc:  # noqa: BLE001
         out["bold_error"] = str(exc)[:200]
+    try:  # 12 Nov 2026 (audit repair 3, G-26): the night's note, after the bold book's step and the brain's moments (officer.write_when_due)
+        from jarvis.service import officer
+
+        out["officer_note"] = officer.write_when_due(J(), push=_push)
+    except Exception as exc:  # noqa: BLE001
+        out["officer_error"] = str(exc)[:200]
     try:
         from jarvis.service import missed
 

@@ -345,8 +345,9 @@ def test_morning_summary_shows_exit_1_and_dead_token(lake, tmp_path):
     assert "explorer" not in md
 
 
-def test_morning_summary_none_when_all_ran(lake, tmp_path):
+def test_morning_summary_none_when_all_ran(lake, tmp_path, monkeypatch):
     from india import missed, morning
+    monkeypatch.setattr(morning, "DISK_FLOOR_GB", 0)       # 12 Nov 2026: the Mac's own free space (28 GB that morning) is not this test's
 
     agents, logs = tmp_path / "agents", tmp_path / "logs"
     agents.mkdir()

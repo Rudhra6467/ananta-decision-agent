@@ -85,7 +85,9 @@ def autologin_state(now: dt.datetime, log: Path | None = None) -> dict | None:
         return None   # tests never read the Mac's real sign-in log
     p = log or AUTOLOGIN_LOG
     try:
-        lines = [x for x in p.read_text().splitlines() if "auto sign-in" in x]
+        # 12 Nov 2026 (the outside check of audit repair 1, N5): a page's on-demand sign-in now says "on-demand sign-in", so the agent's
+        # lost-runs check does not take it for the scheduled job; here it still counts as a sign-in that worked or failed (not "held back")
+        lines = [x for x in p.read_text().splitlines() if "auto sign-in" in x or "on-demand sign-in ok" in x or "on-demand sign-in FAILED" in x]
     except OSError:
         return None
     if not lines:
@@ -100,7 +102,7 @@ def autologin_state(now: dt.datetime, log: Path | None = None) -> dict | None:
             return {"ok": False, "at": at_s, "t": at_t, "why": "no automatic sign-in for more than 3 days"}
     except ValueError:
         at_s = at
-    return {"ok": "auto sign-in ok" in last, "at": at_s, "t": at_t, "why": last.split("FAILED:", 1)[-1].strip() if "FAILED" in last else ""}
+    return {"ok": "auto sign-in ok" in last or "on-demand sign-in ok" in last, "at": at_s, "t": at_t, "why": last.split("FAILED:", 1)[-1].strip() if "FAILED" in last else ""}
 
 
 def launchctl_list(text: str | None = None) -> dict[str, dict]:

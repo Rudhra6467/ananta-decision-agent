@@ -14,6 +14,8 @@ and, when the ntfy topic is configured, sends the phone "Kite login needed" (at 
 one only when 30 minutes have passed since the last attempt of any kind and fewer than three such on-demand sign-ins ran in 24 hours
 (on_demand_ok; the sign-in module checks the same again). And a refusal from Kite that is not a sign-in failure (a 4xx or 5xx on a read)
 now leaves one line in ~/ananta_runs/kite_refusals.log, which the self-check reads: before, it left no trace anywhere.
+The same day (the outside check of that repair, N10): a stamp that is there but cannot be read now says no to an on-demand sign-in (it said
+yes, so the pause and the limit stopped working), and the note's stamp is read and written under a lock, so two readers at once send one note.
 """
 from __future__ import annotations
 
@@ -65,9 +67,14 @@ def on_demand_ok(now: float | None = None) -> bool:
     not after ON_DEMAND_LIMIT on-demand attempts in 24 hours. Reads the attempts stamp only (times and kinds)."""
     now = now or time.time()
     try:
-        rows = [r for r in json.loads(ATTEMPTS_FILE.read_text()) if isinstance(r, dict) and isinstance(r.get("t"), (int, float))]
+        raw = json.loads(ATTEMPTS_FILE.read_text())
+    except FileNotFoundError:
+        raw = []                                   # no attempt yet
     except (OSError, ValueError):
-        return True
+        return False                               # 12 Nov (N10): a stamp that cannot be read is not "no attempts"
+    if not isinstance(raw, list):
+        return False
+    rows = [r for r in raw if isinstance(r, dict) and isinstance(r.get("t"), (int, float))]
     if rows and now - max(r["t"] for r in rows) < ON_DEMAND_PAUSE_S:
         return False
     return sum(1 for r in rows if r.get("kind") == "on_demand" and now - r["t"] < 24 * 3600) < ON_DEMAND_LIMIT
@@ -120,20 +127,28 @@ def _error_type(r) -> str:
 
 
 def _note_due(now: float | None = None) -> bool:
-    """True at most once in NOTE_EVERY_S: every page and question behind a dead token used to send the phone the same note."""
+    """True at most once in NOTE_EVERY_S: every page and question behind a dead token used to send the phone the same note.
+    12 Nov (N10): read and written under a lock, so two readers at the same moment send one note; and a stamp that cannot be written sends
+    none, since without it there would be no limit (the scheduled sign-in's own failure note does not pass through here)."""
+    import fcntl
+
     now = now or time.time()
     try:
-        last = float(json.loads(NOTE_STAMP.read_text()).get("t", 0))
-    except (OSError, ValueError, AttributeError):
-        last = 0.0
-    if now - last < NOTE_EVERY_S:
-        return False
-    try:
         NOTE_STAMP.parent.mkdir(parents=True, exist_ok=True)
-        NOTE_STAMP.write_text(json.dumps({"t": int(now)}))
+        with NOTE_STAMP.with_suffix(".lock").open("w") as lk:
+            fcntl.flock(lk, fcntl.LOCK_EX)
+            try:
+                last = float(json.loads(NOTE_STAMP.read_text()).get("t", 0))
+            except (OSError, ValueError, AttributeError, TypeError):
+                last = 0.0                         # none yet, or broken: the note may go, and the stamp is written fresh
+            if now - last < NOTE_EVERY_S:
+                return False
+            tmp = NOTE_STAMP.with_suffix(".tmp")
+            tmp.write_text(json.dumps({"t": int(now)}))
+            tmp.replace(NOTE_STAMP)
+            return True
     except OSError:
-        pass
-    return True
+        return False
 
 
 def _ntfy(text: str) -> None:

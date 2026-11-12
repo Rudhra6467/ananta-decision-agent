@@ -93,3 +93,54 @@ def test_the_tests_phone_switch_is_honoured(k, monkeypatch):
     monkeypatch.setenv("ANANTA_NTFY_TOPIC", "")                                # set and empty: off (it used to read the topic from the .env file)
     kite._ntfy("anything")
     assert k.posted == [] and not kite.NOTE_STAMP.exists()
+
+
+# ---- 12 Nov 2026, the outside check of that repair: N10 (a stamp that cannot be read or written) and N5 (an on-demand sign-in says so) ----
+
+@pytest.mark.parametrize("text", ["{not json", '{"t": 1}', "[1, 2"])
+def test_a_stamp_that_cannot_be_read_says_no_and_starts_nothing(k, text):
+    kite.ATTEMPTS_FILE.write_text(text)
+    assert kite.on_demand_ok() is False                                        # it said yes, and the pause and the limit stopped working
+    assert kite.try_auto_login() is False and k.spawned == []
+
+
+def test_no_stamp_yet_is_no_attempts(k):
+    assert not kite.ATTEMPTS_FILE.exists() and kite.on_demand_ok() is True
+
+
+def test_two_readers_at_the_same_moment_send_one_note(k):
+    import threading
+
+    now, out = time.time(), []
+    ts = [threading.Thread(target=lambda: out.append(kite._note_due(now))) for _ in range(8)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    assert sorted(out) == [False] * 7 + [True]
+    assert kite._note_due(now + kite.NOTE_EVERY_S + 1) is True                # and half an hour later, one more
+
+
+def test_a_note_stamp_that_cannot_be_written_sends_no_note(k, monkeypatch):
+    (k.tmp / "a_file").write_text("x")
+    monkeypatch.setattr(kite, "NOTE_STAMP", k.tmp / "a_file" / "note.json")    # its folder cannot be made
+    monkeypatch.setenv("ANANTA_NTFY_TOPIC", "a-test-topic")
+    assert kite._note_due() is False
+    kite._ntfy("Kite login needed")
+    assert k.posted == []                                                      # without a stamp there would be no limit
+
+
+def test_the_morning_still_counts_an_on_demand_sign_in_but_not_a_held_back_line(tmp_path):
+    import datetime as dt
+
+    from india import morning
+    log = tmp_path / "autologin.log"
+    now = dt.datetime(2026, 11, 12, 12, 0, tzinfo=morning.TOR)
+    log.write_text("2026-11-12T00:35:10+00:00 auto sign-in FAILED: password step refused\n"
+                   "2026-11-12T13:10:00+00:00 on-demand sign-in ok until 2026-11-13 06:00 IST\n"
+                   "2026-11-12T13:20:00+00:00 on-demand sign-in held back: the last sign-in attempt was 10 minutes ago\n")
+    s = morning.autologin_state(now, log)
+    assert s["ok"] is True and s["at"].startswith("Thu 12 Nov 08:10")              # the page's sign-in worked after the failed run
+    log.write_text(log.read_text() + "2026-11-12T14:00:00+00:00 on-demand sign-in FAILED: two-factor step refused\n")
+    s = morning.autologin_state(now, log)
+    assert s["ok"] is False and s["why"] == "two-factor step refused"

@@ -83,10 +83,14 @@ export function VoiceStage({ question, answer, followUps, phase, hearing, ready,
     : ["Listening", "just talk"];
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 8 }}>
-        <Text style={[TY.meta, { color: C.dim }]}>{talkingWith ? `Talking with ${talkingWith}` : "Voice"}</Text>
-        <Pressable onPress={onShowChat} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center", paddingHorizontal: 6 }}>
-          <Text style={[TY.meta, { color: G.gold() }]}>Show the conversation</Text>
+      {/* 12 Nov 2026 (Madhav: "there is no chat option"): the way to the conversation was a small gold line that sat under the phone's status
+          bar. It is a button now, the same shape as "Sessions" on the chat, in a row with the same 12 under the status bar as every place. */}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 12, minHeight: 56 }}>
+        <Text style={[TY.meta, { color: C.dim, flex: 1 }]} numberOfLines={1}>{talkingWith ? `Talking with ${talkingWith}` : "Voice is on"}</Text>
+        <Pressable onPress={onShowChat} accessibilityRole="button" accessibilityLabel="Show the chat" hitSlop={8}
+          style={({ pressed }) => ({ height: 36, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: C.card, alignItems: "center", justifyContent: "center",
+            paddingHorizontal: 14, opacity: pressed ? 0.7 : 1 })}>
+          <Text style={{ color: C.text, fontSize: 13, fontWeight: "600" }}>Chat</Text>
         </Pressable>
       </View>
       <ScrollView ref={scroll} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16, gap: 18 }}>
@@ -107,7 +111,8 @@ export function VoiceStage({ question, answer, followUps, phase, hearing, ready,
       </ScrollView>
       <View style={{ alignItems: "center", gap: 14, paddingTop: 12, paddingBottom: 18 }}>
         <BigOrb phase={phase} hearing={hearing} ready={ready} level={level} onPress={onOrb} />
-        <View style={{ alignItems: "center", gap: 2 }}>
+        {/* 12 Nov: the orb's ring (16 outside it, and it breathes) touched the word under it; the words sit 10 lower now */}
+        <View style={{ alignItems: "center", gap: 2, marginTop: 10 }}>
           <Text style={[TY.card, { color: C.text }]}>{name}</Text>
           <Text style={[TY.meta, { color: C.dim, textAlign: "center", paddingHorizontal: 24 }]}>{note || detail}</Text>
         </View>

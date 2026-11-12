@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, AppState, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, Switch, Text, TextInput, View } from "react-native";
 import { requestRecordingPermissionsAsync } from "expo-audio";
 import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { VoiceIdle, VoiceStage } from "../../src/voicestage";
 import { getScreen, getVoiceOrigin, goTab, setNarrating, setScreen, setVoiceApi, setVoiceFeed, setVoiceLive, setVoiceOrigin, setVoicePhase, takeSection,
   tourCommand, useNarrating, useScreen, type SectionReq } from "../../src/context";
@@ -26,7 +27,13 @@ import { CheckIcon, CopyIcon, MicIcon, RetryIcon, SendIcon, SpeakerIcon, StopIco
 import { loadMe, useMe } from "../../src/visitor";
 import { useMarket } from "../../src/market";
 import { MsgGuard, ScreenError } from "../../src/safe";
-import { markStartersDone, onOrbPress, setTyping, startersDone } from "../../src/once";
+import { BAR_ROOM, markStartersDone, onOrbPress, setTyping, setVoiceStage, startersDone, useTyping } from "../../src/once";
+
+// 12 Nov 2026 (Madhav: "looking for consistency in other places too"): Ask is the one place both looks share. In the redesign Ananta's one
+// colour is bronze (10 Nov: the mark, the orb, the one action), but Ask still drew its links, its chosen tab and its send button in the
+// classic yellow, so the bronze orb sat beside a yellow button. In the new look Ask's accent is the bronze; the classic tabs keep theirs.
+let BRONZE = false;
+const AC = { get accent() { return BRONZE ? C.gold : C.accent; }, get soft() { return BRONZE ? C.goldSoft : C.accentSoft; } };
 
 export const ErrorBoundary = ScreenError;               // 28 Oct (flag 49): never a blank conversation screen
 
@@ -58,7 +65,7 @@ function CopyBtn({ text, visible }: { text: string; visible: boolean }) {
     <Pressable onPress={async () => { if (await copyText(text)) { setDone(true); setTimeout(() => setDone(false), 1500); } else showToast("Could not copy it"); }}
       hitSlop={8} accessibilityLabel="Copy message" disabled={!on}
       style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 28, paddingHorizontal: 6, opacity: on ? 1 : 0 }}>
-      {done ? <CheckIcon color={C.good ?? C.accent} size={14} /> : <CopyIcon color={C.dim} size={14} />}
+      {done ? <CheckIcon color={C.good ?? AC.accent} size={14} /> : <CopyIcon color={C.dim} size={14} />}
       {done ? <Text style={{ color: C.dim, fontSize: 11 }}>Copied</Text> : null}
     </Pressable>
   );
@@ -95,8 +102,8 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
           <Pressable onPress={onRetry} accessibilityLabel="Retry this question"
             style={({ pressed }) => ({ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: C.card, borderRadius: 999,
               paddingHorizontal: 12, paddingVertical: 7, opacity: pressed ? 0.6 : 1 })}>
-            <RetryIcon color={C.accent} size={14} />
-            <Text style={{ color: C.accent, fontSize: 13, fontWeight: "700" }}>Retry</Text>
+            <RetryIcon color={AC.accent} size={14} />
+            <Text style={{ color: AC.accent, fontSize: 13, fontWeight: "700" }}>Retry</Text>
           </Pressable>
         ) : null}
       </View>
@@ -110,14 +117,16 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
   return (
     <Pressable onHoverIn={() => setHover(true)} onHoverOut={() => setHover(false)}
       style={{ backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 16, borderTopLeftRadius: 4, padding: 14, gap: 10, maxWidth: "96%" }}>
+      {m.second_of || m.stage || m.outside || (m.kind && m.kind !== "answer") ? (
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
         {m.second_of ? <Pill text="SECOND OPINION" color={C.text} bg={C.card2} /> : null}
-        {m.stage ? <Pill text={(STAGE[String(m.stage).toLowerCase()] ?? m.stage).toUpperCase()} color={C.accent} bg={C.accentSoft} /> : null}
+        {m.stage ? <Pill text={(STAGE[String(m.stage).toLowerCase()] ?? m.stage).toUpperCase()} color={AC.accent} bg={AC.soft} /> : null}
         {m.kind === "clarify" ? <Pill text="DID YOU MEAN" color={C.warn} bg={C.warnSoft} /> : null}
         {m.kind === "out_of_scope" ? <Pill text="OUTSIDE MY AREA" /> : null}
         {m.outside ? <Pill text={`FROM AI · ${m.outside.source ?? "outside our system"}`} color={C.warn} bg={C.warnSoft} /> : null}
         {m.kind === "cannot_do_yet" ? <Pill text="CAN'T DO THAT YET" color={C.warn} bg={C.warnSoft} /> : null}
       </View>
+      ) : null}
       <Text selectable style={{ color: C.text, fontSize: 15, lineHeight: 22 }}>{m.answer}</Text>
       {m.assumption ? <T small>Assumed: {m.assumption}</T> : null}
       {m.outside ? <Text style={{ color: C.faint, fontSize: 11 }}>{m.outside.note}</Text> : null}
@@ -143,7 +152,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
                 <View style={{ alignItems: "flex-end", maxWidth: "50%", gap: 4 }}>
                   <Text style={{ color: C.text, fontSize: 13, fontWeight: "600", textAlign: "right" }}>{String(e.value)}</Text>
                   {e.screen ? (
-                    <Text onPress={() => showEvidence(e)} style={{ color: C.accent, fontSize: 12, fontWeight: "700" }}>Show me ›</Text>
+                    <Text onPress={() => showEvidence(e)} style={{ color: AC.accent, fontSize: 12, fontWeight: "700" }}>Show me ›</Text>
                   ) : null}
                 </View>
               </View>
@@ -153,7 +162,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
       ) : null}
 
       {m.kind === "answer" && m.next_action?.label ? (
-        <Pressable onPress={() => onPick(String(m.next_action.ask ?? m.next_action.label))} style={({ pressed }) => ({ backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 14,
+        <Pressable onPress={() => onPick(String(m.next_action.ask ?? m.next_action.label))} style={({ pressed }) => ({ backgroundColor: AC.accent, borderRadius: 999, paddingHorizontal: 14,
           paddingVertical: 9, alignSelf: "flex-start", opacity: pressed ? 0.75 : 1 })}>
           <Text style={{ color: C.onInk, fontSize: 14, fontWeight: "700" }}>{m.next_action.label}</Text>
         </Pressable>
@@ -163,7 +172,7 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {chips.map((c, i) => (
             <Pressable key={i} onPress={() => onPick(c)} style={({ pressed }) => ({ backgroundColor: C.card2, borderRadius: 999, paddingHorizontal: 12, minHeight: 34, justifyContent: "center", opacity: pressed ? 0.6 : 1 })}>
-              <Text style={{ color: C.accent, fontSize: 13, fontWeight: "600" }}>{typeof c === "string" ? c : String((c as any)?.label ?? (c as any)?.title ?? "")}</Text>
+              <Text style={{ color: AC.accent, fontSize: 13, fontWeight: "600" }}>{typeof c === "string" ? c : String((c as any)?.label ?? (c as any)?.title ?? "")}</Text>
             </Pressable>
           ))}
         </View>
@@ -178,9 +187,9 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
       ) : null}
       {m.note ? <Text style={{ color: C.faint, fontSize: 11 }}>{m.note}</Text> : null}
       {onShow && m.showable && !m.voice ? (
-        <View style={{ backgroundColor: C.accentSoft, borderRadius: 10, padding: 10, gap: 8 }}>
+        <View style={{ backgroundColor: AC.soft, borderRadius: 10, padding: 10, gap: 8 }}>
           <Text style={{ color: C.text, fontSize: 13 }}>Want me to show you this on screen? I'll take you there and talk you through it, then keep listening.</Text>
-          <Pressable onPress={onShow} style={({ pressed }) => ({ alignSelf: "flex-start", backgroundColor: C.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
+          <Pressable onPress={onShow} style={({ pressed }) => ({ alignSelf: "flex-start", backgroundColor: AC.accent, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
             <Text style={{ color: C.onInk, fontWeight: "700" }}>Yes, show me</Text>
           </Pressable>
         </View>
@@ -193,12 +202,12 @@ function Answer({ m, onPick, onRate, onSecond, onSpeak, onShow, onRetry }: { m: 
         {onSpeak && m.answer ? (
           <Pressable onPress={onSpeak} hitSlop={8} accessibilityLabel="Read it aloud" style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}><SpeakerIcon color={C.dim} /></Pressable>
         ) : null}
-        {!m.second_of && m.id ? <Act tight label="Second opinion" onPress={onSecond} /> : null}
+        {!m.second_of && m.id ? <Act tight label="Second opinion" onPress={onSecond} color={BRONZE ? AC.accent : undefined} /> : null}
         <Pressable onPress={() => onRate(1)} hitSlop={8} accessibilityLabel="Good answer" style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center", opacity: m.rating === -1 ? 0.35 : 1 }}>
-          <ThumbUpIcon color={m.rating === 1 ? C.accent : C.dim} />
+          <ThumbUpIcon color={m.rating === 1 ? AC.accent : C.dim} />
         </Pressable>
         <Pressable onPress={() => onRate(-1)} hitSlop={8} accessibilityLabel="Poor answer" style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center", opacity: m.rating === 1 ? 0.35 : 1 }}>
-          <ThumbDownIcon color={m.rating === -1 ? C.accent : C.dim} />
+          <ThumbDownIcon color={m.rating === -1 ? AC.accent : C.dim} />
         </Pressable>
       </View>
     </Pressable>
@@ -267,6 +276,7 @@ export default function Ananta() {
   const [sessions, setSessions] = useState(false);
   // 1 Nov 2026: the voice-first Ask in the new look (src/voicestage.tsx); the classic screen is unchanged
   const isNew = usePathname().startsWith("/new");
+  BRONZE = isNew;                                              // read by every piece of this screen as it draws
   const [showChat, setShowChat] = useState(false);
   useEffect(() => { if (!live) setShowChat(false); }, [live]);
   useEffect(() => { if (params.sessions) setSessions(true); }, [params.sessions, params.t]);          // Oct 15: the side drawer's "Sessions"
@@ -294,6 +304,15 @@ export default function Ananta() {
   }, []);
   const dropStarters = () => { if (startersOn) { setStartersOn(false); markStartersDone(); } };
   useEffect(() => () => setTyping(false), []);
+  // 12 Nov 2026 (Madhav's screenshot): in the new look this screen is drawn edge to edge under a floating bar, and it left no room for
+  // either: the top row sat under the phone's status bar, and the typing box and "type instead" sat behind the bar. padTop is the status
+  // bar's height; barRoom is what the bar covers (nothing while he types or the big voice screen shows: the bar steps aside then).
+  const ins = useSafeAreaInsets();
+  const typingNow = useTyping();
+  const onStage = isNew && live && !showChat;
+  useEffect(() => { setVoiceStage(onStage); return () => setVoiceStage(false); }, [onStage]);
+  const padTop = isNew ? ins.top : 0;
+  const barRoom = isNew && !typingNow ? BAR_ROOM + Math.max(ins.bottom, 12) : 0;
   const [err, setErr] = useState<string | null>(null);
   const [ctx, setCtx] = useScreen();
   const { data: sg } = useData("/v3/ask/suggestions", 0);
@@ -427,7 +446,7 @@ export default function Ananta() {
     if (o) await backTo(o);
     else {
       const away = getScreen()?.screen && getScreen()?.screen !== "ananta";
-      if (away) { goTab("/(tabs)/ask"); await new Promise((r) => setTimeout(r, 450)); }
+      if (away) { goTab(isNew ? "/new/ask" : "/(tabs)/ask"); await new Promise((r) => setTimeout(r, 450)); }
     }
     const line = `That's the walk-through. Want me to pull anything else up? What's next${vmeRef.current?.guest ? "" : ", sir"}?`;
     setMsgs((m) => [...m, { role: "assistant", kind: "answer", model_label: "Ananta", answer: line, voice: true }]);
@@ -844,13 +863,13 @@ export default function Ananta() {
   const voiceNote = note || (TTS.lastEngine === "phone" && TTS.engine === "natural" ? TTS.lastNote : "");
 
   const top = (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 8 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: isNew ? 12 : 8 }}>
       <Pressable onPress={() => setSessions(true)} hitSlop={10} accessibilityLabel="Sessions"
         style={{ height: 34, borderRadius: 10, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 }}>
         <Text style={{ color: C.text, fontSize: 13, fontWeight: "600" }}>Sessions</Text>
       </Pressable>
       <View style={{ flex: 1 }}>
-        <Segmented value={tabv} onChange={(k) => setTabv(k as any)} options={[{ key: "chat", label: "Chat" }, { key: "now", label: "Ananta now" }]} />
+        <Segmented tint={isNew ? { on: AC.accent, soft: AC.soft } : undefined} value={tabv} onChange={(k) => setTabv(k as any)} options={[{ key: "chat", label: "Chat" }, { key: "now", label: "Ananta now" }]} />
       </View>
     </View>
   );
@@ -863,14 +882,14 @@ export default function Ananta() {
       if (o?.ask) { pendingChips.current = o.followUps ?? []; setTimeout(() => send(o.ask as string), 300); }
     }} />;
   }
-  if (tabv === "now") return <View style={{ flex: 1, backgroundColor: C.bg }}>{top}<AnantaNow />{drawer}</View>;
-  if (isNew && live && !showChat) {
+  if (tabv === "now") return <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: padTop, paddingBottom: barRoom }}>{top}<AnantaNow />{drawer}</View>;
+  if (onStage) {
     const lastQ = [...msgs].reverse().find((m) => m.role === "user");
     const lastA = [...msgs].reverse().find((m) => m.role !== "user" && (m.answer || m.error));
     const qIdx = lastQ ? msgs.lastIndexOf(lastQ) : -1, aIdx = lastA ? msgs.lastIndexOf(lastA) : -1;
     const fresh = aIdx > qIdx;                                   // the answer belongs to the last question (not an older one)
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: padTop, paddingBottom: Math.max(ins.bottom, 12) }}>
         <VoiceStage question={lastQ?.text} answer={fresh ? String(lastA?.answer ?? lastA?.error ?? "") : undefined}
           followUps={fresh ? ((lastA as any)?.follow_ups ?? []) : []} phase={phase} hearing={hearing} ready={micLive || hearing} level={mic.level}
           note={voiceNote} onOrb={() => { Haptics.soft(); loop.tap(); }} onEnd={endLive} onPick={(q) => loop.onText(q)}
@@ -880,7 +899,7 @@ export default function Ananta() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg, paddingTop: padTop }} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={isNew ? 0 : 90}>
       {top}
       {drawer}
       <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", rowGap: 4, gap: 8, paddingHorizontal: 16, paddingTop: 8 }}>
@@ -888,21 +907,23 @@ export default function Ananta() {
           <Text style={st.small}>{google ? (autoOn ? "Google · auto" : "Google") : (autoOn ? "Claude · auto" : "Claude · deep")} ›</Text>
         </Pressable>
         <View style={{ flex: 1 }} />
-        {msgs.length ? <Text onPress={shareSession} style={{ color: C.accent, fontWeight: "600", marginRight: 12 }}>Share</Text> : null}
-        <Text onPress={newSession} style={{ color: C.accent, fontWeight: "600", marginLeft: 12 }}>New</Text>
+        {/* 12 Nov: "Show the conversation" had no way back to the big voice screen while voice was still on */}
+        {isNew && live ? <Text onPress={() => setShowChat(false)} accessibilityRole="button" style={{ color: AC.accent, fontWeight: "600", marginRight: 12 }}>Voice screen</Text> : null}
+        {msgs.length ? <Text onPress={shareSession} style={{ color: AC.accent, fontWeight: "600", marginRight: 12 }}>Share</Text> : null}
+        <Text onPress={newSession} style={{ color: AC.accent, fontWeight: "600", marginLeft: 12 }}>New</Text>
       </View>
       {ctx && ctx.screen !== "ask" ? (
-        <Pressable onPress={() => setCtx(null)} style={{ alignSelf: "flex-start", marginHorizontal: 16, marginTop: 6, flexDirection: "row", gap: 6, backgroundColor: C.accentSoft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
-          <Text style={{ color: C.accent, fontSize: 12 }} numberOfLines={1}>About: {ctx.label}  ✕</Text>
+        <Pressable onPress={() => setCtx(null)} style={{ alignSelf: "flex-start", marginHorizontal: 16, marginTop: 6, flexDirection: "row", gap: 6, backgroundColor: AC.soft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
+          <Text style={{ color: AC.accent, fontSize: 12 }} numberOfLines={1}>About: {ctx.label}  ✕</Text>
         </Pressable>
       ) : null}
 
       {speaker && !me?.guest ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 6, alignSelf: "flex-start",
-          backgroundColor: C.accentSoft, borderRadius: 999, paddingLeft: 12, paddingRight: 4, paddingVertical: 4 }}>
+          backgroundColor: AC.soft, borderRadius: 999, paddingLeft: 12, paddingRight: 4, paddingVertical: 4 }}>
           <Text style={{ color: C.text, fontSize: 13, fontWeight: "700" }}>Talking with {speaker.call && /garu|sir/i.test(speaker.call) ? speaker.call.split("/")[0].trim() : speaker.name}</Text>
           <Pressable onPress={imBack} accessibilityRole="button" accessibilityLabel="I'm back"
-            style={{ backgroundColor: C.accent, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
+            style={{ backgroundColor: AC.accent, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
             <Text style={{ color: C.onInk, fontSize: 12, fontWeight: "800" }}>I'm back</Text>
           </Pressable>
         </View>
@@ -922,7 +943,7 @@ export default function Ananta() {
             <T dim>{me?.guest ? "Ask me about your coins, your practice book, or the market. Type, tap the mic to dictate, or tap the wave and just talk."
               : "Ask about our portfolio or the market. Type, tap the mic to dictate, or tap the wave to just talk."}</T>
             <Pressable onPress={tradeEvaluate} accessibilityRole="button" style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10,
-              backgroundColor: C.accent, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, marginTop: 6, opacity: pressed ? 0.85 : 1 })}>
+              backgroundColor: AC.accent, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, marginTop: 6, opacity: pressed ? 0.85 : 1 })}>
               <Wave />
               <View style={{ flex: 1 }}>
                 <Text style={{ color: C.onInk, fontWeight: "800", fontSize: 16 }}>Ask Ananta to trade / evaluate</Text>
@@ -931,13 +952,13 @@ export default function Ananta() {
             </Pressable>
             {prev?.thread ? (
               <Pressable onPress={() => { setPrev(null); openSession(prev.thread); }} accessibilityRole="button" accessibilityLabel="Continue previous conversation"
-                style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: C.card, borderColor: C.accent, borderWidth: 1,
+                style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: C.card, borderColor: AC.accent, borderWidth: 1,
                   borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, opacity: pressed ? 0.85 : 1 })}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: C.text, fontWeight: "800", fontSize: 15 }}>Continue previous conversation</Text>
                   <Text style={{ color: C.dim, fontSize: 12 }} numberOfLines={1}>{prev.title || "Your last conversation"} · {prev.time}</Text>
                 </View>
-                <Text style={{ color: C.accent, fontWeight: "800", fontSize: 18 }}>›</Text>
+                <Text style={{ color: AC.accent, fontWeight: "800", fontSize: 18 }}>›</Text>
               </Pressable>
             ) : null}
             {startersOn ? <T small>{me?.guest ? "Or try one of the questions below." : 'New here? Tap "New here" below for questions to start with.'}</T> : null}
@@ -1028,16 +1049,17 @@ export default function Ananta() {
               paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 }} />
           {text.trim() ? (
             <Pressable onPress={() => send(text)} disabled={busy} accessibilityLabel="Send"
-              style={{ backgroundColor: busy ? C.line : C.accent, borderRadius: 22, width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+              style={{ backgroundColor: busy ? C.line : AC.accent, borderRadius: 22, width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
               <SendIcon color={C.onInk} />
             </Pressable>
           ) : (
-            <Pressable onPress={startLive} accessibilityLabel="Talk to Ananta" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.accent, alignItems: "center", justifyContent: "center" }}>
+            <Pressable onPress={startLive} accessibilityLabel="Talk to Ananta" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: AC.accent, alignItems: "center", justifyContent: "center" }}>
               <Wave />
             </Pressable>
           )}
         </View>
       )}
+      {barRoom ? <View style={{ height: barRoom, backgroundColor: C.card }} /> : null}
     </KeyboardAvoidingView>
   );
 }
@@ -1061,7 +1083,7 @@ function LivePanel({ label, phase, hearing, ready, level, note, onOrb, onEnd, ra
     return () => a.stop();
   }, [fast]);
   const lv = Math.max(0, Math.min(1, (level + 60) / 50));
-  const color = phase === "speaking" ? C.good : phase === "thinking" ? C.warn : hearing ? C.bad : C.accent;
+  const color = phase === "speaking" ? C.good : phase === "thinking" ? C.warn : hearing ? C.bad : AC.accent;
   const opening = phase === "listening" && !ready;           // the mic is not hearing yet: the orb is faint, it doesn't say "listening"
   // the state in words, and the one button that does the obvious thing (the orb does the same on a tap)
   const [name, detail, button] = phase === "thinking" ? ["Thinking", "Claude is on it · about 4 seconds", "Stop"]
@@ -1081,7 +1103,7 @@ function LivePanel({ label, phase, hearing, ready, level, note, onOrb, onEnd, ra
       </View>
       <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
         {button ? (
-          <Pressable onPress={onOrb} accessibilityLabel={button} style={({ pressed }) => ({ backgroundColor: button === "Done" ? C.accent : C.card2, borderRadius: 12, minHeight: 44, paddingHorizontal: 22, justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
+          <Pressable onPress={onOrb} accessibilityLabel={button} style={({ pressed }) => ({ backgroundColor: button === "Done" ? AC.accent : C.card2, borderRadius: 12, minHeight: 44, paddingHorizontal: 22, justifyContent: "center", opacity: pressed ? 0.7 : 1 })}>
             <Text style={{ color: button === "Done" ? C.onInk : C.text, fontWeight: "700", fontSize: 15 }}>{button}</Text>
           </Pressable>
         ) : null}
@@ -1113,8 +1135,8 @@ function Pick({ label, value, options, selected, onPick }: { label: string; valu
             <Text style={{ color: C.dim, fontSize: 12, marginBottom: 6 }}>{label}</Text>
             {options.map((o) => (
               <Pressable key={o.key} onPress={() => { onPick(o.key); setOpen(false); }}
-                style={{ paddingVertical: 12, paddingHorizontal: 10, borderRadius: 10, backgroundColor: o.key === selected ? C.accentSoft : "transparent" }}>
-                <Text style={{ color: o.key === selected ? C.accent : C.text, fontSize: 16, fontWeight: o.key === selected ? "700" : "500" }}>{o.label}{o.key === selected ? "  ✓" : ""}</Text>
+                style={{ paddingVertical: 12, paddingHorizontal: 10, borderRadius: 10, backgroundColor: o.key === selected ? AC.soft : "transparent" }}>
+                <Text style={{ color: o.key === selected ? AC.accent : C.text, fontSize: 16, fontWeight: o.key === selected ? "700" : "500" }}>{o.label}{o.key === selected ? "  ✓" : ""}</Text>
               </Pressable>
             ))}
           </View>
@@ -1134,6 +1156,7 @@ const Wave = () => (
 // Madhav's goes to an archive kept 30 days.
 function SessionsDrawer({ open, onClose, onOpen, onNew, current }: { open: boolean; onClose: () => void; onOpen: (t: string) => void; onNew: () => void; current: string | null }) {
   const { data: d, reload } = useData(open ? "/v3/ask/threads" : null, 0);
+  const ins = useSafeAreaInsets();                             // 12 Nov: the title sat at a fixed 54, on the edge of the phone's status bar
   const copy = async (th: string) => {
     try {
       const txt = (await api(`/v3/ask/thread/${th}/export`)).text;
@@ -1149,21 +1172,21 @@ function SessionsDrawer({ open, onClose, onOpen, onNew, current }: { open: boole
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, flexDirection: "row" }}>
-        <View style={{ width: "84%", maxWidth: 380, backgroundColor: C.bg, paddingTop: 54, borderRightWidth: 1, borderRightColor: C.line }}>
+        <View style={{ width: "84%", maxWidth: 380, backgroundColor: C.bg, paddingTop: Math.max(ins.top + 12, 54), borderRightWidth: 1, borderRightColor: C.line }}>
           <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 10 }}>
             <Text style={{ color: C.text, fontWeight: "800", fontSize: 18, flex: 1 }}>Sessions</Text>
-            <Text onPress={() => { onNew(); onClose(); }} style={{ color: C.accent, fontWeight: "700" }}>+ New</Text>
+            <Text onPress={() => { onNew(); onClose(); }} style={{ color: AC.accent, fontWeight: "700" }}>+ New</Text>
           </View>
           <ScrollView contentContainerStyle={{ paddingHorizontal: 12, gap: 8, paddingBottom: 40 }}>
             {(d?.threads ?? []).length === 0 ? <T dim>No sessions yet.</T> : null}
             {(d?.threads ?? []).map((th: any) => (
-              <View key={th.thread} style={{ backgroundColor: th.thread === current ? C.accentSoft : C.card, borderColor: C.line, borderWidth: 1, borderRadius: 12, padding: 10, gap: 6 }}>
+              <View key={th.thread} style={{ backgroundColor: th.thread === current ? AC.soft : C.card, borderColor: C.line, borderWidth: 1, borderRadius: 12, padding: 10, gap: 6 }}>
                 <Pressable onPress={() => onOpen(th.thread)}>
                   <Text style={{ color: C.text, fontSize: 15, fontWeight: "600" }} numberOfLines={2}>{th.voice ? "🎙 " : ""}{th.title}</Text>
                   <Text style={{ color: C.faint, fontSize: 12 }}>{th.time} · {Math.ceil(th.messages / 2)} question(s)</Text>
                 </Pressable>
                 <View style={{ flexDirection: "row", gap: 16 }}>
-                  <Text onPress={() => copy(th.thread)} style={{ color: C.accent, fontSize: 13, fontWeight: "600" }}>Copy</Text>
+                  <Text onPress={() => copy(th.thread)} style={{ color: AC.accent, fontSize: 13, fontWeight: "600" }}>Copy</Text>
                   <Text onPress={() => del(th.thread)} style={{ color: C.bad, fontSize: 13, fontWeight: "600" }}>Delete</Text>
                 </View>
               </View>
@@ -1211,7 +1234,7 @@ function AnantaNow() {
           <View key={i}>
             {i ? <Divider /> : null}
             <Pressable onPress={() => go(l)} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 }}>
-              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: l.tone === "act" ? C.warn : l.tone === "wait" ? C.accent : C.good }} />
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: l.tone === "act" ? C.warn : l.tone === "wait" ? AC.accent : C.good }} />
               <Text style={{ color: C.text, fontSize: 16, flex: 1 }}>{l.text}</Text>
               <Text style={{ color: C.faint, fontSize: 18 }}>›</Text>
             </Pressable>
@@ -1238,7 +1261,7 @@ function AnantaNow() {
         ))}
       </View>
       </Spot>
-      <Text onPress={reload} style={{ color: C.accent, fontWeight: "600", textAlign: "center" }}>Refresh</Text>
+      <Text onPress={reload} style={{ color: AC.accent, fontWeight: "600", textAlign: "center" }}>Refresh</Text>
     </ScrollView>
   );
 }

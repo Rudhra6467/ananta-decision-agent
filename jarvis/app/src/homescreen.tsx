@@ -2,6 +2,8 @@
 // iPhone: Share, then "Add to Home Screen". Android: an Install button when Chrome offers it, else a Full screen button.
 import { useEffect, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
+import { usePathname } from "expo-router";
+import { BAR_ROOM } from "./once";
 import { C } from "./theme";
 
 const KEY = "ananta_homescreen_hint";
@@ -22,6 +24,7 @@ const markSeen = () => { try { localStorage.setItem(KEY, "1"); } catch {} };
 export function HomeScreenHint() {
   const [show, setShow] = useState(false);
   const [canInstall, setCanInstall] = useState(false);
+  const onNew = usePathname().startsWith("/new");   // 12 Nov: in the redesign the hint sits above the floating bar, not on its orb
   useEffect(() => {
     if (Platform.OS !== "web" || standalone() || seen()) return;
     const t = setTimeout(() => { setShow(true); setCanInstall(!!installEvent); }, 4000);   // after the first screen has settled
@@ -33,7 +36,7 @@ export function HomeScreenHint() {
   const install = async () => { try { await installEvent?.prompt(); } catch {} close(); };
   const full = () => { try { document.documentElement.requestFullscreen?.(); } catch {} close(); };
   return (
-    <View pointerEvents="box-none" style={{ position: "absolute", left: 12, right: 12, bottom: 84 }}>
+    <View pointerEvents="box-none" style={{ position: "absolute", left: 12, right: 12, bottom: onNew ? BAR_ROOM + 20 : 84 }}>
       <View style={{ backgroundColor: C.ink, borderRadius: 16, padding: 14, gap: 10, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 10 }}>
         <Text style={{ color: C.onInk, fontSize: 15, fontWeight: "700" }}>Use Ananta full screen</Text>
         <Text style={{ color: C.onInk, fontSize: 13, lineHeight: 19, opacity: 0.85 }}>

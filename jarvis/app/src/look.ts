@@ -37,3 +37,6 @@ export function useLook(): Look {
   return l;
 }
 export const newHome = "/new/home";
+// 12 Nov 2026: one answer to "where is Ask?" for anything that sends him back to the conversation (the voice pill on every screen): the
+// redesign's Ask for the owner, the classic tab for a guest (guests stay on the classic tabs).
+export const askHome = (guest?: boolean) => (guest || current !== "new" ? "/(tabs)/ask" : "/new/ask");

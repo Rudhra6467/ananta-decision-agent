@@ -249,12 +249,14 @@ export function Tag({ text, value, valueColor, on, onPress }: { text: string; va
 }
 
 // The selected segment is gold on its soft tint; `size="lg"` for the two-way control at the top of a screen.
-export function Segmented({ options, value, onChange, size = "md" }: { options: { key: string; label: string }[]; value: string; onChange: (k: string) => void; size?: "md" | "lg" }) {
+// `tint` (12 Nov): the new look's Ask passes Ananta's bronze, so its chosen tab matches the rest of the redesign.
+export function Segmented({ options, value, onChange, size = "md", tint }: { options: { key: string; label: string }[]; value: string; onChange: (k: string) => void; size?: "md" | "lg";
+  tint?: { on: string; soft: string } }) {
   return (
     <View style={s.seg}>
       {options.map((o) => (
-        <Pressable key={o.key} onPress={() => onChange(o.key)} accessibilityRole="tab" accessibilityState={{ selected: value === o.key }} style={[s.segI, value === o.key && s.segOn]}>
-          <Text style={{ color: value === o.key ? C.accent : C.dim, fontWeight: value === o.key ? "700" : "600", fontSize: size === "lg" ? TYPE.body : TYPE.meta }}>{o.label}</Text>
+        <Pressable key={o.key} onPress={() => onChange(o.key)} accessibilityRole="tab" accessibilityState={{ selected: value === o.key }} style={[s.segI, value === o.key && s.segOn, value === o.key && tint ? { backgroundColor: tint.soft } : null]}>
+          <Text style={{ color: value === o.key ? (tint?.on ?? C.accent) : C.dim, fontWeight: value === o.key ? "700" : "600", fontSize: size === "lg" ? TYPE.body : TYPE.meta }}>{o.label}</Text>
         </Pressable>
       ))}
     </View>

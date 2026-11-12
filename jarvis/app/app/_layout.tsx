@@ -11,6 +11,10 @@ import * as TTS from "../src/tts";
 import { C, deviceTheme, setTheme, useThemeVersion } from "../src/theme";
 import { ScreenError } from "../src/safe";
 import { SheetHost, SheetStage } from "../src/place";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useMe } from "../src/visitor";
+import { askHome } from "../src/look";
+import { BAR_ROOM } from "../src/once";
 
 // 28 Oct (flag 49): a drawing error anywhere shows "Reload conversation" instead of a blank screen (expo-router's route error boundary)
 export const ErrorBoundary = ScreenError;
@@ -59,14 +63,20 @@ function VoicePill() {
   const here = useHere();
   const phase = useVoicePhase();
   const narr = useNarrating();
+  const me = useMe();
+  const ins = useSafeAreaInsets();
+  const onNew = usePathname().startsWith("/new");
   if ((!live && !narr) || here?.screen === "ananta") return null;
   const word = narr ? `Explaining ${narr.label}` : phase === "thinking" ? "Ananta is thinking" : phase === "speaking" ? "Ananta is speaking" : "Ananta is listening";
   const dot = phase === "speaking" ? C.good : phase === "thinking" ? C.warn : C.bad;
   return (
-    <View pointerEvents="box-none" style={{ position: "absolute", top: 56, left: 0, right: 0, alignItems: "center" }}>
+    // 12 Nov 2026: in the redesign the pill sat on the place's top row (the market chip, the bell) and took him to the classic Ask. There it
+    // now floats just above the bar, and "tap to return" opens the redesign's Ask.
+    <View pointerEvents="box-none" style={[{ position: "absolute", left: 0, right: 0, alignItems: "center" },
+      onNew ? { bottom: BAR_ROOM + Math.max(ins.bottom, 12) + 8 } : { top: 56 }]}>
       <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: C.text, borderRadius: 999, paddingLeft: 14, paddingRight: 4,
         shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 6 }}>
-        <Pressable onPress={() => goTab("/(tabs)/ask")} accessibilityRole="button" accessibilityLabel={`${word}, tap to return`}
+        <Pressable onPress={() => goTab(askHome(!!me?.guest))} accessibilityRole="button" accessibilityLabel={`${word}, tap to return`}
           style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 7 }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dot }} />
           <Text style={{ color: C.onInk, fontWeight: "600", fontSize: 13 }}>{word} · tap to return</Text>
@@ -83,9 +93,11 @@ function VoicePill() {
 // Caption bar during a tour: what Ananta is saying, with Skip and Stop.
 function TourBar() {
   const t = useTour();
+  const ins = useSafeAreaInsets();
+  const onNew = usePathname().startsWith("/new");
   if (!t.active) return null;
   return (
-    <View pointerEvents="box-none" style={{ position: "absolute", left: 12, right: 12, bottom: 96 }}>
+    <View pointerEvents="box-none" style={{ position: "absolute", left: 12, right: 12, bottom: onNew ? BAR_ROOM + Math.max(ins.bottom, 12) + 8 : 96 }}>
       <View style={{ backgroundColor: C.ink, borderRadius: 16, padding: 14, gap: 10, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 10 }}>
         <Text style={{ color: C.inkDim, fontSize: 11, fontWeight: "700", letterSpacing: 0.6 }}>TOUR · {t.i} OF {t.n}</Text>
         <Text style={{ color: C.onInk, fontSize: 15, lineHeight: 21 }}>{t.text}</Text>

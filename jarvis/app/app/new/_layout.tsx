@@ -9,7 +9,7 @@ import { C, useThemeVersion } from "../../src/theme";
 import { Orb } from "../../src/newui";
 import { Icon } from "../../src/place";
 import { ScreenError } from "../../src/safe";
-import { pressOrb, useTyping } from "../../src/once";
+import { pressOrb, useTyping, useVoiceStage } from "../../src/once";
 
 export const ErrorBoundary = ScreenError;
 
@@ -22,7 +22,8 @@ function Bar({ state, navigation }: any) {
   const ins = useSafeAreaInsets();
   const active = state.routes[state.index]?.name;
   const typing = useTyping();
-  if (typing && active === "ask") return null;             // 3 Nov: while he types in Ask the bar steps aside
+  const stage = useVoiceStage();
+  if ((typing || stage) && active === "ask") return null;  // 3 Nov: while he types in Ask the bar steps aside; 12 Nov: and on the big voice screen
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: Math.max(ins.bottom, 12), alignItems: "center" }}>
       <View accessibilityRole="tablist" style={{ width: "100%", maxWidth: 520, paddingHorizontal: 16 }}>

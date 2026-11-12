@@ -128,7 +128,7 @@ def _shared_fetch(clk: dict | None):
 
 
 def _index_tile(rm: dict, clk: dict | None, fetch=None) -> dict:
-    pages = {}
+    pages, vix = {}, None
     if clk:
         try:
             from jarvis.india import livesession
@@ -144,6 +144,15 @@ def _index_tile(rm: dict, clk: dict | None, fetch=None) -> dict:
                     if m.get("last") is not None:
                         mp = 100 * (m["last"] / r["last"] - 1)
                         pages[key]["sub2"] = f"{when} · Muhurat {m['last']:,.0f} ({_signed(mp, 1)}%)"
+            # 12 Nov 2026, the keen outside audit (G-05): the fear gauge had three values for one close (Markets cut Monday's number out of
+            # a sentence and showed it under Wednesday's date; its own page showed the last 5-minute candle; the exchange's close was a
+            # third). It is now read here, in the same Kite read and under the same day as the two index boxes, and every surface uses this.
+            v = rows.get("INDIA VIX") or {}
+            if isinstance(v.get("last"), (int, float)):
+                prev = v.get("prev_close")
+                ch = v.get("change_pct") if isinstance(v.get("change_pct"), (int, float)) else (
+                    100 * (v["last"] / prev - 1) if isinstance(prev, (int, float)) and prev else None)
+                vix = {"value": f"{v['last']:.2f}", "when": when, "change_pct": round(ch, 2) if ch is not None else None}
         except Exception:  # noqa: BLE001
             pass
     newer = (rm.get("market") or {}).get("newer_closes") or {}
@@ -158,7 +167,7 @@ def _index_tile(rm: dict, clk: dict | None, fetch=None) -> dict:
             pages[key] = _index_page(name, close, prev, f"{_dw(day)} close")
         else:
             pages[key] = {"label": name, "value": "—", "sub": "no price on file", "focus": "options"}
-    return {"id": "market", "pages": [pages["NIFTY 50"], pages["NIFTY BANK"]]}
+    return {"id": "market", "pages": [pages["NIFTY 50"], pages["NIFTY BANK"]], "vix": vix}
 
 
 def _option_open(x: dict, clk: dict) -> bool:
@@ -586,9 +595,12 @@ def money(full: bool = True) -> dict:
         holdings.append({"symbol": x.get("symbol"), "value_inr": x.get("value_inr"), "weight_pct": x.get("weight_pct"), "pnl_pct": x.get("pnl_pct"), "grade": x.get("grade"),
                          "action": (x.get("action") or "").lower(), "suggest_inr": x.get("suggest_inr"), "why": x.get("why"), "wrong_if": x.get("wrong_if")})
     own = mb if mb.get("value_inr") else acct
+    # 12 Nov 2026, the keen outside audit (G-03): the value came from the managed book and its "as of" from the account book's marks, two
+    # books marked at different times; the big number carried no date on Home at all. The day now comes from the book the value comes from.
+    asof_day = str((mb.get("day") if own is mb else (acct.get("marks") or {}).get("last_session")) or "")[:10] or None
     return {"ready": True, "paper": True, "value_inr": own.get("value_inr"), "stocks_inr": own.get("stocks_inr"), "options_inr": own.get("options_inr"), "cash_inr": own.get("cash_inr"),
             "value_owner": "the managed book" if own is mb else "the account book (the managed book has no value yet)",
-            "as_of": f"NSE close {_dw((acct.get('marks') or {}).get('last_session'))}" if acct.get("marks") else None,
+            "as_of": f"NSE close {_dw(asof_day)}" if asof_day else None, "as_of_day": asof_day,
             "books": books, "clock": clock,
             "books_note": books_note,
             "plan": {"for_session": plan.get("for_session"), "brief": plan_sentence(plan) if not plan.get("error") else plan.get("brief"), "words": plan.get("words"), "cuts": len(plan.get("cuts") or []), "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons")} for b in plan.get("buys") or []],

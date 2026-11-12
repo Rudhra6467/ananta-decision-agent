@@ -376,6 +376,46 @@ def _rs_trial() -> dict:
 OPT_REVIEW = re.compile(r"\b(?:options? line|options? book|bank ?nifty|review|20 sessions|twenty sessions|gap|sizing|bar)\b", re.I)
 
 
+def options_review_day() -> dict | None:
+    """The options line's 20-session review: how many sessions have run, the day they run through, the 20th session's day, the review day
+    and how many days already have a result. One source for every surface that says it.
+
+    12 Nov 2026, the keen outside audit (G-09): the day fixed on 11 Nov was still one session short. It took the count from the book
+    (book.json: 12, which counted 11 Nov) but stepped forward from the newest scored outcome (9 Nov, because 11 Nov's trades were still
+    open), so it said the 20th session was Fri 20 Nov and the review Mon 23 Nov. The count and the day it counts through now both come from
+    the book: the sessions it counts are the decision days up to the day it was last updated. The 20th session's trades close at the next
+    open, and the review reads all 20 sessions that day."""
+    from jarvis.india import answerguide as _ag
+
+    sp1 = DATA / "paper" / "sp1"
+    try:
+        book = json.loads((sp1 / "book.json").read_text()) or {}
+        done = int(book.get("sessions") or 0)
+    except (OSError, ValueError, TypeError):
+        return None
+    upd = str(book.get("updated") or "")[:10]
+    if not done or not re.fullmatch(r"\d{4}-\d\d-\d\d", upd):
+        return None
+    decided = set()
+    try:
+        for x in (sp1 / "decisions.jsonl").read_text().splitlines():
+            day = str((json.loads(x) if x.strip() else {}).get("date") or "")[:10]
+            if day and day <= upd:
+                decided.add(day)
+    except (OSError, ValueError):
+        pass
+    through = dt.date.fromisoformat(max(decided) if decided else upd)
+    twentieth = through
+    for _ in range(max(0, 20 - done)):
+        twentieth = _ag.next_session_after(twentieth)
+    try:
+        scored = len({str(json.loads(x).get("date"))[:10] for x in (sp1 / "outcomes.jsonl").read_text().splitlines() if x.strip()})
+    except (OSError, ValueError):
+        scored = None
+    return {"sessions_run": done, "through": through.isoformat(), "twentieth": twentieth.isoformat() if done <= 20 else None,
+            "review": _ag.next_session_after(twentieth).isoformat() if done <= 20 else None, "scored_days": scored}
+
+
 def _options_review() -> dict:
     """5 Nov 2026 (Madhav: "yes to all", D): the four questions written down for the options line's 20-session review (records
     india/registrations/sp1r_v1.json) and what its own 2017-2023 history said on each (manifests/lab7.json)."""
@@ -393,22 +433,19 @@ def _options_review() -> dict:
         hist["sizing"] = lab.get("sizing")
     except (OSError, ValueError):
         pass
-    # 5 Nov (synopsis): the review date was written as "about 27 Nov"; counted from the line's own sessions and NSE's holidays it is the
-    # 20th session's date (Mon 23 Nov on 5 Nov, if no session is lost)
+    # 5 Nov (synopsis): the review date was written as "about 27 Nov"; 11 Nov: the review reads the 20th session's trades after they
+    # close at the next open; 12 Nov (audit G-09): counted from the book's own count and its own day (options_review_day)
     when = "at session 20 of the options line"
     try:
         from jarvis.india import answerguide as _ag
-        done = int((json.loads((DATA / "paper" / "sp1" / "book.json").read_text()) or {}).get("sessions") or 0)
-        last = max(json.loads(x)["date"] for x in (DATA / "paper" / "sp1" / "outcomes.jsonl").read_text().splitlines() if x.strip())
-        d = dt.date.fromisoformat(last)
-        for _ in range(max(0, 20 - done)):
-            d = _ag.next_session_after(d)
-        # 11 Nov 2026 (the dry voice test): it said the review reads the 20th session "that evening", but that session's trades close at the
-        # next open, so its outcome (and the review) comes a session later: Fri 20 Nov's trades close Mon 23 Nov, the plan's review day.
-        rd = _ag.next_session_after(d)
-        when = (f"at session 20 of the options line: {done} of 20 sessions are scored, so the 20th is {_ag.day_words(d)} if no session is "
-                f"lost (weekends and NSE holidays skipped); its trades close at the next open, {_ag.day_words(rd)}, and the review reads "
-                "the 20 sessions that day")
+        r = options_review_day()
+        if r and r.get("twentieth"):
+            res = f", {r['scored_days']} of them with a result so far" if r.get("scored_days") is not None else ""
+            when = (f"at session 20 of the options line: {r['sessions_run']} of 20 sessions have run (through {_ag.day_words(r['through'])})"
+                    f"{res}, so the 20th is {_ag.day_words(r['twentieth'])} if no session is lost (weekends and NSE holidays skipped); its "
+                    f"trades close at the next open, {_ag.day_words(r['review'])}, and the review reads the 20 sessions that day")
+        elif r:
+            when = f"the 20 sessions have run (through {_ag.day_words(r['through'])}): the review reads them now"
     except (OSError, ValueError, KeyError, TypeError):
         pass
     return {"when": when, "questions": s.get("questions"), "why": s.get("why"),

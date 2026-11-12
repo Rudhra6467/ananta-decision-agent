@@ -64,7 +64,8 @@ def evaluate(ex, coin: str, open_trades: list[dict], equity: float, zone_row: di
 
     # 1 REGIME (V02, verified): BTC daily close above its 50-day average
     bc, be50 = b1.last[4], b1.e50h[-1]
-    gates.append(_g("REGIME", bc > be50, f"BTC {'above' if bc > be50 else 'below'} its 50-day average ({_pct(bc, be50):+.1f}%)",
+    # 12 Nov (the keen audit, G-41; its outside check, P5-N4): the line is the 50-day exponential average (e50h), named as one
+    gates.append(_g("REGIME", bc > be50, f"BTC {'above' if bc > be50 else 'below'} its 50-day exponential average ({_pct(bc, be50):+.1f}%)",
                     "V02 verified (KEEP)", {"btc_close": round(bc, 2), "btc_50d": round(be50, 2)}))
 
     # 2 TREND (V01, verified): coin above its 20- and 50-day averages, 50-day not falling

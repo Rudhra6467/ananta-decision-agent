@@ -90,10 +90,11 @@ def test_what_did_the_night_test_say_reads_the_night_test(monkeypatch, tmp_path)
     j = _night_j(tmp_path)
     res = {"market": "crypto", "day": "2026-11-12", "t": MIDNIGHT_12NOV + 1800, "asked": 12, "right": 10, "ungraded": 1, "not_asked": 0,
            "wrong": [{"id": "q4", "name": "the book's value", "question": "What is the book worth?", "why": "said C$439, the book is C$467.55"}],
-           "look": [{"id": "q7", "figures": ["$81,449"]}], "stopped_for_budget": False, "cost_usd": 0.04, "line": "10 of 12 right"}
+           "look": [{"id": "q7", "name": "Bitcoin's price", "figures": ["$81,449"]}], "stopped_for_budget": False, "cost_usd": 0.04, "line": "10 of 12 right"}
     monkeypatch.setattr(nightcheck, "latest", lambda: dict(res))
     out = ask.Lookups(j).call("night_test", {})
     assert (out["evening"], out["asked"], out["right"], out["could_not_mark"], out["figures_worth_a_second_look"]) == ("Wed 11 Nov", 12, 10, 1, 1)
+    assert out["the_figures"] == [{"question": "Bitcoin's price", "figures": ["$81,449"]}]     # P5-N9: the figures, not only how many
     assert out["wrong"] == [{"question": "What is the book worth?", "why": "said C$439, the book is C$467.55"}]
     assert "not the nightly trade review" in out["not_this"]
     assert '"What did the night test say?" -> night_test' in ask.SYSTEM
@@ -145,8 +146,8 @@ def test_a_backup_answer_may_not_deny_a_record():
     assert ask.backup_cannot_deny(dict(deny), "sonnet", "sonnet") is False                  # Claude itself may say what is not there
     assert ask.backup_cannot_deny(dict(deny), "gemini", "gemini") is False                  # an everyday answer was meant to be Gemini's
     assert ask.backup_cannot_deny({"kind": "answer", "answer": "Review 42 waits until 15 Dec."}, "sonnet", "gemini") is False
-    for said in ("There is no such review.", "That study does not exist.", "I did not run it yet", "No record of that trade."):
-        assert ask.DENIES_A_RECORD.search(said), said
+    for said in ("There is no such review.", "That study does not exist.", "I did not run review 42 yet", "No record of that trade."):
+        assert ask.denies_a_record(said), said
 
 
 def test_when_claude_fails_the_backups_denial_is_withheld_and_the_reason_kept():
@@ -260,3 +261,163 @@ def test_india_no_longer_says_the_sealed_years_were_never_looked_at():
     assert pts[1] == ("1440 versions were tested on 2000-2017 and then checked on 2018-2023, never on 2024 onward. The years from 2024 are kept "
                       "sealed from research; they were opened on 20 Oct 2026 for another study, the index options line.")
     assert not any("never looked at" in x for x in pts)
+
+
+# ------------------------------------------------------------------------------------------------ repair 5's outside check (P5-N1 to N9)
+
+def _notes(j, *rows):
+    officer._table(j)
+    for day, t in rows:
+        j.db.execute("INSERT INTO officer_notes (day, t, note, facts, cost_usd) VALUES (?,?,?,?,?)", (day, t, "a note", "{}", 0.0))
+    j.db.commit()
+
+
+def test_tonight_starts_at_the_close_never_at_the_note_before_last(monkeypatch, tmp_path):
+    # P5-N1: once tonight's note was written, "tonight" reached back to the note before it (about 42 hours at 1 pm), so a daytime buy of
+    # the day before was called tonight's
+    j = _night_j(tmp_path)
+    _notes(j, ("2026-11-11", MIDNIGHT_12NOV - DAY + 352), ("2026-11-12", MIDNIGHT_12NOV + 360))
+    j.db.execute("INSERT INTO evidence_trades (id, watch, coin, source, signal_t, entry_t, status) VALUES (?,?,?,?,?,?,?)",
+                 ("b0", "JARVIS_BOLD", "SOL", "test", MIDNIGHT_12NOV - 6 * 3600, MIDNIGHT_12NOV - 6 * 3600, "OPEN"))  # 1 pm Wed, before the close
+    j.db.commit()
+    monkeypatch.setattr(ask, "_book_status", lambda j: {"value_cad": 467.55, "cash_cad": 467.55, "positions": {}})
+    assert officer.night_window(j)[2] == MIDNIGHT_12NOV - DAY + 352           # the note's own night still runs from the note before it
+    out = ask.Lookups(j).call("books_tonight", {})
+    assert out["bold_book_bought_tonight"] == ["ZEC"]                          # the 7:09 pm buy; never Wednesday's 1 pm one
+    assert out["tonight"].startswith("since the Wed 11 Nov daily close (7 pm Toronto)")
+
+
+def test_the_random_twins_are_counted_apart_open_and_closed(monkeypatch, tmp_path):
+    # P5-N7: the closes under "measuring books" took in the random twins' closes while the open count left the twins out
+    j = _night_j(tmp_path)
+    shut = MIDNIGHT_12NOV - DAY                                                 # stamped with the 11 Nov candle's open: tonight's closes
+    for i, w, c in (("r2", "RANDOM_BOLD", "DOGE"), ("r3", "JARVIS_RANDOM", "LINK"), ("c1", "H07-UA", "ADA")):
+        j.db.execute("INSERT INTO evidence_trades (id, watch, coin, source, signal_t, entry_t, exit_t, status, net_usd) VALUES (?,?,?,?,?,?,?,?,?)",
+                     (i, w, c, "test", shut - 3 * DAY, shut - 3 * DAY, shut, "CLOSED", 1.0))
+    j.db.execute("INSERT INTO evidence_trades (id, watch, coin, source, signal_t, entry_t, status) VALUES (?,?,?,?,?,?,?)",
+                 ("r4", "JARVIS_RANDOM", "AVAX", "test", MIDNIGHT_12NOV + 600, MIDNIGHT_12NOV + 600, "OPEN"))
+    j.db.commit()
+    monkeypatch.setattr(ask, "_book_status", lambda j: {"value_cad": 467.55, "cash_cad": 467.55, "positions": {}})
+    out = ask.Lookups(j).call("books_tonight", {})
+    mb, tw = out["measuring_books"], out["random_twins"]
+    assert mb["closed_tonight_by_rule"] == {"H07-UA": {"n": 1}}                # a book's close, a count; no twin, no money before 15 Dec
+    assert (tw["open"], tw["closed_tonight"]) == (2, 2) and "never a book" in tw["what"]
+    assert "JARVIS_RANDOM" not in mb["open_by_book"] and mb["open_in_all"] == 8
+    nc = officer.night_counts(j)
+    assert nc["twins_open"] == 2 and nc["evidence_rows_open"] == 8 and "JARVIS_RANDOM" not in nc["open_by_book"]
+
+
+def test_the_backup_guard_reads_curly_apostrophes_and_lets_everyday_answers_through():
+    # P5-N2 and N3: the outside check's own sentences (planned Claude Sonnet, answered by Gemini)
+    withheld = ["We haven’t run a review 42 yet.", "We’ve never run review 42.", "I couldn't find review 42 in our records.",
+                "I don't see any review 42 on file.", "Review 42 was never run.", "There is no review 42.", "That isn't in our records."]
+    passes = ["We haven't made any trades today: the dial is closed.", "There were no trades tonight; the dial is closed.",
+              "There are no trades open in the account.", "We haven't opened any new positions since 4 Nov.", "We have not held Bitcoin since 28 Oct.",
+              "The night test has not run yet tonight; it runs after the close.", "There is no note for tonight yet; it comes after the close.",
+              "We haven't recorded enough closed trades yet to judge the bold book.", "We did not trade today.",
+              "Not yet: the forward record of review 42 is held until 15 Dec.", "Nothing is open in any book.",
+              "There is no result in review 42 yet; it is held until 15 Dec."]
+    for said in withheld:
+        r = {"kind": "answer", "answer": said}
+        assert ask.backup_cannot_deny(r, "sonnet", "gemini") is True and r["answer"] == ask.BACKUP_CANNOT_DENY, said
+    for said in passes:
+        r = {"kind": "answer", "answer": said}
+        assert ask.backup_cannot_deny(r, "sonnet", "gemini") is False and r["answer"] == said, said
+    # the budget path: Claude is out until midnight, so "ask me again in a minute" would not be true
+    r = {"kind": "answer", "answer": "We haven't run a review 42 yet."}
+    assert ask.backup_cannot_deny(r, "sonnet", "gemini", "Claude budget for today ($2.00) is used up, so Gemini answered") is True
+    assert r["answer"] == ask.BACKUP_CANNOT_DENY_BUDGET and "until midnight Toronto time" in r["answer"] and "in a minute" not in r["answer"]
+
+
+def test_over_budget_the_withheld_answer_says_after_midnight(monkeypatch):
+    from tests.test_ask_ananta import _jarvis
+    j, ex = _jarvis()
+
+    def gemini(s, h, u, t, log):
+        return json.dumps({"answer": "We haven’t run a review 42 yet.", "kind": "answer", "follow_ups": []}), {"in": 1, "out": 1}
+
+    a = ask.Ask(j, providers={"sonnet": lambda *x, **k: (_ for _ in ()).throw(AssertionError("over budget: never called")), "gemini": gemini})
+    j.db.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", ("daily_budget_usd", "0"))
+    j.db.commit()
+    out = a.ask("owner", "What did review 42 find about buying after drops?", mode="deep")
+    assert out["answer"] == ask.BACKUP_CANNOT_DENY_BUDGET
+    note = j.db.execute("SELECT note FROM ask_messages WHERE role='assistant' ORDER BY t DESC LIMIT 1").fetchone()[0]
+    assert "is used up, so Gemini answered" in note and "the backup model's answer denied a record, so it was withheld" in note
+
+
+def test_the_note_the_eye_the_lookups_and_the_chain_name_the_exponential_line(monkeypatch, tmp_path):
+    # P5-N4: the dial's raw words ("below its 50-day average (79,104)") reached the nightly note's facts, the Ask's exposure lookup and the
+    # mission view; the eye's phone note and the decision chain's market gate wrote the same line as "its 50-day average"
+    import inspect
+
+    from jarvis.service import chain, ev, exposure, eye, market_shift, universe_watch, views
+    d = {"dial_words": "Closed", "why": ["Bitcoin is below its 50-day average (79,104)", "and below its 200-day average (95,000)"]}
+    assert officer.dial_why(d) == ["Bitcoin is below its 50-day exponential average (79,104)", "and below its 200-day average (95,000)"]
+    assert d["why"][0] == "Bitcoin is below its 50-day average (79,104)"            # the pinned dial's own words are untouched
+    assert 'never just "its 50-day average"' in officer.NOTE_RULES
+    assert '"why": dial_why(d)' in inspect.getsource(officer.facts)                 # the note's facts carry the named line
+    seen = []
+    monkeypatch.setattr(eye, "_cool_ok", lambda key, cool, now: True)
+    monkeypatch.setattr(eye, "_event", lambda j, kind, coin, p, title, body, push, extra: seen.append(title) or {"id": "e1"})
+    j = J(tmp_path, now=MIDNIGHT_12NOV + 3600)
+    market_shift.live(j, {"BTC": 70000.0}, {"btc_ema50": 79000.0, "regime": "ALLOWED"})
+    market_shift.live(j, {"BTC": 90000.0}, {"btc_ema50": 79000.0, "regime": "RISK_OFF"})
+    assert seen == ["Bitcoin is under its 50-day exponential average", "Bitcoin is back above its 50-day exponential average"]
+    src = inspect.getsource(market_shift.close)                                     # the close's phone note, said on a regime change
+    assert "closed under its 50-day exponential average" in src and "closed above its 50-day exponential average" in src
+    assert "its 50-day exponential average ({_pct(bc, be50)" in inspect.getsource(chain)
+    monkeypatch.setattr(exposure, "state", lambda j: d)
+    monkeypatch.setattr(exposure, "books", lambda j: {})
+    monkeypatch.setattr(ev, "table", lambda: [])
+    monkeypatch.setattr(ev, "fidelity", lambda j: {})
+    monkeypatch.setattr(universe_watch, "would_be", lambda j: {})
+    monkeypatch.setattr("jarvis.service.app._main", lambda: j)                     # never the service's own book
+    out = ask.Lookups(j).call("exposure", {})
+    assert out["dial"]["why"][0] == "Bitcoin is below its 50-day exponential average (79,104)" and out["dial"]["dial_words"] == "Closed"
+    assert d["why"][0] == "Bitcoin is below its 50-day average (79,104)"            # a copy: the dial's cache is never changed
+    monkeypatch.setattr(officer, "book_status", lambda j: {"value_cad": 467.55, "cash_cad": 467.55, "positions": {}})
+    monkeypatch.setattr(officer, "latest", lambda j, n=1: [])
+    acct = views.mission(j)["account"]
+    assert acct["dial"]["why"][0] == "Bitcoin is below its 50-day exponential average (79,104)"
+    assert acct["next"] == "the next decision comes at the daily close (7 pm Toronto)"
+
+
+def test_the_daily_close_is_7_pm_in_winter_and_8_pm_in_summer(monkeypatch, tmp_path):
+    from jarvis.service import reads_watch, setups
+    assert officer.close_clock(MIDNIGHT_12NOV + 5 * 3600) == "7 pm"
+    assert officer.close_clock(1782864000 + 3600) == "8 pm"                          # 1 Jul 2026: its close was 8 pm on 30 Jun, Toronto
+    j = J(tmp_path, now=MIDNIGHT_12NOV + 5 * 3600)
+    assert reads_watch._close_clock(j) == "7 pm"
+    monkeypatch.setattr(setups, "latest", lambda j: None)
+    assert ask.Lookups(j).call("setups_board", {})["board"] == "no board yet: the first scan runs after the next daily close (7 pm Toronto)"
+
+
+def test_my_book_opens_the_account_and_the_manual_book_is_called_so():
+    # P5-N6: "my book" and "my paper book" moved the screen to the manual book; the tour and the weekly summary called it "your own paper book"
+    import inspect
+
+    from jarvis.service import appmap, week
+    assert appmap.guess("How is my book doing?") == "home" and appmap.guess("show me my paper book") == "home"
+    assert appmap.guess("what is in the manual book?") == "portfolio:mine"
+    tour = inspect.getsource(appmap.tour)
+    assert "your own paper book" not in tour and "And this is the manual book." in tour
+    src = inspect.getsource(week.week)
+    assert "Your own paper book" not in src and '"The manual book (orders you asked for by hand)"' in src
+
+
+def test_the_evidence_card_is_named_by_the_evening_it_was_made(monkeypatch, tmp_path):
+    # P5-N8: the card made at 00:40 UTC on 12 Nov (7:40 pm Toronto on Wed 11 Nov) read "Updated 12 Nov" on More
+    from jarvis.service import missed, reconstruct
+    j = _fake_today(monkeypatch, tmp_path)
+    monkeypatch.setattr(missed, "recent", lambda j, days: {"counts": {"CAUGHT": 9, "SEEN": 20, "MISSED": 0, "CAUGHT_TRADE_OK": 0}, "moves": []})
+    card = {"day": "2026-11-12", "t": MIDNIGHT_12NOV + 2400, "about_day": "2026-11-11", "findings": [], "market": {"dial_words": "Closed"}}
+    monkeypatch.setattr(reconstruct, "latest", lambda j: dict(card))
+    p = S.proof(j)
+    assert p["last_night"]["evening"] == "Wed 11 Nov" and p["last_night"]["words"].startswith("Wed 11 Nov: Closed.")
+    out = ask.Lookups(j).call("discipline", {"part": "reconstruction"})
+    assert out["reconstruction_last_night"]["made_on_the_evening_of"] == "Wed 11 Nov"
+    j2 = crypto_setup(monkeypatch)
+    monkeypatch.setattr(S, "proof", lambda j: p)
+    more = CP.more(j2)
+    tiles = {t["label"]: t["value"] for part in more["parts"] if part.get("t") == "tiles" for t in part["items"]}
+    assert tiles["The evidence"] == "Updated Wed 11 Nov" and not K.problems("more", more)

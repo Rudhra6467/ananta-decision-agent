@@ -265,7 +265,7 @@ TOOLS = [
     ("about_ananta", "Ananta's book about itself (5 Nov): what changed in Ananta and when (the change book: every back-end change since 9 Oct, both markets, live or not), how its own parts work right now (the voice, the voice print, the watchdog), its database (parts.database: every table in plain words with live row counts, and where India's data lives) and the live self-check of what is not right (not_right) and what it found fine (checked_fine). Use for 'what do you keep in your database', 'what tables', 'where does my data live', 'what changed', 'what's new', 'was X fixed', 'how does your voice work now', 'is anything wrong', 'what did we do in the back end'. NOT trading events (that is changes).", _schema({"topic": {"type": "string", "description": "what he asked about, in his words"}})),
     ("idea_status", "Status cards: for any idea, setup, filter, indicator or rule Ananta knows (e.g. buying pressure, funding, the short dip trade, zones, your setups, Fear & Greed): how strong its evidence is (SUPPORTED / WEAK / CONFLICTING / INSUFFICIENT / REJECTED / UNTESTED), what it may do (PAPER / CONTEXT / OFF), why, and which reviews. Without idea: all cards. Use for 'can we trade on X', 'is X proven', 'why don't we use X', 'what is allowed to make trades'.", _schema({"idea": {"type": "string", "description": "Optional: name, id or alias"}})),
     ("universe", "Our 120-coin universe (the research lake), at three levels: LIVE 10, PAPER TIER 30, RESEARCH 120. With coin (symbol or name, e.g. SUI, Pepe, POL): what Ananta does with it, history and data quality, trading costs, whether NDAX lists it against CAD, price now and 7/30/90/365-day change, distance from its all-time high, volatility, volume, buying pressure, futures funding and open interest (context), the 30-coin tier's T3-B rating and H07-T30 trades, and what each research review found on its tier; says plainly when a coin is not in the 120. Without coin: a tier's coins (tier LAB10 | TOP30 | ALL), optionally ranked (rank_by change | from_ath | volatility | volume | funding; days for change, default 30). Use for 'what do we know about X', 'is X in our data', 'which of the 30 is strongest', 'which coins are on NDAX', 'what is the 30-coin book holding'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for a tier view"}, "tier": {"type": "string"}, "rank_by": {"type": "string"}, "days": {"type": "number"}, "top": {"type": "number"}})),
-    ("exposure", "The exposure dial and the scoreboard every strategy is judged against (engine fixes 1-4, reviews #25 and #26). Returns: the dial now (OPEN = buying allowed, CLOSED = no new buys, cash is the position; v1 = Bitcoin above its 50-day AND 200-day averages) and why; the paper books since the dial started (HOLD, GATE50 = the benchmark/hurdle, GATE50_200 = the dial, GATE50_VOL = challenger); the measured-edge table (which daily rule has an edge in which market state and tier, % per trade over random after costs; anything missing has none); and the would-be $2,000 account in R against the hurdle. Use for 'can we buy today', 'why no trades', 'are we beating the benchmark', 'which setups actually have an edge', 'how much should one trade risk'.", _schema({})),
+    ("exposure", "The exposure dial and the scoreboard every strategy is judged against (engine fixes 1-4, reviews #25 and #26). Returns: the dial now (OPEN = buying allowed, CLOSED = no new buys, cash is the position; v1 = Bitcoin above its 50-day exponential AND 200-day averages) and why; the paper books since the dial started (HOLD, GATE50 = the benchmark/hurdle, GATE50_200 = the dial, GATE50_VOL = challenger); the measured-edge table (which daily rule has an edge in which market state and tier, % per trade over random after costs; anything missing has none); and the would-be $2,000 account in R against the hurdle. Use for 'can we buy today', 'why no trades', 'are we beating the benchmark', 'which setups actually have an edge', 'how much should one trade risk'.", _schema({})),
     ("whole_market", "Every coin Ananta watches live (Universe Rule v2: about 390 coins trading on Binance against USDT; tier A over $20M a day, B $1M-$20M, C under $1M, watched but never judged). view: movers_up | movers_down | near_zone (closest to a support zone history supports) | watched (counts, the feed's health) | scoreboard (each rule on every coin per tier against its random baseline, in market days) | coin (one coin's live card: tier, name, price, today's change, zones, can-buy on NDAX/Kraken, open paper trades on it). Optional tier (A, B, C, AB) and n. Use for 'what moved most today across the market', 'which coins are near support', 'how many coins do you watch', 'is the dip trade working on the bigger coins', 'what about <a coin outside the 120>'.", _schema({"view": {"type": "string"}, "tier": {"type": "string"}, "coin": {"type": "string"}, "n": {"type": "number"}})),
     ("prices", "Price history from our stored candles (10 live coins, intraday; any other coin of the 120-coin universe, daily). With coin: open/high/low/close and change over a window (days, default 7; or start/end as YYYY-MM-DD or 'YYYY-MM-DD HH:MM' Toronto), when the high and low happened, how far price is from them, best and worst day, day by day (hour by hour for 2 days or less). Without coin: all 10 coins ranked over the window with each one's change against Bitcoin (relative strength / momentum ranking). what='coverage': the first and last stored candle per coin. Use for 'what was the high this week', 'how did each coin do', 'which coin is strongest', 'good days to trade', 'where was BTC on Tuesday', 'how far are we from the top'.", _schema({"coin": {**COIN, "description": "Optional coin; omit to compare all 10"}, "days": {"type": "number"}, "start": {"type": "string"}, "end": {"type": "string"}, "what": {"type": "string", "description": "optional: coverage"}})),
     ("introduce", "Madhav hands the conversation to one of his people. Call it IMMEDIATELY, in this same answer, whenever Madhav says someone is with him or asks you to talk to someone ('Ananta, this is Sam', 'my mom is here, say hi', 'talk to Anu'): never ask him to hand over first. Then your answer IS the greeting to that person (their opener, in their language). From then on you talk WITH that person directly. A handover can come at any time, even while you are talking with someone else: it is Madhav on his phone; never refuse it.", _schema({"name": {"type": "string"}})),
@@ -1421,7 +1421,10 @@ class Lookups:
                 out["rules"]["core_now"] = {"mode": core.get("mode"), "words": core.get("mode_words"), "replaces": "item 4 (the core in thirds) while the mode is all_in"}
         if part in ("reconstruction", "all"):
             c = reconstruct.latest(self.j)
-            out["reconstruction_last_night"] = ({"day": c.get("day"), "about_day": c.get("about_day"), "headline": c.get("headline"), "findings": c.get("findings"),
+            from jarvis.service import officer as _officer       # P5-N8: the evening it was made, as Proof and More name it
+
+            out["reconstruction_last_night"] = ({"day": c.get("day"), "made_on_the_evening_of": _officer.evening(c.get("t")) if c.get("t") else None,
+                                                 "about_day": c.get("about_day"), "headline": c.get("headline"), "findings": c.get("findings"),
                                                 "not_done": c.get("not_done"), "reviews_by_tag": (c.get("reviews") or {}).get("by_tag"), "forwarding": c.get("forwarding")} if c else
                                                "no card yet: the first one is written after the next daily close")
             # 6 Nov 2026 (the reconstruction audit): asked what it had found since 24 Oct, the Ask said it could see only last night's card.
@@ -1453,7 +1456,9 @@ class Lookups:
 
         b = setups.latest(self.j)
         if not b:
-            return {"board": "no board yet: the first scan runs after the next daily close (8 pm Toronto)"}
+            from jarvis.service import officer                  # 12 Nov: 7 pm in winter, 8 pm in summer, never a fixed hour
+
+            return {"board": f"no board yet: the first scan runs after the next daily close ({officer.close_clock(self.j.now())} Toronto)"}
         rows = b.get("rows") or []
         if coin:
             rows = [r for r in rows if r["coin"] == coin.upper()]
@@ -1510,22 +1515,34 @@ class Lookups:
 
         if self.guest:
             return {"error": "Every book here is the owner's; a visitor cannot see them."}
-        win = officer.night_window(self.j)
+        # 12 Nov (the outside check of repair 5, P5-N1): the note's own night runs from the note before it, so once tonight's note is written
+        # a daytime question reached back about 42 hours; "tonight" here is since the last daily close: that candle's signals and closes,
+        # and what acted after the close
+        now = int(self.j.now())
+        close = now - now % 86400
+        win = (close - 86400, close, close, now)
         nc = officer.night_counts(self.j, win)
         st = _book_status(self.j)
         try:
-            fills = self.j.db.execute("SELECT coin, side FROM book500_fills WHERE t >= ? ORDER BY t", (win[1],)).fetchall()
+            fills = self.j.db.execute("SELECT coin, side FROM book500_fills WHERE t >= ? ORDER BY t", (close,)).fetchall()
         except Exception:  # noqa: BLE001
             fills = []
         xs = self.ex.status() if self.ex else None
-        return {"tonight": f"since the {officer.evening(win[1])} daily close (7 pm Toronto); the rules' signals and closes of that candle",
+        # P5-N7: the random twins are yardsticks, not books: counted apart, open and closed alike
+        twin = lambda w: str(w).startswith("RANDOM") or str(w) == "JARVIS_RANDOM"   # noqa: E731
+        open_books = {w: n for w, n in (nc.get("open_by_book") or {}).items() if not twin(w)}
+        closed = nc.get("closed_today_by_rule") or {}
+        return {"tonight": f"since the {officer.evening(close)} daily close ({officer.close_clock(close)} Toronto): that candle's signals and closes, and what acted after it",
                 "your_account": {"what": "THE $500 ACCOUNT, his account on paper (CAD)", "bought_tonight": [c for c, s in fills if s == "BUY"],
                                  "sold_tonight": [c for c, s in fills if s == "SELL"], "holds": sorted((st.get("positions") or {}).keys()),
                                  "value_cad": st.get("value_cad"), "cash_cad": st.get("cash_cad")},
                 "bold_book_bought_tonight": nc.get("bold_bought_tonight"),
                 "measuring_books": {"what": "books that measure ideas on paper, never his money; counts only until 15 Dec",
-                                    "open_by_book": nc.get("open_by_book"), "open_in_all": nc.get("evidence_rows_open"),
-                                    "signals_tonight_by_rule": nc.get("signals_today_by_rule"), "closed_tonight_by_rule": nc.get("closed_today_by_rule")},
+                                    "open_by_book": open_books, "open_in_all": sum(open_books.values()),
+                                    "signals_tonight_by_rule": nc.get("signals_today_by_rule"),
+                                    "closed_tonight_by_rule": {w: x for w, x in closed.items() if not twin(w)}},
+                "random_twins": {"what": "each trade's random twin, the yardstick it is judged against; never a book",
+                                 "open": nc.get("twins_open"), "closed_tonight": sum(int((x or {}).get("n") or 0) for w, x in closed.items() if twin(w))},
                 "explorer_open_trades": len(xs["open"]) if xs else None, "brain_decisions_tonight": nc.get("brain_today"),
                 "say": "say what the $500 account did first; then, if asked, the bold book and the measuring books in counts; never say a book "
                        "holds nothing unless its count here is 0"}
@@ -1543,7 +1560,10 @@ class Lookups:
         return {"what_it_is": "Ananta asks itself a fixed bank of questions after the daily close and marks each answer against the book",
                 "evening": officer.evening(r.get("t")), "asked": r.get("asked"), "right": r.get("right"),
                 "wrong": [{"question": w.get("question"), "why": w.get("why")} for w in (r.get("wrong") or [])[:8]],
+                # P5-N9: the figures themselves (which answer, which figures), not only how many
                 "could_not_mark": r.get("ungraded"), "figures_worth_a_second_look": len(r.get("look") or []),
+                "the_figures": [{"question": x.get("name"), "figures": list(x.get("figures") or [])[:8]} for x in (r.get("look") or [])[:5]],
+                "figures_rule": "figures in an answer that match nothing Ananta read for it; a list for a person to look at, not counted as wrong",
                 "stopped_for_budget": r.get("stopped_for_budget"), "not_asked": r.get("not_asked"), "cost_usd": r.get("cost_usd"),
                 "line": r.get("line"), "not_this": "not the nightly trade review (trade_reviews), not the nightly note (officer_note)"}
 
@@ -1699,7 +1719,13 @@ class Lookups:
             j = _app._main()
         except Exception:  # noqa: BLE001
             pass
-        return {"dial": exposure.state(j), "books": exposure.books(j), "measured_edges": ev.table(),
+        # 12 Nov (the keen audit, G-41; its outside check, P5-N4): the dial's words name the exponential average. A copy,
+        # so the pinned exposure file's own cache is never changed.
+        from jarvis.service import officer
+
+        dial = dict(exposure.state(j) or {})
+        dial["why"] = officer.dial_why(dial)
+        return {"dial": dial, "books": exposure.books(j), "measured_edges": ev.table(),
                 "account": universe_watch.would_be(j), "fidelity": ev.fidelity(j),
                 "note": "Paper only. A setup with no row in measured_edges has no measured edge: the brain defaults to PASS on it when the dial is closed."}
 
@@ -2137,27 +2163,56 @@ def route(text: str) -> tuple[str, str]:
     return "gemini", "Auto: Gemini, everyday question"
 
 
-DENIES_A_RECORD = re.compile(
-    r"\b(?:we|i)\s+(?:haven'?t|have not|hasn'?t|has not|never|didn'?t|did not)\s+(?:yet\s+)?(?:run|done|made|had|started|recorded|opened|written|got|held)\b"
-    r"|\bno record (?:of|that)\b|\bthere (?:is|are|was|were|'s) no (?:such )?(?:review|record|trade|test|note|book|study|checkpoint)s?\b"
-    r"|\b(?:does not|doesn'?t|did not|didn'?t) exist\b|\bnever (?:ran|happened|existed)\b|\bnot (?:been )?(?:run|started) yet\b", re.I)
+# 12 Nov 2026 (G-34; repair 5's outside check, N2 and N3). A backup answer is withheld when one of its sentences says a RECORD OF THE WORK
+# does not exist: a review, a study, a checkpoint, a finding, a registration, an experiment, an audit, a ledger, anything with a number
+# ("review 42", "study 7", "#42"), or anything "on file" or "in our records". Everyday answers about trades, positions, holdings, the dial,
+# tonight's note or tonight's night test pass: the backup is handed those in its data ("There were no trades tonight" is true, and was
+# withheld by the first word list). Curly apostrophes count as straight ones ("We haven’t run a review 42 yet" got through the first list).
+_RECORD = (r"(?:reviews?|stud(?:y|ies)|checkpoints?|findings?|records?|registrations?|experiments?|audits?|ledgers?"
+           r"|(?:review|study|test|flag|item|finding|checkpoint|experiment|rule|version|package|repair|number|no\.?)\s*#?\d+|#\d+)\b")
+_MADE = r"(?:yet\s+)?(?:run|done|made|had|started|recorded|opened|written|published|filed|conducted|held|carried\s+out)"
+_NEAR = r"\W+(?:[\w']+\W+){0,2}?"                                          # up to two words between the denial and the record
+_DENIAL_THEN_RECORD = (
+    r"(?:\b(?:we|i)(?:'ve|\s+have|\s+had)?\s+(?:not|never)\s+" + _MADE
+    + r"|\b(?:we|i)\s+(?:haven't|hadn't|didn't|did\s+not)\s+" + _MADE
+    + r"|\b(?:we|i)\s+(?:couldn't|could\s+not|can't|cannot|can\s+not)\s+(?:find|locate|see)"
+    + r"|\b(?:we|i)\s+(?:don't|do\s+not|didn't|did\s+not)\s+(?:see|have|find))" + _NEAR + _RECORD)
+_NO_RECORD = (r"\b(?:there\s+(?:is|are|was|were|'s)|(?:we|i)(?:'ve|\s+have)|shows?|showed|holds?|has|have|contains?|lists?)\s+no\s+(?:such\s+)?(?:[\w']+\s+)?"
+              + _RECORD + r"|\bno\s+such\s+" + _RECORD
+              + r"|\bno\s+records?\s+(?:of|that|for|on)\b|\b(?:not|nothing|isn't|aren't|wasn't|weren't)\s+(?:on\s+file|in\s+(?:our|the)\s+records)\b")
+_RECORD_THEN_DENIAL = (_RECORD + r"\W+(?:[\w']+\W+){0,4}?(?:(?:doesn't|does\s+not|didn't|did\s+not)\s+exist|never\s+(?:ran|happened|existed|took\s+place)"
+                       r"|(?:hasn't|has\s+not|haven't|have\s+not|wasn't|was\s+not|weren't|were\s+not)\s+(?:yet\s+)?(?:been\s+)?(?:run|done|started|written|held|published|made)"
+                       r"|(?:was|were|has|have)\s+never\s+(?:been\s+)?(?:run|done|started|written|held|published|made)"
+                       r"|(?:isn't|is\s+not|aren't|are\s+not)\s+(?:on\s+file|in\s+our\s+records))")
+DENIES_A_RECORD = re.compile(r"\b(?:" + _DENIAL_THEN_RECORD + "|" + _NO_RECORD + "|" + _RECORD_THEN_DENIAL + ")", re.I)
+_APOSTROPHES = str.maketrans({"’": "'", "‘": "'", "ʼ": "'", "´": "'", "`": "'"})
 BACKUP_CANNOT_DENY = ("I can't check that properly right now: the main model wasn't available, and the backup model can't vouch for what "
                       "our records hold or don't hold. Ask me again in a minute and I'll look it up.")
+BACKUP_CANNOT_DENY_BUDGET = ("I can't check that properly right now: today's Claude budget is used up until midnight Toronto time, and the "
+                             "backup model can't vouch for what our records hold or don't hold. Ask me again after midnight, or raise the "
+                             "budget under More › Voice and model and ask again.")
 
 
-def backup_cannot_deny(reply: dict, planned: str, used: str) -> bool:
+def denies_a_record(text: str) -> bool:
+    """True when a sentence of the text says a record of the work does not exist (see _RECORD above)."""
+    s = str(text or "").translate(_APOSTROPHES)
+    return any(DENIES_A_RECORD.search(x) for x in re.split(r"(?<=[.!?;])\s+|\n+", s) if x.strip())
+
+
+def backup_cannot_deny(reply: dict, planned: str, used: str, note: str = "") -> bool:
     """12 Nov 2026 (the keen outside audit, G-34): two crypto answers on 11 Nov came from the free backup model after Claude could not
     answer; one said "we haven't run a review 42 yet" five minutes after another answer described review 42. A backup answer may still
     say what it found, but it may not deny that a record exists: that answer is withheld (kept in the reply as backup_withheld) and the
-    owner is asked to ask again. Returns True when it withheld one."""
+    owner is asked to ask again, at a time that is true (after midnight when the budget is what stood in the way). Returns True when it
+    withheld one."""
     try:
         fell_back = MODELS[planned]["provider"] == "claude" and MODELS[used]["provider"] != "claude"
     except KeyError:
         return False
-    if not fell_back or reply.get("kind") != "answer" or not DENIES_A_RECORD.search(str(reply.get("answer") or "")):
+    if not fell_back or reply.get("kind") != "answer" or not denies_a_record(reply.get("answer") or ""):
         return False
     reply["backup_withheld"] = reply.get("answer")
-    reply["answer"] = BACKUP_CANNOT_DENY
+    reply["answer"] = BACKUP_CANNOT_DENY_BUDGET if "budget" in str(note or "").lower() else BACKUP_CANNOT_DENY
     reply["breakdown"], reply["evidence"] = [], []
     return True
 
@@ -3040,7 +3095,7 @@ class Ask:
         if reply["kind"] in ("clarify", "not_understood") and source != "eval":     # 12 Nov (G-55): a test question is not his
             self.j.db.execute("INSERT INTO ask_misunderstood VALUES (?,?,?,?,?)", (now, thread, text, reply["kind"], used))
         ms = int(1000 * (time.time() - t0))
-        if backup_cannot_deny(reply, planned, used):
+        if backup_cannot_deny(reply, planned, used, note or ""):
             note = (note + "; " if note else "") + "the backup model's answer denied a record, so it was withheld"
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created

@@ -792,7 +792,8 @@ def more(j) -> dict:
     n = c["list"].get("counts") or {}
     ex = p.get("exam") or {}
     mi = p.get("missed") or {}
-    ev_day = (p.get("last_night") or {}).get("day")
+    ev = p.get("last_night") or {}                       # P5-N8: the evening the card was made, as Proof names it, never its UTC day
+    ev_day = ev.get("evening") or (S._dm(ev.get("day")) if ev.get("day") else None)
     ppl = S.people(j, is_owner=True)
     you = you_rows(c["list"])
     push = next((r for r in you if "phone notes" in str(r.get("title")).lower()), None)
@@ -804,7 +805,7 @@ def more(j) -> dict:
                                # 12 Nov (G-50): "Missed 0 of 29 moves" for a week the account held nothing; the tile says only what the rule
                                # checks (a move noticed or not), and the evidence tile its last night, never a constant "Live"
                                K.tile("Big moves", f"{mi['big'] - mi.get('missed', 0)} of {mi['big']} noticed" if "big" in mi else "Last 7 days", "eye", "blue", K.route("/missed")),
-                               K.tile("The evidence", f"Updated {S._dm(ev_day)}" if ev_day else "Not run yet", "bars", "blue", K.route("/reconstruction"))]),
+                               K.tile("The evidence", f"Updated {ev_day}" if ev_day else "Not run yet", "bars", "blue", K.route("/reconstruction"))]),
              K.tiles("You and others", [K.tile("People", f"{len(ppl.get('people') or [])} on the list", "people", "violet", K.place("people")),
                                         K.tile("The open list", f"{n.get('YOU', 0)} need you", "list", "violet", K.place("openlist")),
                                         K.tile("Repair board", f"{n.get('WORK', 0)} to do", "flag", "violet", K.route("/flags"))]),

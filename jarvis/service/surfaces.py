@@ -686,7 +686,12 @@ def proof(j) -> dict:
     for f in r.get("findings") or []:
         kinds[f.get("kind")] = kinds.get(f.get("kind"), 0) + 1
     found = ", ".join(f"{n} {FINDING_WORDS.get(k, (k.lower(), k.lower()))[0 if n == 1 else 1]}" for k, n in kinds.items())
-    last_night = (f"{_dw(r.get('day'))}: {(r.get('market') or {}).get('dial_words') or ''}. "
+    # 12 Nov (the keen audit's outside check of repair 5, N8): the card made at 00:40 UTC on 12 Nov is Wednesday evening's (G-28's evening
+    # rule); its UTC day said Thursday. Named by the Toronto evening of the moment it ran.
+    from jarvis.service import officer as _officer
+
+    ev_when = _officer.evening(r.get("t")) if r.get("t") else (_dw(r.get("day")) if r.get("day") else "")
+    last_night = (f"{ev_when}: {(r.get('market') or {}).get('dial_words') or ''}. "
                   + (f"Found {found}. Each is noted on the card; nothing changes a rule before the 14 Dec review." if found
                      else "Found nothing new. Nothing changes a rule before the 14 Dec review.")) if r else None
     return {"ready": True, "paper": True, "market": "crypto",
@@ -700,7 +705,7 @@ def proof(j) -> dict:
             # 12 Nov (G-50): the counts themselves, so a tile never reads "0 missed of 29" as if the account had been in them
             "missed": {"words": missed_words, "day": "last 7 days", "big": n_big, "held": c.get("CAUGHT", 0), "seen": c.get("SEEN", 0),
                        "missed": c.get("MISSED", 0), "held_by_trading_books": c.get("CAUGHT_TRADE_OK", 0)} if missed_words else None,
-            "last_night": {"words": last_night, "day": r.get("day")} if last_night else None,
+            "last_night": {"words": last_night, "day": r.get("day"), "t": r.get("t"), "evening": ev_when} if last_night else None,
             "links": [{"label": "The repair board", "route": "/flags"}, {"label": "What we missed", "route": "/missed"},
                       {"label": "The nightly evidence", "route": "/reconstruction"}]}
 

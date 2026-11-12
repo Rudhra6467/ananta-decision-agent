@@ -928,8 +928,10 @@ def mission(j) -> dict:
             lab.append({"id": sid, "name": sv.get("name"), "status": sv.get("status"), "verdict": sv.get("verdict")})
         out["account"] = {"started": st.get("started"), "value_cad": st.get("value_cad"), "start_cad": 500.0, "return_pct": st.get("return_pct"),
                           "cash_cad": st.get("cash_cad"), "positions": st.get("positions") or {}, "brakes": st.get("brakes"),
-                          "dial": {"state": d.get("dial_words"), "why": d.get("why")}, "last_step": st.get("last_step"),
-                          "execution_check": st.get("execution_check"), "next": "the next decision comes at the daily close (8 pm Toronto)",
+                          # 12 Nov (G-41; its outside check, P5-N4): the dial's words name the exponential average
+                          "dial": {"state": d.get("dial_words"), "why": officer.dial_why(d)}, "last_step": st.get("last_step"),
+                          "execution_check": st.get("execution_check"),
+                          "next": f"the next decision comes at the daily close ({officer.close_clock(j.now())} Toronto)",   # 12 Nov: not a fixed 8 pm
                           "note": notes[0] if notes else None, "lab": lab, "pushed_rule": strategy_status.pushed_rule(),
                           "core_plan": st.get("core_plan")}
         try:  # discipline items 5 and 8 (24 Oct 2026): tonight's one plan line and the officer's checks, beside the note

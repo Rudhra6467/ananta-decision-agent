@@ -43,11 +43,12 @@ def live(j, px: dict, armed: dict, push: Callable | None = None) -> list[dict]:
         return []
     now = float(j.now())
     if reg == "ALLOWED" and p < ema * (1 - BAND) and eye._cool_ok("shift:down", LIVE_COOLDOWN, now):
-        return [eye._event(j, "MARKET_WARN", "BTC", p, "Bitcoin is under its 50-day average",
+        # 12 Nov (the keen audit, G-41; its outside check, P5-N4): the line is the 50-day exponential average, named as one
+        return [eye._event(j, "MARKET_WARN", "BTC", p, "Bitcoin is under its 50-day exponential average",
                            f"About ${p:,.0f} against the average near ${ema:,.0f}. If the day closes under it, the market turns risk-off: {WHAT['RISK_OFF']}.",
                            push, {"ema50": ema, "regime": reg})]
     if reg == "RISK_OFF" and p > ema * (1 + BAND) and eye._cool_ok("shift:up", LIVE_COOLDOWN, now):
-        return [eye._event(j, "MARKET_WARN", "BTC", p, "Bitcoin is back above its 50-day average",
+        return [eye._event(j, "MARKET_WARN", "BTC", p, "Bitcoin is back above its 50-day exponential average",
                            f"About ${p:,.0f} against the average near ${ema:,.0f}. If the day closes above it, the market turns allowed: {WHAT['ALLOWED']}.",
                            push, {"ema50": ema, "regime": reg})]
     return []
@@ -91,7 +92,8 @@ def close(j, push: Callable | None = None) -> dict | None:
         return {"regime": reg, "changed": False}
     up, n = breadth(j)
     eye._table(j)
-    title = "Market turned risk-off: Bitcoin closed under its 50-day" if reg == "RISK_OFF" else "Market allowed again: Bitcoin closed above its 50-day"
+    title = ("Market turned risk-off: Bitcoin closed under its 50-day exponential average" if reg == "RISK_OFF"
+             else "Market allowed again: Bitcoin closed above its 50-day exponential average")                       # P5-N4
     body = (f"Close ${B.c[-1]:,.0f}, average ${B.ema50[-1]:,.0f}. {up} of {n} coins closed above their own 50-day. "
             f"What changes: {WHAT[reg]}.")
     e = eye._event(j, "MARKET_SHIFT", "BTC", B.c[-1], title, body, push, {"from": prev, "to": reg, "breadth": [up, n]})

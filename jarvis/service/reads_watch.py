@@ -69,10 +69,20 @@ def board(j) -> dict:
               "missing": next((c["name"] for c in x["conditions"] if not c["ok"]), "")} for r in rows for x in r["reads"] if x["state"] == "CLOSE"]
     out = {"day": rows[0]["day"] if rows else None, "coins": rows, "fired": fired, "close": close, "recent": recent(j),
            "history": {k: STATUS_WORDS.get(v, v) for k, v in status.items()},
-           "note": "Your three buy setups, checked on every coin at each daily close (8 pm Toronto). Evidence for you, not orders: "
+           "note": f"Your three buy setups, checked on every coin at each daily close ({_close_clock(j)} Toronto). Evidence for you, not orders: "
                    "nothing here trades."}
     _CACHE.update(key=key, board=out)
     return out
+
+
+def _close_clock(j) -> str:
+    """12 Nov 2026: the daily close on Toronto's clock (7 pm in winter, 8 pm in summer), never a fixed "8 pm"."""
+    try:
+        from jarvis.service import officer
+
+        return officer.close_clock(j.now())
+    except Exception:  # noqa: BLE001
+        return "7 pm" if time.localtime().tm_isdst == 0 else "8 pm"
 
 
 def coin(j, c: str) -> dict | None:

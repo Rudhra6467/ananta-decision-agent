@@ -67,7 +67,8 @@ def week(j, days: int = 7) -> dict[str, Any]:
         Mn = Manual(j.db, j.now)
         f = [x for x in Mn.fills(500) if (x["t"] or 0) >= since]
         st = Mn.state(j.prices())
-        own = {"label": "Your own paper book", "buys": sum(1 for x in f if x["side"] == "BUY"), "sells": sum(1 for x in f if x["side"] == "SELL"),
+        own = {"label": "The manual book (orders you asked for by hand)", "buys": sum(1 for x in f if x["side"] == "BUY"),   # P5-N6
+               "sells": sum(1 for x in f if x["side"] == "SELL"),
                "equity": st.get("equity"), "return_pct_since_start": st.get("return_pct"), "realized_since_start": st.get("realized")}
     except Exception as exc:  # noqa: BLE001
         errors["own"] = str(exc)[:160]

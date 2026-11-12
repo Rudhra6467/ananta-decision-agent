@@ -59,7 +59,8 @@ give it (before 15 Dec they never do), and that the account itself is untouched.
 results of breakouts and the bold book are never in the facts: never guess or add one. "background.missed_moves" lists the day's big moves by coin, each with what happened in plain words; a
 coin's code is a coin, never a word ("ERA" is a coin): write "a measuring book held the coin ERA on paper", never "a measuring book was in
 ERA" and never "caught" as if it were a win (11 Nov note). Mention them in one short sentence at most, and only if one touches the account. In a check's words, the books after "Paused books still closing"
-are different books from the ones before: never call a live book paused. A check with state DECIDED is one Madhav has already decided: say his decision, not a failure."""
+are different books from the ones before: never call a live book paused. A check with state DECIDED is one Madhav has already decided: say his decision, not a failure.
+The dial's line is Bitcoin's 50-day exponential average: call it that (or "the 50-day exponential line"), never just "its 50-day average"."""
 
 
 MOVE_WORDS = {"CAUGHT": "a measuring book held the coin on paper (not the account)", "SEEN": "seen; no book held the coin",
@@ -88,6 +89,17 @@ def evening(t) -> str:
     except (TypeError, ValueError, OverflowError, OSError):
         return ""
     return f"{d:%a} {d.day} {d:%b}"
+
+
+def close_clock(t=None) -> str:
+    """The daily close (00:00 UTC) on Toronto's clock: "7 pm" in winter, "8 pm" in summer. 12 Nov 2026 (repair 5's outside check): four
+    lines still said "the daily close (8 pm Toronto)" in November, when it is 7 pm."""
+    try:
+        t = int(time.time() if t is None else t)
+    except (TypeError, ValueError):
+        t = int(time.time())
+    close = t - t % 86400
+    return _dt.datetime.fromtimestamp(close, TOR).strftime("%-I %p").lower()
 
 
 def night_window(j) -> tuple[int, int, int, int]:
@@ -122,6 +134,13 @@ def night_window(j) -> tuple[int, int, int, int]:
 NIGHT_SQL = "((%(c)s %% 86400 = 0 AND %(c)s >= ? AND %(c)s < ?) OR (%(c)s %% 86400 != 0 AND %(c)s > ? AND %(c)s <= ?))"
 
 
+def dial_why(d: dict) -> list[str]:
+    """The dial's reasons as the note's facts carry them. 12 Nov 2026 (the keen audit, G-41; its outside check, P5-N4): the dial's 50-day
+    line is an exponential average, and the pinned dial writes it 'its 50-day average'; the note said 'under its 50-day average of
+    79,826', so the facts name it (the dial itself is unchanged)."""
+    return [re.sub(r"\bits 50-day average\b", "its 50-day exponential average", str(x)) for x in (d.get("why") or [])]
+
+
 def night_counts(j, win: tuple | None = None) -> dict:
     """The night's counts, one place for the nightly note and the Ask (12 Nov 2026, the keen outside audit, G-30: asked "did we buy
     anything tonight", the Ask said "Nothing is open in any book" 37 minutes after the bold book bought ZEC, with 171 measuring trades
@@ -143,9 +162,13 @@ def night_counts(j, win: tuple | None = None) -> dict:
             out["closed_today_by_rule"][watch] = {"n": n} if held else {"n": n, "net_usd": net}
         for action, n in j.db.execute("SELECT action, COUNT(*) FROM brain_decisions WHERE t > ? AND t <= ? GROUP BY action", win[2:]):
             out["brain_today"][action] = n
-        out["evidence_rows_open"] = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE status IN ('OPEN','WAITING') AND watch NOT LIKE 'RANDOM%'").fetchone()[0]
-        for watch, n in j.db.execute("SELECT watch, COUNT(*) FROM evidence_trades WHERE status IN ('OPEN','WAITING') AND watch NOT LIKE 'RANDOM%' GROUP BY watch"):
+        # P5-N7: a random twin (RANDOM_*, and the brain's JARVIS_RANDOM) is a yardstick, never a book: counted apart, open and closed alike
+        books = "watch NOT LIKE 'RANDOM%' AND watch NOT LIKE 'JARVIS_RANDOM%'"
+        out["evidence_rows_open"] = j.db.execute(f"SELECT COUNT(*) FROM evidence_trades WHERE status IN ('OPEN','WAITING') AND {books}").fetchone()[0]
+        for watch, n in j.db.execute(f"SELECT watch, COUNT(*) FROM evidence_trades WHERE status IN ('OPEN','WAITING') AND {books} GROUP BY watch"):
             out["open_by_book"][watch] = n
+        out["twins_open"] = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE status IN ('OPEN','WAITING') AND "
+                                         "(watch LIKE 'RANDOM%' OR watch LIKE 'JARVIS_RANDOM%')").fetchone()[0]
         out["bold_bought_tonight"] = [c for (c,) in j.db.execute(f"SELECT coin FROM evidence_trades WHERE watch=? AND {_night('entry_t')} ORDER BY entry_t",
                                                                   (bold.WATCH, *win))]
     except Exception as exc:  # noqa: BLE001
@@ -208,7 +231,7 @@ def facts(j, daily: dict | None = None) -> dict:
         # on 26 Oct the note said open while the book sold for "dial closed"). The note asks afresh, and says which candle it read.
         exposure._CACHE.update(t=0, v=None)
         d = exposure.state(j)
-        f["dial"] = {"state": d.get("dial_words"), "why": d.get("why"), "candle": d.get("as_of_day"), "book_stepped_on": _candle_day(j, f["day"])}
+        f["dial"] = {"state": d.get("dial_words"), "why": dial_why(d), "candle": d.get("as_of_day"), "book_stepped_on": _candle_day(j, f["day"])}
         if f["dial"]["candle"] != f["dial"]["book_stepped_on"]:
             f["dial"]["warning"] = "the dial was read from a different candle than the book stepped on: say so plainly"
     except Exception as exc:  # noqa: BLE001

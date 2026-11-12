@@ -758,13 +758,28 @@ def _log_chips(j, thread: str, reply_id: str, reply: dict) -> None:
         pass
 
 
+# 12 Nov 2026 (the outside check of audit repair 1, N6 and G-55): test questions no longer leave chips or misunderstood rows, but the old
+# ones (1,791 chips and 16 misunderstood rows in test threads at the audit's snapshot) still fed the chip ranking and the misunderstood list.
+# Every reader of those tables leaves test threads out (a test thread is one whose question rows are marked eval:); nothing is deleted.
+TEST_THREADS = "(SELECT DISTINCT thread FROM ask_messages WHERE role='user' AND COALESCE(mode, '') LIKE 'eval:%')"
+
+
+def _test_threads(j) -> str:
+    """TEST_THREADS, or an empty list where the chat table has no mode column (a database the Ask has not opened yet, or a test's own)."""
+    try:
+        cols = {r[1] for r in j.db.execute("PRAGMA table_info(ask_messages)")}
+    except Exception:  # noqa: BLE001
+        cols = set()
+    return TEST_THREADS if "mode" in cols else "()"
+
+
 def chip_stats(j, days: int = 7) -> list[dict]:
     """How often each chip was tapped when shown (the refinement loop)."""
     _chip_table(j)
     since = int(j.now()) - days * 86400
     return [{"kind": k, "text": x, "shown": n, "picked": p, "rate": round(p / n, 2) if n else None} for k, x, n, p in
-            j.db.execute("SELECT kind, ask, COUNT(*), SUM(picked) FROM ask_chips WHERE t >= ? GROUP BY kind, ask ORDER BY SUM(picked) DESC, COUNT(*) DESC",
-                         (since,))]
+            j.db.execute("SELECT kind, ask, COUNT(*), SUM(picked) FROM ask_chips WHERE t >= ? AND COALESCE(thread, '') NOT IN " + _test_threads(j)
+                         + " GROUP BY kind, ask ORDER BY SUM(picked) DESC, COUNT(*) DESC", (since,))]
 
 
 def speak_text(reply: dict) -> str:
@@ -2908,7 +2923,7 @@ class Ask:
                 exc = RuntimeError(f"Today's Claude budget is used up and Gemini's free quota is used up too. Raise the daily budget in "
                                    f"More › Voice and model, or wait: the budget resets at midnight Toronto time.")
             self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, provider, mode, ms, tools, error) VALUES (?,?,?,?,?,?,?,?,?)",
-                              (aid, thread, now + 1, "assistant", used, mode_label, ms, json.dumps(log), str(exc)[:500]))
+                              (aid, thread, now + 1, "assistant", used, ("eval:" if source == "eval" else "") + mode_label, ms, json.dumps(log), str(exc)[:500]))
             self.j.db.commit()
             return {"id": aid, "thread": thread, "provider": used, "error": str(exc)[:240]}
         model = usage.get("model") or MODELS[used]["model"] or GEMINI_MODEL
@@ -2993,7 +3008,7 @@ class Ask:
                 "route": route_name, "timing": timing}
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, note, route, timing) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                           (aid, thread, now + 1, "assistant", json.dumps({**reply, **meta}), used, model, ms,
-                           usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0) + usage.get("cache_write_1h", 0), usage.get("out", 0), json.dumps(log), cost, mode_label, note,
+                           usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0) + usage.get("cache_write_1h", 0), usage.get("out", 0), json.dumps(log), cost, ("eval:" if source == "eval" else "") + mode_label, note,
                            route_name, json.dumps(timing)))
         self.j.db.commit()
         # 12 Nov 2026 (the keen audit, G-55): a test question left suggestion chips, an audit row saying the owner asked, and a row in
@@ -3493,5 +3508,5 @@ class Ask:
                          "thumbs_up": up or 0, "thumbs_down": down or 0, "errors": errs or 0, "usd": round(cost or 0, 4),
                          "usd_per_answer": round((cost or 0) / max(1, n - (errs or 0)), 4)}
         mis = [dict(zip(("t", "thread", "question", "kind", "provider"), r)) for r in
-               self.j.db.execute("SELECT * FROM ask_misunderstood ORDER BY t DESC LIMIT 30")]
+               self.j.db.execute("SELECT * FROM ask_misunderstood WHERE COALESCE(thread, '') NOT IN " + _test_threads(self.j) + " ORDER BY t DESC LIMIT 30")]
         return {"providers": out, "misunderstood": mis, "today": self.today_count(), "daily_limit": DAILY_LIMIT, "spend": self.spend()}

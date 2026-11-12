@@ -764,9 +764,15 @@ THREAD_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 RESERVED_THREADS = ("threads",)
 
 
+def decided_by(who: str) -> str:
+    """Who made a decision, as the record keeps it: the role, never the sign-in name (12 Nov 2026, the outside check of audit repair 1, N1:
+    an app sign-in's name is the email, and 11 rows of the reconstruction decisions held it)."""
+    return "a guest" if str(who or "").startswith("guest:") else "Madhav (owner)"
+
+
 def _tpath(thread: str) -> Path:
     name = str(thread or "")
-    if not THREAD_NAME.match(name) or name in RESERVED_THREADS:
+    if not THREAD_NAME.fullmatch(name) or name in RESERVED_THREADS:   # 12 Nov (outside check N12): match() let "ab\n" through
         raise ValueError("that is not a conversation's name")
     return ASK_DIR / f"{name}.jsonl"
 
@@ -2208,7 +2214,7 @@ def bulk_draft_flow(text: str, who: str) -> dict | None:
     at = _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
     with p.open("a") as f:
         for x in d:
-            f.write(json.dumps({"key": x["key"], "decision": dec, "by": who, "words": text[:300], "at": at, "bulk": True}) + "\n")
+            f.write(json.dumps({"key": x["key"], "decision": dec, "by": decided_by(who), "words": text[:300], "at": at, "bulk": True}) + "\n")
     _WAIT_CACHE.update(t=0.0)
     if dec == "APPROVED":
         return _reply((f"Approved, sir: the draft goes to registration. " if len(d) == 1 else f"Approved, sir: all {len(d)} drafts go to registration. ")
@@ -2266,7 +2272,7 @@ def draft_flow(text: str, who: str) -> dict | None:
     p = _dec_path()
     p.parent.mkdir(parents=True, exist_ok=True)
     with p.open("a") as f:
-        f.write(json.dumps({"key": pick["key"], "decision": dec, "by": who, "words": text[:300], "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")}) + "\n")
+        f.write(json.dumps({"key": pick["key"], "decision": dec, "by": decided_by(who), "words": text[:300], "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")}) + "\n")
     if dec == "APPROVED":
         ans = f"Approved, sir: draft {n} ({pick['type']}) goes to registration. The study is written down before it runs, tested on 2000-2023 only, and it climbs the staircase only if it passes; nothing trades from this."
     else:

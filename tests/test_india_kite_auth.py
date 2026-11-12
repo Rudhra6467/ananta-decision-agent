@@ -248,3 +248,54 @@ def test_the_stamp_holds_no_account_details_and_a_held_back_line_is_not_read_as_
     assert not re.search(part["proof"]["regex"], line, re.M)
     assert re.search(part["proof"]["regex"], "2026-11-12T00:35:10+00:00 auto sign-in ok until 2026-11-13 06:00 IST", re.M)
 
+
+
+# --- 12 Nov 2026, the outside check of that repair: N5 (an on-demand sign-in says so) and N10 (a stamp that cannot be read or written) -------
+
+def test_an_on_demand_sign_in_says_so_and_the_lost_runs_check_does_not_take_it_for_the_job(login_env, monkeypatch):
+    import re
+
+    from jarvis.service import runcheck_parts
+    part = next(p for p in runcheck_parts.PARTS if p["id"] == "india_autologin")
+    _signed_in(monkeypatch)
+    kite_auth.auto(force=True, on_demand=True)
+    last = (login_env / "autologin.log").read_text().splitlines()[-1]
+    assert " on-demand sign-in ok until " in last
+    assert not re.search(part["proof"]["regex"], last, re.M)          # a page's sign-in no longer hides a scheduled run that did not happen
+    assert not re.search(part["proof"]["regex"], "2026-11-12T13:10:00+00:00 on-demand sign-in FAILED: password step refused", re.M)
+    kite_auth.auto(force=True)                                         # the scheduled job keeps its own words
+    last = (login_env / "autologin.log").read_text().splitlines()[-1]
+    assert " auto sign-in ok until " in last and re.search(part["proof"]["regex"], last, re.M)
+
+
+@pytest.mark.parametrize("text", ["{not json", '{"t": 1}', "[1, 2"])
+def test_a_stamp_that_cannot_be_read_holds_an_on_demand_sign_in_back(login_env, monkeypatch, text):
+    kite_auth.ATTEMPTS_FILE.write_text(text)
+    ok, why = kite_auth.on_demand_ok()
+    assert not ok and "cannot be read" in why                          # it read as "no attempts", so the pause and the limit stopped
+    fake = _signed_in(monkeypatch)
+    with pytest.raises(kite_auth.HeldBack):
+        kite_auth.auto(force=True, on_demand=True)
+    assert fake.calls == []                                            # nothing went to Zerodha
+    assert kite_auth.auto(force=True)["auto"] == "signed in"          # the scheduled job is never held back, and writes a fresh stamp
+    assert [r["kind"] for r in kite_auth.attempts()] == ["scheduled"]
+
+
+def test_a_stamp_that_cannot_be_written_holds_an_on_demand_sign_in_back(login_env, monkeypatch):
+    fake = _signed_in(monkeypatch)
+    shut = login_env / "shut"
+    shut.mkdir()
+    monkeypatch.setattr(kite_auth, "ATTEMPTS_FILE", shut / "attempts.json")
+    shut.chmod(0o500)                                                  # no stamp yet, and none can be written
+    try:
+        assert kite_auth._note_attempt("on_demand", False) is False
+        with pytest.raises(kite_auth.HeldBack, match="could not be written"):
+            kite_auth.auto(force=True, on_demand=True)
+        assert fake.calls == []
+        assert kite_auth.auto(force=True)["auto"] == "signed in"      # the scheduled job runs whatever the stamp says
+    finally:
+        shut.chmod(0o700)
+
+
+def test_no_stamp_yet_is_no_attempts(login_env):
+    assert not kite_auth.ATTEMPTS_FILE.exists() and kite_auth.on_demand_ok() == (True, "")

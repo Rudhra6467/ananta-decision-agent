@@ -68,6 +68,8 @@ r = APIRouter()
 GUEST_OK = re.compile(r"^/(?:india/)?(?:health$|v3/place/|v3/candles/|v3/chart/)")
 GUEST_WORDS = "India is Madhav's own paper account. A guest can open the Nifty, Bank Nifty and fear gauge pages; everything else here is his."
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
+# Ananta's own pages on this Mac: the India and crypto services, the website server and the app's development server (12 Nov, N13)
+LOCAL_ORIGINS = frozenset(f"http://{h}:{p}" for h in ("127.0.0.1", "localhost", "[::1]") for p in (8110, 8100, 8300, 8301, 8302, 8081))
 
 
 def is_guest(who: str) -> bool:
@@ -84,8 +86,8 @@ def _from_this_mac(request: Request) -> bool:
     """A call made on this Mac itself: a loopback client with no tunnel header. 12 Nov 2026 (the keen audit, G-53): it must also name this
     Mac in its Host header and, when it carries an Origin, come from one of Ananta's own pages; a web page elsewhere that points its own
     name at 127.0.0.1, or posts across origins, is not the owner."""
-    if request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for"):
-        return False
+    if request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for") or request.headers.get("forwarded"):
+        return False                                 # 12 Nov (outside check N13): the standard Forwarded header too
     if not (request.client and request.client.host in ("127.0.0.1", "::1")):
         return False
     if _hostname(request.headers.get("host")) not in LOCAL_HOSTS:
@@ -93,7 +95,8 @@ def _from_this_mac(request: Request) -> bool:
     origin = (request.headers.get("origin") or "").strip().lower()
     if not origin:
         return True                                  # curl, the scheduled jobs, a page's own GET
-    return origin != "null" and (_hostname(origin) in LOCAL_HOSTS or origin in _OWN_ORIGINS)
+    # 12 Nov (outside check N13): any page served on this Mac, on any port, counted as Ananta's own; now only Ananta's own local pages do
+    return origin != "null" and (origin in LOCAL_ORIGINS or origin in _OWN_ORIGINS)
 
 
 def _hostname(value: str | None) -> str:
@@ -126,7 +129,13 @@ def signed_in(request: Request, authorization: str = Header(default="")) -> str:
         raise HTTPException(status_code=503, detail=f"the sign-in service did not answer: {str(e)[:80]}") from e
     if resp.status_code != 200:
         raise HTTPException(status_code=401, detail="not signed in")
-    who = str(resp.json().get("who") or "someone")
+    me = resp.json()
+    who = str(me.get("who") or "someone")
+    # 12 Nov 2026 (found while finishing audit repair 1; G-51 did not hold for a real guest): /v3/me gives a guest's name without its
+    # "guest:" mark and says "guest": true beside it, so a real guest's token came here as a plain name and passed the guest gate as the
+    # owner. The tests faked /v3/me with the mark kept. Now only an answer that says "guest": false is the owner; anything else is a guest.
+    if me.get("guest") is not False and not is_guest(who):
+        who = "guest:" + who
     _TOKENS[key] = (time.time(), who)
     return _guest_gate(request, who)
 
@@ -146,8 +155,10 @@ def readmodel() -> dict:
 
 @r.get("/health")
 def health() -> dict:
+    """Open to anyone (the tunnel sends every /india path here): whether the read model is there and how far it runs, nothing more.
+    12 Nov 2026 (the outside check of audit repair 1, N11): it also gave the read model's full path, the Mac's folders, to anyone on the web."""
     ok = READMODEL.exists()
-    return {"ok": ok, "readmodel": str(READMODEL), "data_through": json.loads(READMODEL.read_text()).get("data_through") if ok else None, "voice": INDIA_VOICE}
+    return {"ok": ok, "data_through": json.loads(READMODEL.read_text()).get("data_through") if ok else None, "voice": INDIA_VOICE}
 
 
 @r.get("/api/readmodel")
@@ -524,7 +535,7 @@ def _decide(key: str, decision: str, who: str, words: str) -> dict:
         raise HTTPException(status_code=404, detail=f"no draft {key}")
     p = india_views.DATA / "paper" / "reconstruction" / "decisions.jsonl"
     p.parent.mkdir(parents=True, exist_ok=True)
-    row = {"key": key, "decision": dec, "by": who, "words": words[:300], "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")}
+    row = {"key": key, "decision": dec, "by": india_ask.decided_by(who), "words": words[:300], "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")}
     with p.open("a") as f:
         f.write(json.dumps(row) + "\n")
     return row

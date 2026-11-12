@@ -625,9 +625,27 @@ def coin(sym: str, who: str = Depends(owner)) -> dict:
 # Kite Connect sign-in (India plan, 16 Oct 2026, section 5): the owner opens /kite/login on the Mac, Zerodha's own page takes
 # the password and two-factor code, and /kite/callback stores the day's token in ~/ananta_private. Both routes answer only a
 # browser on this Mac (loopback, not through the Cloudflare tunnel), and the first login pins the Zerodha user id.
+_MAC_HOSTS = ("127.0.0.1", "localhost", "::1")
+_MAC_ORIGINS = frozenset(f"http://{h}:{p}" for h in ("127.0.0.1", "localhost", "[::1]") for p in (8100, 8110, 8300, 8301, 8302, 8081))
+
+
+def _host_of(value: str | None) -> str:
+    """The host of a Host or Origin header, without scheme, port or brackets ('http://127.0.0.1:8100' and '[::1]:8100' give '127.0.0.1', '::1')."""
+    v = str(value or "").strip().lower().split("://", 1)[-1].split("/", 1)[0]
+    if v.startswith("["):
+        return v[1:].split("]", 1)[0]
+    return v.rsplit(":", 1)[0] if v.count(":") == 1 else v
+
+
 def _local_only(request: Request) -> None:
+    """The two Kite sign-in pages answer only a browser on this Mac. 12 Nov 2026 (the outside check of audit repair 1, N14, the sibling of
+    India's G-53): besides a loopback client with no tunnel or forwarding header, the Host must name this Mac, and an Origin, when there is
+    one, must be one of Ananta's own pages here; a web page elsewhere that points its name at 127.0.0.1 is not the owner's browser."""
     host = request.client.host if request.client else ""
-    if host not in ("127.0.0.1", "::1", "localhost") or request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for"):
+    origin = (request.headers.get("origin") or "").strip().lower()
+    if (host not in ("127.0.0.1", "::1", "localhost") or request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for")
+            or request.headers.get("forwarded") or _host_of(request.headers.get("host")) not in _MAC_HOSTS
+            or (origin and (origin == "null" or origin not in _MAC_ORIGINS))):
         raise HTTPException(status_code=403, detail="The Kite sign-in works only in a browser on the Mac itself.")
 
 

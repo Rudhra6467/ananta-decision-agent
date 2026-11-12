@@ -353,6 +353,8 @@ def test_morning_view_route_words_reviewer_ledger_and_voice(lake, monkeypatch):
     monkeypatch.setattr(views, "REG", lake / "registrations")
     import india.paths as _ip                                   # the reviewer's odds go to the records repo's forecast ledger: point it at the fixture, never the real one
     monkeypatch.setattr(_ip, "data_dir", lambda: lake)
+    import india.morningview as _mvpage                         # 12 Nov: and the page it writes, which went to the real records checkout (the wall refused it)
+    monkeypatch.setattr(_mvpage, "PAGE", lake / "registrations" / "morningview.md")
     (lake / "paper").mkdir(exist_ok=True)
     c = TestClient(service.app, base_url="http://127.0.0.1:8110", client=("127.0.0.1", 50000))
     assert c.get("/v3/morning").json()["ready"] is False

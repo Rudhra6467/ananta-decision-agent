@@ -55,3 +55,38 @@ def test_a_test_does_not_run_the_news_check():
     L = ask.Lookups(j, "evalthread", test=True)
     out = L.call("news_check", {"coin": next(iter(ex.st["engines"]))})
     assert out.get("test_run") and out["done"]["status"] == "TEST"
+
+
+# ---- 12 Nov 2026, the outside check of that repair (G-55 partly, N6): the answer rows, and what old tests left behind ----
+
+def test_a_test_questions_answer_and_error_rows_are_marked_too():
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": _reply("Bitcoin is steady.")})
+    A.ask("owner", "how is btc", mode="everyday", source="eval")
+
+    def down(*a, **k):
+        raise RuntimeError("the model is down")
+
+    B = ask.Ask(j, providers={"gemini": down})
+    assert "error" in B.ask("owner", "how is eth", mode="everyday", source="eval")
+    rows = j.db.execute("SELECT COALESCE(mode, ''), error FROM ask_messages WHERE role='assistant'").fetchall()
+    assert len(rows) == 2 and all(m.startswith("eval:") for m, _ in rows), rows      # only the thread showed it before
+    A.ask("owner", "how is btc", mode="everyday")                                     # his own answer is not marked
+    assert sum(not m.startswith("eval:") for (m,) in j.db.execute("SELECT COALESCE(mode, '') FROM ask_messages WHERE role='assistant'")) == 1
+
+
+def test_old_test_leftovers_no_longer_feed_the_chip_ranking_or_the_misunderstood_list():
+    j, ex = _jarvis()
+    A = ask.Ask(j, providers={"gemini": _reply("Bitcoin is steady.")})
+    A.ask("owner", "how is btc", mode="everyday", source="eval")
+    (th,) = j.db.execute("SELECT thread FROM ask_messages WHERE role='user' AND mode LIKE 'eval:%'").fetchone()
+    ask._chip_table(j)                                     # what a test left before the repair, in its own thread (nothing is deleted)
+    j.db.execute("INSERT INTO ask_chips (reply_id, thread, t, kind, text, ask, picked) VALUES ('old', ?, ?, 'follow', 'Old test chip', "
+                 "'Old test chip', 1)", (th, int(j.now())))
+    j.db.execute("INSERT INTO ask_misunderstood (t, thread, question, kind, provider) VALUES (?, ?, 'an old test question', 'clarify', 'gemini')",
+                 (int(j.now()), th))
+    A.ask("owner", "how is btc", mode="everyday")                                     # his own question keeps its chips
+    shown = {c["text"] for c in ask.chip_stats(j)}
+    assert shown and "Old test chip" not in shown
+    assert j.db.execute("SELECT count(*) FROM ask_chips WHERE text='Old test chip'").fetchone()[0] == 1   # kept, only not counted
+    assert all(m["question"] != "an old test question" for m in A.stats()["misunderstood"])

@@ -34,7 +34,7 @@ sys.modules["ananta_tests_wall"] = wall                             # one wall p
 _site = os.path.join(TEST_HOME, ".wall")
 os.makedirs(_site)
 with open(os.path.join(_site, "sitecustomize.py"), "w") as _f:
-    _f.write(wall.SITECUSTOMIZE.format(wall=_WALL_FILE, home=REAL_HOME))
+    _f.write(wall.SITECUSTOMIZE.format(wall=_WALL_FILE, home=REAL_HOME, readable=(), never=()))
 os.environ["PYTHONPATH"] = _site + (os.pathsep + os.environ["PYTHONPATH"] if os.environ.get("PYTHONPATH") else "")
 wall.install(REAL_HOME)
 

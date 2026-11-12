@@ -176,22 +176,35 @@ class HeldBack(RuntimeError):
     """An on-demand sign-in that did not run: too soon after the last attempt, or the day's few are used."""
 
 
-def attempts(now: float | None = None) -> list[dict]:
-    """The sign-in attempts of the last 48 hours, oldest first: [{'t': epoch seconds, 'kind': 'scheduled' | 'on_demand', 'ok': bool}]."""
+def attempts(now: float | None = None, strict: bool = False) -> list[dict]:
+    """The sign-in attempts of the last 48 hours, oldest first: [{'t': epoch seconds, 'kind': 'scheduled' | 'on_demand', 'ok': bool}].
+    No stamp yet is no attempts. A stamp that is there but cannot be read raises with strict=True (12 Nov, the outside check's N10: it
+    read as "no attempts", so the on-demand pause and limit stopped working without a word)."""
     import time
     now = now or time.time()
     try:
         rows = json.loads(ATTEMPTS_FILE.read_text())
+    except FileNotFoundError:
+        return []
     except (OSError, ValueError):
+        if strict:
+            raise
+        return []
+    if not isinstance(rows, list):
+        if strict:
+            raise ValueError("the attempts stamp is not a list")
         return []
     return [r for r in rows if isinstance(r, dict) and isinstance(r.get("t"), (int, float)) and now - r["t"] < 48 * 3600]
 
 
 def on_demand_ok(now: float | None = None) -> tuple[bool, str]:
-    """May an on-demand sign-in run now? (allowed, why not)."""
+    """May an on-demand sign-in run now? (allowed, why not). A stamp that cannot be read says no: the scheduled job is never held back."""
     import time
     now = now or time.time()
-    rows = attempts(now)
+    try:
+        rows = attempts(now, strict=True)
+    except (OSError, ValueError):
+        return False, "the sign-in attempts stamp cannot be read, so an on-demand sign-in waits for the scheduled job or a sign-in by hand"
     if rows and now - rows[-1]["t"] < ON_DEMAND_PAUSE_S:
         return False, f"the last sign-in attempt was {int((now - rows[-1]['t']) / 60)} minutes ago; an on-demand one waits {ON_DEMAND_PAUSE_S // 60} minutes"
     used = sum(1 for r in rows if r.get("kind") == "on_demand" and now - r["t"] < 24 * 3600)
@@ -200,8 +213,8 @@ def on_demand_ok(now: float | None = None) -> tuple[bool, str]:
     return True, ""
 
 
-def _note_attempt(kind: str, ok: bool, now: float | None = None, last: bool = False) -> None:
-    """Write one attempt to the stamp (or, with last=True, mark the newest one as having worked)."""
+def _note_attempt(kind: str, ok: bool, now: float | None = None, last: bool = False) -> bool:
+    """Write one attempt to the stamp (or, with last=True, mark the newest one as having worked). True when the stamp was written."""
     import time
     now = now or time.time()
     rows = attempts(now)
@@ -215,7 +228,8 @@ def _note_attempt(kind: str, ok: bool, now: float | None = None, last: bool = Fa
         tmp.write_text(json.dumps(rows[-50:]))
         tmp.replace(ATTEMPTS_FILE)
     except OSError:
-        pass
+        return False
+    return True
 
 
 def _log(line: str) -> None:
@@ -301,7 +315,10 @@ def auto(force: bool = False, min_left: int = 1800, on_demand: bool = False) -> 
             ok, why = on_demand_ok()
             if not ok:
                 raise HeldBack(why)
-        _note_attempt("on_demand" if on_demand else "scheduled", False)     # counted before the password is sent, so a crash still counts
+        # counted before the password is sent, so a crash still counts. 12 Nov (outside check N10): an on-demand sign-in whose attempt
+        # cannot be written does not run, since nothing would count it; the scheduled job runs either way
+        if not _note_attempt("on_demand" if on_demand else "scheduled", False) and on_demand:
+            raise HeldBack("the sign-in attempts stamp could not be written, so an on-demand sign-in waits for the scheduled job")
         key, _ = creds()
         connect_url = f"{KITE_WEB}/connect/login?v=3&api_key={key}"
         s = requests.Session()
@@ -328,7 +345,9 @@ def auto(force: bool = False, min_left: int = 1800, on_demand: bool = False) -> 
         request_token = _request_token_from_redirects(s, connect_url + "&skip_session=true")
         out = exchange(request_token)
         _note_attempt("", True, last=True)
-        _log(f"auto sign-in ok until {out.get('expires_at_ist')}")       # 9 Nov 2026: no account id in a log
+        # 9 Nov 2026: no account id in a log. 12 Nov (outside check N5): an on-demand sign-in says so, because the lost-runs check reads
+        # "auto sign-in" lines as the scheduled job's runs, and a page's sign-in on a day the job did not run used to hide the miss
+        _log(f"{'on-demand' if on_demand else 'auto'} sign-in ok until {out.get('expires_at_ist')}")
         return {**out, "auto": "signed in"}
 
 
@@ -357,7 +376,7 @@ if __name__ == "__main__":
             sys.exit(3)
         except Exception as e:   # noqa: BLE001 - every reason goes to the log and the phone, never a secret
             why = str(e)[:300]
-            _log(f"auto sign-in FAILED: {why}")
+            _log(f"{'on-demand' if '--on-demand' in sys.argv else 'auto'} sign-in FAILED: {why}")     # 12 Nov (N5): see auto()
             _ntfy(f"Kite auto sign-in failed: {why}. Sign in by hand before 23:40 Toronto (09:10 IST) or the next NSE session is lost: open http://127.0.0.1:8100/kite/login on the Mac.")
             print(json.dumps({"ok": False, "why": why}))
             sys.exit(1)

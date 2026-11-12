@@ -35,12 +35,15 @@ def world(tmp_path, monkeypatch):
     twin = {"snapshot_day": "2026-10-22", "positions": {"WEAK": {"qty": 400, "avg": 120.0, "last": 100.0}, "FINE": {"qty": 200, "avg": 90.0, "last": 100.0}, "TINY": {"qty": 5, "avg": 50.0, "last": 100.0}},
             "cash_inr": 30000.0, "options_inr": 34000.0}
     (tmp_path / "paper" / "account" / "state.json").write_text(json.dumps(twin))
-    sug = [{"symbol": "WEAK", "action": "REDUCE", "grade": "D", "suggest_inr": 5000, "why": "Weak (21/100): below its averages. Halving it limits the damage.", "wrong_if": "x"},
-           {"symbol": "TINY", "action": "TIDY", "grade": "C", "suggest_inr": 500, "why": "Only ₹500: too small to matter either way.", "wrong_if": "x"},
-           {"symbol": "FINE", "action": "TRIM", "grade": "C", "suggest_inr": 400, "why": "a ₹400 trim", "wrong_if": "x"}]
-    (tmp_path / "paper" / "allocation_view.json").write_text(json.dumps({"suggestions": sug}))
     bars = _bars({"WEAK": (-0.001, 0.01), "FINE": (0.0003, 0.01), "TINY": (0.0, 0.01),
                   "CALM": (0.0006, 0.006), "WILD": (0.0012, 0.03), "DOWN": (-0.002, 0.01), "STRETCH": (0.004, 0.004)})
+    # value_inr: the real holding's value as the allocator writes it, here the same shares as the book at the same close (12 Nov,
+    # G-07: a cut is the suggestion's share of the book's own position, so where the two hold the same it is the suggestion itself)
+    close = bars[bars["date"] == pd.Timestamp(DAY)].set_index("symbol")["close"]
+    sug = [{"symbol": "WEAK", "action": "REDUCE", "grade": "D", "value_inr": round(400 * float(close["WEAK"]), 2), "suggest_inr": 5000, "why": "Weak (21/100): below its averages. Halving it limits the damage.", "wrong_if": "x"},
+           {"symbol": "TINY", "action": "TIDY", "grade": "C", "value_inr": round(5 * float(close["TINY"]), 2), "suggest_inr": 500, "why": "Only ₹500: too small to matter either way.", "wrong_if": "x"},
+           {"symbol": "FINE", "action": "TRIM", "grade": "C", "value_inr": round(200 * float(close["FINE"]), 2), "suggest_inr": 400, "why": "a ₹400 trim", "wrong_if": "x"}]
+    (tmp_path / "paper" / "allocation_view.json").write_text(json.dumps({"suggestions": sug}))
     monkeypatch.setattr(m, "bars", lambda: bars)
     monkeypatch.setattr(m, "nifty500", lambda: {"CALM": "Healthcare", "WILD": "IT", "DOWN": "Metals", "STRETCH": "Realty", "WEAK": "Power", "FINE": "FMCG", "TINY": "Media"})
     monkeypatch.setattr(m, "holidays", lambda: set())

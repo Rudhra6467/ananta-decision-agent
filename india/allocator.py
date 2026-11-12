@@ -168,7 +168,15 @@ def rate_holding(h: dict, weight: float, row: dict | None, trend: str, r: dict) 
     sym = h.get("tradingsymbol")
     act, why, wrong = "HOLD", "", ""
     on_cost = (f", {pnl_pct:+.0f}% on what you paid" if pnl_pct is not None else "")
-    if value < r["tiny_inr"]:
+    if not rated:
+        # 12 Nov 2026 (audit repair 4, G-17; Madhav, 12 Nov 01:52: "Yes to all your recommendations"): a holding with no price study is
+        # not graded and never cut. Karur Vysya (+386% on what was paid) was graded Weak and halved "if the slide continues" with no
+        # slide measured: no data had scored as the worst data.
+        g, act = "not graded", "HOLD"
+        wrong = "it becomes one of the 250 most-traded stocks: then Ananta can study its price and grade it"
+        why = (f"Not graded: it is not among the 250 most-traded stocks, so Ananta has no price study on it and does not cut it. "
+               f"It is {wt:.0f}% of your stocks{on_cost}.")
+    elif value < r["tiny_inr"]:
         act = "TIDY"
         why = f"Only ₹{value:,.0f}{on_cost}: too small to matter either way. Sell it and put the money to work, or add to it on purpose."
         wrong = "you want to keep it as a small deliberate stake (then say so and it stays)"
@@ -221,9 +229,18 @@ def _tape_words(d20, d200, rsi) -> str:
     return ", ".join(bits)
 
 
+def _sp1_sessions(rm: dict) -> int:
+    """The options line's sessions on record from its own book (paper/sp1/book.json, scored at 17:30 IST), the one count every page
+    reads; the read model's copy is rebuilt only at night (12 Nov 2026, G-10: the Options page said 11 beside 12 and 12)."""
+    b = _load(_paper() / "sp1" / "book.json", {}) or {}
+    if isinstance(b.get("sessions"), int):
+        return b["sessions"]
+    return int(((rm.get("sp1") or {}).get("book") or {}).get("sessions") or 0)
+
+
 def rate_options(rm: dict, r: dict, opt_value: float) -> dict:
     s = (rm.get("sp1") or {})
-    sessions = (s.get("book") or {}).get("sessions") or 0
+    sessions = _sp1_sessions(rm)
     lost = s.get("status") == "lost"
     vix = (rm.get("market") or {}).get("vix_close")
     sc = 0.0
@@ -240,7 +257,9 @@ def rate_options(rm: dict, r: dict, opt_value: float) -> dict:
             "grade_words": (f"too early to grade ({sessions} session{'s' if sessions != 1 else ''} on record; a grade needs about {TOO_EARLY_SESSIONS})"
                             if early else f"grade {g} ({round(sc)} of 100)"),
             "action": "KEEP SMALL" if sessions < r["evidence_sessions"] else "HOLD",
-            "words": ("Too early to grade the options line. " if early else "") + (f"₹{opt_value:,.0f} is set aside for options. Ananta trades one lot at a time there, and it earns a bigger share only after {r['evidence_sessions']} sessions are on record ({sessions} so far); until then most of this money waits as cash."
+            # 12 Nov 2026 (audit repair 4, G-10): "most of this money waits as cash" was fixed text, while one Bank Nifty premium takes about
+            # half of it and two options held overnight took about 72% on 11 Nov; the session count is said once, on the page's own bar
+            "words": ("Too early to grade the options line. " if early else "") + (f"₹{opt_value:,.0f} is set aside for options. Ananta trades one lot at a time there, at most one per index a session, and it earns a bigger share only after {r['evidence_sessions']} sessions are on record. On a day it trades, one lot's premium can be a large share of the money; on other days it waits as cash."
                       if sessions < r["evidence_sessions"] else "The options line has a track record; its size follows the sizing study.")}
 
 
@@ -320,7 +339,8 @@ def watch(rm: dict, ratings: list[dict], snap: dict, trend: str) -> list[dict]:
     v = m.get("vix_vs_sma50")
     if v is not None:
         out.append({"what": "The fear gauge (India VIX)", "now": f"{m.get('vix_close')} ({100 * v:+.0f}% against its ten-week average)", "flips_if": "it jumps more than 30% above its ten-week average: options get expensive and Ananta buys fewer", "why": "buying options when fear spikes means paying too much"})
-    near = [x["symbol"] for x in ratings if x.get("rated") and abs(x["score"] - 55) < 4 or abs(x["score"] - 40) < 4]
+    # 12 Nov 2026 (G-17): "rated and near 55, or near 40" let an unrated holding in by its score; a holding not graded is near no grade
+    near = [x["symbol"] for x in ratings if x.get("rated") and (abs(x["score"] - 55) < 4 or abs(x["score"] - 40) < 4)]
     if near:
         out.append({"what": "Holdings close to a different rating", "now": ", ".join(near[:6]), "flips_if": "a few points either way moves them between keep, watch and trim", "why": "every holding is re-rated each evening"})
     taken = snap.get("taken_at")
@@ -329,7 +349,7 @@ def watch(rm: dict, ratings: list[dict], snap: dict, trend: str) -> list[dict]:
     except ValueError:
         taken_w = str(taken)[:16]
     out.append({"what": "Your account's snapshot from Zerodha", "now": f"taken {taken_w}", "flips_if": "it gets more than a day old: the ratings use old holdings", "why": "the ratings are only as fresh as the snapshot"})
-    out.append({"what": "The options line's record", "now": f"{((rm.get('sp1') or {}).get('book') or {}).get('sessions') or 0} sessions", "flips_if": f"it reaches {rule()['evidence_sessions']} sessions: options can earn a bigger share", "why": "options earn their share by a track record, not by hope"})
+    out.append({"what": "The options line's record", "now": f"{_sp1_sessions(rm)} sessions", "flips_if": f"it reaches {rule()['evidence_sessions']} sessions: options can earn a bigger share", "why": "options earn their share by a track record, not by hope"})
     return out
 
 
@@ -352,8 +372,7 @@ def build(day: str | None = None) -> dict:
     ratings.sort(key=lambda x: (-x["score"], -x["value_inr"]))
     for i, x in enumerate(ratings, 1):
         x["rank"] = i
-    sp1 = (rm.get("sp1") or {})
-    sessions = ((sp1.get("book") or {}).get("sessions")) or 0
+    sessions = _sp1_sessions(rm)                     # 12 Nov 2026 (G-10): one count of the options line's sessions, from its own book
     paper = _paper()
     ledger = [x for x in _jsonl(paper / "allocation_ledger.jsonl") if x.get("day") != day]
     adj = {"stocks": 0.0, "options": 0.0, "cash": 0.0}

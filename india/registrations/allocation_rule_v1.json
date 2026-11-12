@@ -44,6 +44,11 @@
    "date": "2026-11-02",
    "by": "Madhav, 2026-11-02 18:08 Toronto (in chat), asked which options amount is real (Rs 60,000 options line, Rs 50,000 allocation, Rs 34,000 twin): \"50k. only one amount. no 2-3 setups.\"",
    "change": "options_fixed: true. Options are one fixed Rs 50,000 in both modes; in autonomous mode the allocator manages stocks and cash only, never moves money out of options, and puts back from cash what the 22 Oct session moved out (Rs 16,000)."
+  },
+  {
+   "date": "2026-11-12",
+   "by": "Madhav, 2026-11-12 01:52 Toronto (in chat), to the keen outside audit's recommendations (G-17, a holding with no price data): \"Yes to all your recommendations\"",
+   "change": "A holding with no price study (outside the 250 most-traded stocks) is 'not graded' and never cut: its action is HOLD, never REDUCE, TRIM or TIDY. unrated_cap no longer decides a grade."
   }
  ]
 }

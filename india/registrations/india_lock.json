@@ -146,7 +146,7 @@
   },
   "allocation_rule": {
    "what": "The capital allocation rule (india/registrations/allocation_rule_v1.json): options Rs 50,000 fixed, stocks as in the account, advisory and autonomous modes, the regime table (options ceiling, cash floor), move limits (10% of the pool a session, Rs 2,000 minimum) and the rating weights. Paper only.",
-   "sha256": "366af779bcfadfc5f2ab8947e1f9b8345344c6537068f17c251af481d9bbc095",
+   "sha256": "25ca31bb7989a2a026572447a0c5c900fa1ed79b708cafffcafe84c395b5ad00",
    "history": [
     {
      "date": "2026-10-23",
@@ -159,6 +159,12 @@
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-11-02 18:08 Toronto (in chat), asked which options amount is real (Rs 60,000 options line, Rs 50,000 allocation rule, Rs 34,000 in the twin after the 22 Oct move): \"50k. only one amount. no 2-3 setups.\" options_fixed: true: options are one fixed Rs 50,000 in both modes; the allocator manages stocks and cash only and puts back from cash the Rs 16,000 moved out on 22 Oct. No other rule changes.",
      "sha256": "366af779bcfadfc5f2ab8947e1f9b8345344c6537068f17c251af481d9bbc095"
+    },
+    {
+     "date": "2026-11-12",
+     "approved_by": "Madhav (in chat)",
+     "note": "Madhav, 2026-11-12 01:52 Toronto (in chat), to the keen outside audit's recommendations: \"Yes to all your recommendations\". G-17: a holding with no price data is 'not graded' and is not cut (decision doc claude/decision-2026-11-12-yes-to-audit-repairs-and-way-of-working.md). No other rule changes.",
+     "sha256": "25ca31bb7989a2a026572447a0c5c900fa1ed79b708cafffcafe84c395b5ad00"
     }
    ]
   },

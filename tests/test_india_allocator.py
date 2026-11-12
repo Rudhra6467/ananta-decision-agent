@@ -51,7 +51,9 @@ def test_advisory_rates_ranks_and_moves_nothing(lake):
     assert names[0] == "STRONG" and [x["rank"] for x in v["holdings"]] == list(range(1, 5))
     by = {x["symbol"]: x for x in v["holdings"]}
     assert by["STRONG"]["grade"] in ("A", "B") and by["WEAK"]["grade"] == "D" and by["WEAK"]["action"] == "REDUCE"
-    assert by["DUST"]["action"] == "TIDY", "a holding under the tiny limit is tidied, whatever its grade"
+    # 12 Nov 2026 (G-17, Madhav's yes): DUST has no price study, so it is not graded and never cut, tiny or not; a graded tiny holding is
+    # still tidied (tests/test_india_book_does_what_it_says_12nov.py)
+    assert by["DUST"]["action"] == "HOLD" and by["DUST"]["grade"] == "not graded"
     for x in v["holdings"]:
         assert x["wrong_if"] and x["why"], "every holding names its reason and what would make the suggestion wrong"
     assert v["sleeves"]["now"]["options"] == 50000 and v["sleeves"]["now"]["stocks"] == 100 * 120 + 100 * 70 + 200 * 90 + 40

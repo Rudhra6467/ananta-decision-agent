@@ -23,7 +23,8 @@ def test_daily_call_counts_next_session_scores_once(tmp_path, monkeypatch):
     assert "1 of 2 calls right" in c["words"]
 
 
-def test_options_line_too_early_to_grade():
+def test_options_line_too_early_to_grade(tmp_path, monkeypatch):
+    monkeypatch.setenv("INDIA_DATA_DIR", str(tmp_path))     # 12 Nov (G-10): the count comes from the line's own book; none here, so the read model's
     r = {"options_inr": 34000, "evidence_sessions": 20}
     o = allocator.rate_options({"sp1": {"book": {"sessions": 2}}, "market": {"vix_close": 16.0}}, r, 34000)
     assert o["too_early_to_grade"] and o["grade_words"].startswith("too early to grade (2 sessions") and o["words"].startswith("Too early to grade")

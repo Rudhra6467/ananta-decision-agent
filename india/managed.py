@@ -306,7 +306,16 @@ def cut_list(book: dict, day: str, c: dict) -> list[dict]:
         last_cut = book["cut_days"].get(sym)
         if last_cut and sessions_between(last_cut, day) < c["reentry_sessions"]:
             continue
-        inr = p["qty"] * p["last"] if act == "TIDY" else min(float(s.get("suggest_inr") or 0), p["qty"] * p["last"])
+        # 12 Nov 2026 (audit repair 4, G-07): the allocator sizes its suggestion on the REAL holding (Jio Financial: half of 119 shares,
+        # in rupees), and taken in rupees it sold 59 of this book's 73 shares (81%) under "halving it". A cut is now the same share of
+        # this book's own position; a suggestion that does not say the real holding's value gives no share, so no cut.
+        mine, real = p["qty"] * p["last"], float(s.get("value_inr") or 0)
+        if act == "TIDY":
+            inr = mine
+        elif real > 0:
+            inr = mine * min(1.0, float(s.get("suggest_inr") or 0) / real)
+        else:
+            continue
         if inr < 1 or (act != "TIDY" and inr < c["min_cut_inr"]):          # a ₹500 trim is noise, not a decision
             continue
         out.append({"symbol": sym, "kind": act, "all": act == "TIDY", "inr": round(inr), "grade": s.get("grade"), "why": s.get("why"), "wrong_if": s.get("wrong_if")})
@@ -584,9 +593,16 @@ def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, o
         words += plan["words"]
     elif plan:
         words += f"No plan could be written for {plan.get('for_session')}: {plan['error']}."
+    # 12 Nov 2026 (audit repair 4, G-06): the book's own positions, each at the book's own size ("Your stocks" showed the real holdings
+    # under the book's total); and the marks on its past rows (G-07, G-17: two cuts made by the old rules), append-only beside the ledger
+    own = sorted(({"symbol": s, "qty": int(p["qty"]), "last": round(float(p["last"]), 2), "value_inr": round(p["qty"] * p["last"]),
+                   "source": "replacement" if p.get("source") == "replacement" else "from the account",
+                   "pnl_pct": round(100 * (p["last"] / p["avg"] - 1), 1) if p.get("avg") else None}
+                  for s, p in book["positions"].items()), key=lambda r: -r["value_inr"])
     return {"built_at": _now(), "paper": True, "day": day, "opened_today": opened, "kept_old_price": kept, "start_day": book["start_day"], "start_inr": round(start), "value_inr": round(value),
             "return_pct": round(100 * (value / start - 1), 2), "stocks_inr": round(sum(v["qty"] * v["last"] for v in book["positions"].values())), "cash_inr": round(book["cash_inr"]),
-            "options_inr": round(book["options_inr"]), "positions": len(book["positions"]), "replacements": sorted(reps, key=lambda r: -r["value_inr"]), "filled_today": filled,
+            "options_inr": round(book["options_inr"]), "positions": len(book["positions"]), "holdings": own, "marks": _jsonl(_dir() / "marks.jsonl"),
+            "replacements": sorted(reps, key=lambda r: -r["value_inr"]), "filled_today": filled,
             "plan": plan, "trades_count": len(book["trades"]), "costs_inr": round(book["costs_inr"], 2), "clock": clock, "chain": chain, "chain_ok": ok, "rules": c["version"], "words": words}
 
 

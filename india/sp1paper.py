@@ -796,6 +796,32 @@ def _dw(x: dt.date) -> str:
     return f"{x:%a} {x.day} {x:%b}"
 
 
+def _days_and(xs) -> str:
+    """'Sun 8 Nov' or 'Sun 8 Nov and Mon 9 Nov'."""
+    w = [_dw(x) for x in xs]
+    return w[0] if len(w) == 1 else ", ".join(w[:-1]) + " and " + w[-1]
+
+
+def _no_regular(xs) -> str:
+    """12 Nov 2026 (the confirm check of repair 4, C5): 'Sun 8 Nov, Mon 9 Nov is no regular session' read as one day."""
+    return _days_and(xs) + (" is no regular session" if len(xs) == 1 else " are no regular sessions")
+
+
+def _regular_sessions(im: pd.DataFrame, name: str) -> set:
+    """The days whose minute bars run from the 09:15 open into the last ten minutes, with at least half a session's bars: a regular
+    session, even with minutes missing for a data reason. 12 Nov 2026 (the confirm check of repair 4, C1): the study's own 'whole day' test
+    (360 bars) called a Monday short of 35 minutes 'no regular session', and the trade was scored at Wednesday's open. A Muhurat hour or
+    another short special session reaches neither the 09:15 open nor the close, so it is still no regular session."""
+    if im is None or im.empty or "m" not in im:
+        return set()
+    g = im[(im["index_name"] == name) & (im["m"] >= 0) & (im["m"] < ocstudy.NMIN)]
+    if g.empty:
+        return set()
+    s = g.groupby("date")["m"].agg(["min", "max", "count"])
+    at_916 = set(g.loc[g["m"] == 1, "date"])                     # the 09:16 bar a NEXTOPEN exit is taken at is really there
+    return {d for d, x in s.iterrows() if x["min"] == 0 and d in at_916 and x["max"] >= ocstudy.NMIN - 10 and x["count"] >= ocstudy.NMIN // 2}
+
+
 def score(day: dt.date | None = None, log=print) -> dict:
     """Outcomes of every traded decision up to `day` not yet scored, once its exit is known (NEXTOPEN: after the next session's close).
     12 Nov 2026 (the keen outside audit, G-01; Madhav's yes of 12 Nov 01:52, which re-opens the 9 Nov decision R-048): a NEXTOPEN exit is the
@@ -833,9 +859,18 @@ def score(day: dt.date | None = None, log=print) -> dict:
         # G-01: the next REGULAR session. 12 Nov (the outside check of repair 4, N6): the special-session list holds weekend days only, so
         # a weekday special session (a weekday Muhurat hour) passed as regular, its outcome stayed 'not defined' and every retry picked it
         # again: a regular session is also one whose bars are complete (the study's own test, ocstudy.index_arrays 'ok')
-        whole = lambda x: bool(index[name]["ok"][have.index(x)])   # noqa: E731
+        # and (the confirm check, C1) a weekday short of some minutes for a data reason is still a regular session: its bars run from the
+        # open into the last ten minutes
+        regular = _regular_sessions(im, name)
+        whole = lambda x: bool(index[name]["ok"][have.index(x)]) or x in regular   # noqa: E731
         nxt = [x for x in have if x > d and x.weekday() < 5 and x not in specials and whole(x)]
         skipped = [x for x in have if x > d and (x.weekday() >= 5 or x in specials or not whole(x)) and (not nxt or x < nxt[0])]
+        if nxt and not index[name]["ok"][have.index(nxt[0])]:
+            # C1: the study takes a NEXTOPEN exit only from a day of 360 bars; this regular day's 09:16 bar is there (its bars run from the
+            # open into the close, some minutes missing), so the study is told the day is usable for that open
+            ok = index[name]["ok"].copy()
+            ok[have.index(nxt[0])] = True
+            index[name]["ok"] = ok
         days_all = [prev, d] + nxt[:1]
         st_rows = pd.DataFrame([{"date": prev, "index": sym, "atr14_prev": np.nan},
                                 {"date": d, "index": sym, "atr14_prev": plan["overnight"][sym]["atr14_prev"]}])
@@ -874,7 +909,7 @@ def score(day: dt.date | None = None, log=print) -> dict:
             dirc = r["choice"]["dir"]
             out_leg = {"tradingsymbol": ct["tradingsymbol"], "lot": lot, "entry_study": p_in, "entry_realistic": p_in2, "exit": p_out,
                        "exit_rule": (("next session 09:16 open" if not skipped else
-                                      f"next regular session's 09:16 open ({_dw(day_out)}; {', '.join(_dw(x) for x in skipped)} is no regular session)")
+                                      f"next regular session's 09:16 open ({_dw(day_out)}; {_no_regular(skipped)})")
                                      if next_day else ("close of the index stop minute" if stopped else "open of the time-exit minute"))}
             for tag, pi in (("study", p_in), ("realistic", p_in2)):
                 if pi is None:
@@ -908,7 +943,7 @@ def score(day: dt.date | None = None, log=print) -> dict:
                 log(f"{r['date']} {sym}: scored again, but the option's candles are not on Kite; it stays left out and is tried again tomorrow")
                 continue
             row["scored_late"] = True
-            row["late_why"] = ((f"Its next open fell on {', '.join(_dw(x) for x in skipped)}, which is no regular session, so it was first left "
+            row["late_why"] = ((f"Its next open fell on {_days_and(skipped)}, which {'is no regular session' if len(skipped) == 1 else 'are no regular sessions'}, so it was first left "
                                 f"without a result; it is scored at the next regular open ({_dw(day_out)})" if next_day and skipped else
                                 "It was first left without a result; it is scored now")
                                + " and included, by Madhav's decision of 12 Nov 2026.")

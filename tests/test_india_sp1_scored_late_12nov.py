@@ -100,10 +100,11 @@ def test_a_next_open_on_a_weekend_special_session_is_the_next_regular_open_the_f
 
 def test_the_read_model_names_a_trade_left_out_until_it_is_scored(tmp_path, monkeypatch):
     root, _ = _world(tmp_path, monkeypatch, noted=True)
+    monkeypatch.setattr(readmodel, "_today_ist", lambda: "2026-11-13", raising=False)                  # before the option's 23 Nov expiry
     sp1paper.write_book()
     s = readmodel.sp1("2026-11-06")
     assert "Not in these figures: 1 trade with no result yet (BANKNIFTY Fri 6 Nov)" in s["words"]
-    assert s["left_out"] == [{"date": "2026-11-06", "index": "BANKNIFTY"}]
+    assert s["left_out"] == [{"date": "2026-11-06", "index": "BANKNIFTY", "expiry": "2026-11-23", "never": False}]
     sp1paper.score(day=dt.date(2026, 11, 16), log=lambda s: None)
     s = readmodel.sp1("2026-11-06")
     assert "Not in these figures" not in s["words"] and s["left_out"] == [] and "1 scored trade(s) (1 scored late)" in s["words"]

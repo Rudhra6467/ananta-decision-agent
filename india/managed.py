@@ -203,11 +203,40 @@ def options_line(start_day: str, upto_day: str | None = None) -> dict:
                 rows[k] = r
             else:
                 noted[k] = r
-    nets = [((r.get("legs") or {}).get("option") or {}).get("net_rs_realistic") for r in rows.values()
-            if _exit_day(r) > start_day and (upto_day is None or _known_day(r) <= upto_day)]
-    nets = [x for x in nets if isinstance(x, (int, float))]
+    nets, no_price = [], []
+    for k, r in rows.items():
+        if not (_exit_day(r) > start_day and (upto_day is None or _known_day(r) <= upto_day)):
+            continue
+        opt = (r.get("legs") or {}).get("option")
+        net = (opt or {}).get("net_rs_realistic")
+        if isinstance(net, (int, float)):
+            nets.append(net)
+        elif isinstance(opt, dict):
+            # 12 Nov 2026 (the confirm check of repair 4, C1): a trade scored with no price for its option (Kite had no candles at the exit
+            # minute) was in no total and named by none; it is left out, and said so, as the screens' own count already did
+            no_price.append(k)
     left = [{"date": d, "index": i} for (d, i) in sorted(noted) if (d, i) not in rows and d >= start_day and (upto_day is None or d <= upto_day)]
+    left = sorted(left + [{"date": d, "index": i, "why": "no option price"} for (d, i) in no_price], key=lambda x: (x["date"], x["index"]))
+    exp, today = _option_expiries(), _today_ist()
+    for x in left:                                                   # C4: once its option has expired, a left-out trade is never scored
+        e = exp.get((x["date"], x["index"]))
+        if e:
+            x["expiry"], x["never"] = e, today > e
     return {"result_inr": round(sum(nets), 2), "trades": len(nets), "left_out": left}
+
+
+def _today_ist() -> str:
+    return dt.datetime.now(IST).date().isoformat()
+
+
+def _option_expiries() -> dict:
+    """(date, index) -> the option contract's expiry day of each decided trade, from the options line's decisions ledger."""
+    out: dict = {}
+    for r in _jsonl(paths.data_dir() / "paper" / "sp1" / "decisions.jsonl"):
+        e = str(((r.get("contracts") or {}).get("option") or {}).get("expiry") or "")[:10]
+        if r.get("kind") == "decision" and e:
+            out[(str(r.get("date")), str(r.get("index")))] = e
+    return out
 
 
 def options_words(set_aside: float, ol: dict, start_day: str) -> str:

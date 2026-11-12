@@ -189,15 +189,24 @@ def setup(session: str, plan: dict, rm: dict) -> dict:
             "limits": plan.get("limits") or [], "expiry": exp, "events": events, "market_words": m.get("words")}
 
 
+def _today_ist() -> str:
+    return dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30))).date().isoformat()
+
+
 def _options_words(mb: dict) -> str:
     """The account's options part in the morning view's words (12 Nov 2026, G-11: at the options line's own value). 12 Nov (the outside
     check of repair 4, N4): when the total leaves a trade out, the words say so, as Madhav decided every total does (G-01)."""
     if not isinstance(mb.get("options_value_inr"), (int, float)):
         return f"₹{mb.get('options_inr') or 0:,.0f} set aside for options"
-    lo, nt, res = len(mb.get("options_left_out") or []), int(mb.get("options_trades") or 0), float(mb.get("options_result_inr") or 0)
+    left = mb.get("options_left_out") or []
+    lo, nt, res = len(left), int(mb.get("options_trades") or 0), float(mb.get("options_result_inr") or 0)
+    # 12 Nov (the confirm check of repair 4, C4): "until scored" promised a score that an expired option can never have
+    today = _today_ist()
+    never = bool(left) and all(isinstance(x, dict) and x.get("expiry") and today > str(x["expiry"]) for x in left)
     return (f"₹{mb['options_value_inr']:,.0f} in options at the options line's own value (₹{mb.get('options_inr') or 0:,.0f} set aside and "
             f"{'+' if res >= 0 else '−'}₹{abs(res):,.0f} from {nt} trade{'s' if nt != 1 else ''} since the book began"
-            + (f"; {lo} options trade{'s' if lo != 1 else ''} left out until scored" if lo else "") + ")")
+            + (f"; {lo} options trade{'s' if lo != 1 else ''} left out" + (", never scored: its option expired" if never else " until scored") if lo else "")
+            + ")")
 
 
 def plan_today(session: str, rm: dict) -> dict:

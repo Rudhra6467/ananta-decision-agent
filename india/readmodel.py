@@ -240,6 +240,10 @@ def stale_sessions() -> list[dict]:
     return out
 
 
+def _today_ist() -> str:
+    return dt.datetime.now(dt.timezone(dt.timedelta(hours=5, minutes=30))).date().isoformat()
+
+
 def sp1(day: str) -> dict:
     d = paths.data_dir() / "paper" / "sp1"
     allr = _jsonl(d / "decisions.jsonl")
@@ -271,6 +275,19 @@ def sp1(day: str) -> dict:
     for r in outs:
         if "index_proxy" not in r and (r.get("date"), r.get("index")) not in have and not any((x["date"], x["index"]) == (r.get("date"), r.get("index")) for x in left):
             left.append({"date": r.get("date"), "index": r.get("index")})
+    # 12 Nov (the confirm check of repair 4, C1 and C4): a trade scored with no price for its option is left out too, as the screens count
+    # it; and once its option has expired a left-out trade can never be scored, so the words no longer promise a result
+    for r in outs:
+        opt = (r.get("legs") or {}).get("option")
+        if "index_proxy" in r and isinstance(opt, dict) and opt.get("net_rs_realistic") is None and opt.get("note"):
+            left.append({"date": r.get("date"), "index": r.get("index"), "why": "no option price"})
+    exp = {(str(r.get("date")), str(r.get("index"))): str(((r.get("contracts") or {}).get("option") or {}).get("expiry") or "")[:10]
+           for r in allr if r.get("kind") == "decision"}                  # every day's decisions, not the newest day's alone
+    today_ist = _today_ist()
+    for x in left:
+        e = exp.get((str(x["date"]), str(x["index"])))
+        if e:
+            x["expiry"], x["never"] = e, today_ist > e
 
     def _dw(s):
         try:
@@ -291,8 +308,11 @@ def sp1(day: str) -> dict:
     if scored:
         words += f". Book over {book.get('sessions')} scored session(s): {scored}"
     if left:
-        words += (f". Not in these figures: {len(left)} trade{'s' if len(left) != 1 else ''} with no result yet ("
-                  + "; ".join(f"{x['index']} {_dw(x['date'])}" for x in left[:3]) + ")")
+        gone = sum(1 for x in left if x.get("never"))
+        words += (f". Not in these figures: {len(left)} trade{'s' if len(left) != 1 else ''} "
+                  + ("never scored, its option expired (" if gone == len(left) else "with no result yet (")
+                  + "; ".join(f"{x['index']} {_dw(x['date'])}" + (f", never scored: its option expired {_dw(x['expiry'])}" if x.get("never") and gone != len(left) else "")
+                              for x in left[:3]) + ")")
     return {"status": status, "date": newest, "source": f"{d / 'decisions.jsonl'} and {d / 'book.json'}", "decisions": decisions, "errors": errors[:3],
             "inputs": inputs, "book": {"sessions": book.get("sessions"), "by_index": bi}, "capital_inr": _options_capital(), "words": words,
             "left_out": left}

@@ -129,7 +129,7 @@ def test_the_note_waits_for_the_brains_moments_and_the_bold_book_then_says_what_
     j.db.execute("INSERT INTO brain_queue VALUES ('q1', ?, 'ZEC', 'setup:H07', '{}', 'NEW')", (NOV(12, 0, 2),))
     j.db.commit()
     out = officer.write_when_due(j, call=_model([]))
-    assert out["waiting"] == ["the bold measuring book's decision", "1 moment the brain has not decided yet"]
+    assert out["waiting"] == ["the bold measuring book had not decided yet", "1 moment the brain had not decided yet"]
     assert not j.db.execute("SELECT 1 FROM officer_notes").fetchone()                 # 11 Nov: the note went out 3.5 minutes before ZEC was bought
     j.db.execute("UPDATE brain_queue SET state='DONE'")
     bold._table(j)
@@ -147,7 +147,7 @@ def test_the_note_waits_for_the_brains_moments_and_the_bold_book_then_says_what_
     j2.db.commit()
     seen2 = []
     assert officer.write_when_due(j2, call=_model(seen2))["ok"] is True
-    assert "still_waiting_when_written" in seen2[0] and "1 moment the brain has not decided yet" in seen2[0]
+    assert "still_waiting_when_written" in seen2[0] and "1 moment the brain had not decided yet" in seen2[0]
 
 
 def test_the_nightly_step_leaves_the_note_to_the_loop_that_runs_after_the_bold_book():
@@ -489,7 +489,10 @@ def test_a_late_close_correction_says_no_money():
     j.db.execute("INSERT INTO engine_state VALUES ('late_closes:2026-11-11', ?)", (json.dumps({"n": 50, "books": {"H07": 50}}),))
     j.db.commit()
     fx = officer.corrections(j, "2026-11-11", "x", {"background": {"old_paper_trades_closed_late_tonight": {"n": 41, "books": {"H07": 41}}}})
-    assert fx and "dollar" not in fx[0] and "50 old paper trades" in fx[0]
+    assert fx and "dollar" not in fx[0] and "50 old paper trades" in fx[0]          # this note gave no figure: none is mentioned
+    fx = officer.corrections(j, "2026-11-11", "x", {"background": {"old_paper_trades_closed_late_tonight": {"n": 41, "books": {"H07": 41},
+                                                                                                          "net_usd": -1.0}}})
+    assert "out of its dollar figure too" in fx[0] and "$" not in fx[0] and "1.0" not in fx[0]   # the 11 Nov note gave one: said, never summed
 
 
 def test_the_note_waits_for_a_moment_being_decided_not_for_a_blocked_bold_book_and_stops_after_three_tries(monkeypatch):
@@ -503,7 +506,7 @@ def test_the_note_waits_for_a_moment_being_decided_not_for_a_blocked_bold_book_a
     monkeypatch.setattr(bold, "enabled", lambda: (True, "on"))
     monkeypatch.setattr(tg, "blocked", lambda j, watch, *a, **k: "the kill switch is on")
     left = officer.waiting_for(j, "2026-11-12", NOV(12))
-    assert left == ["1 moment the brain has not decided yet"]                           # deciding counts; a blocked bold book does not
+    assert left == ["1 moment the brain had not decided yet"]                           # deciding counts; a blocked bold book does not
     _ready(j, NOV(11, 23))                                                               # the step ran long ago: no more waiting
     j.db.execute("UPDATE brain_queue SET state='DONE'")
     j.db.commit()
@@ -525,3 +528,36 @@ def test_after_the_window_the_note_and_the_ask_stop_at_its_last_day_like_the_scr
     w = knowledge_build.window(j)
     assert w["day"] == 60 and w["ended"] and surfaces._window(dt.date(2026, 12, 15))["day"] == 60
     assert "day 60 of 60 (it has ended)" in ask._window_words(j)
+
+
+# ---- what the confirm check of 12 Nov found (recheck/pkg3_confirm.md) ----
+
+def test_the_account_lists_closed_trades_by_the_toronto_evenings_like_the_page_they_open():
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[1] / "jarvis" / "service" / "places.py").read_text()
+    assert "S._dm(_sold_day(cl, fills, 'BUY'))} to {S._dm(_sold_day(cl, fills))}" in src        # it said S._dm(cl['in']) to S._dm(cl['out'])
+    assert "S._dm(cl.get('in'))} to {S._dm(cl.get('out'))}" not in src
+
+
+def test_a_failure_raised_after_the_paid_call_counts_as_a_try_too(monkeypatch):
+    j = _j(NOV(12, 0, 6))
+    _ready(j, NOV(11, 23))
+    calls = []
+    monkeypatch.setattr("jarvis.service.universe_watch.start_night_test", lambda j: calls.append(1) or True)
+    monkeypatch.setattr(officer, "write", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("saving the note failed")))
+    for _ in range(5):
+        officer.write_when_due(j)
+    tries = json.loads(j.db.execute("SELECT v FROM engine_state WHERE k='officer_tries:2026-11-12'").fetchone()[0])
+    assert tries["n"] == 3 and "saving the note failed" in tries["error"] and calls == [1]
+
+
+def test_the_minutes_of_the_model_call_fall_on_the_next_night_not_on_none():
+    j = _j(NOV(13, 0, 20))
+    _state(j, last_bar=NOV(12))
+    facts = {"background": {"counted_to": NOV(12, 0, 6)}}                                # counted at 00:06, saved at 00:07
+    j.db.execute("INSERT INTO officer_notes VALUES ('2026-11-12', ?, 'x', ?, 0)", (NOV(12, 0, 7), json.dumps(facts)))
+    j.db.execute("INSERT INTO brain_decisions (t, coin, action) VALUES (?, 'ETH', 'PASS')", (NOV(12, 0, 6, 30),))
+    j.db.commit()
+    assert officer.facts(j)["background"]["brain_today"] == {"PASS": 1}
+    assert officer.night_window(j)[2] == NOV(12, 0, 6)

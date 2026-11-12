@@ -662,8 +662,9 @@ def account(j) -> dict:
     fills = _fills(j)
     closed = list(b.get("closed") or [])[::-1]
     won = sum(1 for x in closed if (x.get("pnl_cad") or 0) > 0)
-    crow = lambda cl: K.row(_name(cl.get("coin")), f"{S._dm(cl.get('in'))} to {S._dm(cl.get('out'))}", right=S._cad(cl.get("pnl_cad")), right_tone=S._tone(cl.get("pnl_cad")),   # noqa: E731
-                            letter=str(cl.get("coin"))[:1], to=K.to_page(receipt(cl, fills)))
+    # 12 Nov 2026 (the confirm check of audit repair 3, G-28): the list named each trade by its UTC days, the page it opens by Toronto's
+    crow = lambda cl: K.row(_name(cl.get("coin")), f"{S._dm(_sold_day(cl, fills, 'BUY'))} to {S._dm(_sold_day(cl, fills))}",   # noqa: E731
+                            right=S._cad(cl.get("pnl_cad")), right_tone=S._tone(cl.get("pnl_cad")), letter=str(cl.get("coin"))[:1], to=K.to_page(receipt(cl, fills)))
     all_closed = K.page("Closed trades", [K.hero("Closed trades", str(len(closed)), since=f"{won} won, {len(closed) - won} lost"), K.rows(None, [crow(x) for x in closed], plain=True),
                                           K.trust("Paper only, at real NDAX prices.")], ask_q="Walk me through the $500 book's closed trades: what worked, what did not, and why.") if closed else None
     coin_rows = [K.row(_name(p["symbol"]), K.clip(str(p.get("chip") or "held"), 7, 44), right=p.get("value_words"), right_sub=(S._pct(p.get("pnl_pct")) if p.get("pnl_pct") is not None else None),

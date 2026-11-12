@@ -51,8 +51,8 @@ greeting by time of day. If the facts say a brake fired or a strategy passed, le
 the "fired" numbers inside "brakes" are totals since the book started, never today's, and count fires on real losses only: a log entry
 marked "false_fall" came from a value read too low and is never a real fire. "background" counts the night as "counted_from" says (the
 rules' signals and closes of the candle that just closed, and what the brain and the bold book did since the last note); if
-"background.still_waiting_when_written" is there, say in one short sentence what was
-still to come when you wrote. If "account.corrections" is there, say the
+"background.still_waiting_when_written" is there, say in one short sentence what had not happened yet when you
+wrote (never that it will come). If "account.corrections" is there, say the
 correction once in plain words (what was put right and the money). If "dial.warning" is there, say it. If "background.old_paper_trades_closed_late_tonight" is there, say in one sentence
 how many old paper trades of the measuring books were closed late tonight by their own rules, their net in US dollars only when the facts
 give it (before 15 Dec they never do), and that the account itself is untouched. Before 15 Dec the night's closes are counts only, and the
@@ -101,9 +101,13 @@ def night_window(j) -> tuple[int, int, int, int]:
     close = now - now % 86400
     since = close - 86400
     try:
-        r = j.db.execute("SELECT MAX(t) FROM officer_notes WHERE day < ?", (time.strftime("%Y-%m-%d", time.gmtime(now)),)).fetchone()
-        if r and r[0]:
-            since = max(since, int(r[0]))
+        # from the moment the last note COUNTED to (the confirm check: counted to its save time, the model call's minutes fell on no night)
+        r = j.db.execute("SELECT t, facts FROM officer_notes WHERE day < ? ORDER BY day DESC LIMIT 1",
+                         (time.strftime("%Y-%m-%d", time.gmtime(now)),)).fetchone()
+        if r:
+            upto = ((json.loads(r[1] or "{}") or {}).get("background") or {}).get("counted_to") if r[1] else None
+            last = int(upto) if isinstance(upto, (int, float)) else int(r[0] or 0)
+            since = max(since, last)
     except Exception:  # noqa: BLE001  no notes table yet: the candle's own day
         pass
     return close - 86400, close, since, now
@@ -178,7 +182,7 @@ def facts(j, daily: dict | None = None) -> dict:
     # the brain's decisions today, and what each measuring book closed today
     win = night_window(j)                          # 12 Nov (G-25): was midnight UTC, six minutes before the note
     held = int(j.now()) < HELD_UNTIL
-    bg: dict = {"signals_today_by_rule": {}, "closed_today_by_rule": {}, "brain_today": {},
+    bg: dict = {"signals_today_by_rule": {}, "closed_today_by_rule": {}, "brain_today": {}, "counted_to": win[3],
                 "counted_from": (f"the rules' signals and closes of the {time.strftime('%Y-%m-%d', time.gmtime(win[0]))} candle, and what the "
                                  f"brain and the bold book did after {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(win[2]))} (the last note)")}
     if held:
@@ -472,13 +476,13 @@ def waiting_for(j, day: str, since: int) -> list[str]:
         if bold.enabled()[0] and not tg.blocked(j, bold.WATCH):
             bold._table(j)
             if not j.db.execute("SELECT 1 FROM bold_decisions WHERE day=?", (day,)).fetchone():
-                out.append("the bold measuring book's decision")
+                out.append("the bold measuring book had not decided yet")     # a fact at the time of writing, not a promise (confirm check)
     except Exception:  # noqa: BLE001
         pass
     try:                                              # a moment the brain is deciding right now waits too (12 Nov check)
         n = j.db.execute("SELECT COUNT(*) FROM brain_queue WHERE state IN ('NEW', 'DECIDING') AND t >= ?", (int(since),)).fetchone()[0]
         if n:
-            out.append(f"{n} moment{'s' if n != 1 else ''} the brain has not decided yet")
+            out.append(f"{n} moment{'s' if n != 1 else ''} the brain had not decided yet")
     except Exception:  # noqa: BLE001  no queue table yet: nothing waits
         pass
     return out
@@ -505,9 +509,16 @@ def write_when_due(j, push: Callable | None = None, call: Callable | None = None
     tries = json.loads((j.db.execute("SELECT v FROM engine_state WHERE k=?", ("officer_tries:" + day,)).fetchone() or ["{}"])[0] or "{}")
     if int(tries.get("n") or 0) >= NOTE_TRIES:          # 12 Nov check: a failing note was tried every 15 minutes all day, the night test waiting
         return None
-    out = write(j, daily, push=push, call=call)
+    # the try is counted before the paid call, so a failure raised anywhere after it (saving the note, say) counts too (the confirm check)
+    tries = {"n": int(tries.get("n") or 0) + 1, "t": int(j.now())}
+    j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:" + day, json.dumps(tries)))
+    j.db.commit()
+    try:
+        out = write(j, daily, push=push, call=call)
+    except Exception as exc:  # noqa: BLE001
+        out = {"ok": False, "error": f"{type(exc).__name__}: {str(exc)[:100]}"}
     if not out.get("ok"):
-        tries = {"n": int(tries.get("n") or 0) + 1, "t": int(j.now()), "error": str(out.get("error") or "")[:120]}
+        tries["error"] = str(out.get("error") or "")[:120]
         j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:" + day, json.dumps(tries)))
         j.db.commit()
         if tries["n"] >= NOTE_TRIES:                    # the last try: the night test runs without the note; the run check shows it missing
@@ -561,8 +572,9 @@ def corrections(j, day: str, note: str, facts: dict, t: int = 0) -> list[str]:
             left = {b: n - int((late.get("books") or {}).get(b) or 0) for b, n in (rec.get("books") or {}).items()
                     if n > int((late.get("books") or {}).get(b) or 0)}
             names = ", ".join(f"{n} of {b.replace('_', ' ').lower()}" for b, n in sorted(left.items())) or "some"
+            fig = ", and so out of its dollar figure too" if "net_usd" in late else ""      # said only when the note gave one; never the sum
             out.append(f"Corrected later: {rec['n']} old paper trades of the measuring books were closed late that night, not {late['n']} "
-                       f"({names} were left out of the count); the account was untouched.")   # no money of the measuring books (rule 9)
+                       f"({names} were left out of the count{fig}); the account was untouched.")   # no money of the measuring books (rule 9)
     acct = facts.get("account") or {}
     fix = (surfaces._night_fixes(j) or {}).get(day) or {}
     v, add = acct.get("value_cad"), float(fix.get("add_cad") or 0)

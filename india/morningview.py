@@ -223,8 +223,15 @@ def plan_today(session: str, rm: dict) -> dict:
         opt["plan_note"] = f"the plan could not be read: {e.__class__.__name__}"
     av = _load(_paper() / "allocation_view.json", {}) or {}
     sug = [{"symbol": s.get("symbol"), "action": s.get("action"), "why": s.get("why")} for s in (av.get("suggestions") or [])[:4]]
-    ab = _load(_paper() / "account" / "view.json", {}) or {}
     mb = _load(_paper() / "managed" / "view.json", {}) or {}          # 30 Oct (Madhav's yes): the managed book's plan for this session
+    # 12 Nov 2026, the keen outside audit (G-08): the morning view passed on the folded-away account twin's words ("Rs 167,641 on paper ...
+    # in 13 stocks"), and its writer spoke them as the paper account, while Home's paper account is the managed book (Rs 1,64,725, 11
+    # stocks). The twin was folded into the managed book on 3 Nov: the paper account here is the managed book's, at the close it is marked at.
+    account_words = ((f"The paper account (the managed book): ₹{mb['value_inr']:,.0f} at the {_dw(mb.get('day'))} close: "
+                      f"₹{mb.get('stocks_inr') or 0:,.0f} in {mb.get('positions')} stocks, ₹{mb.get('options_inr') or 0:,.0f} set aside for options, "
+                      f"₹{mb.get('cash_inr') or 0:,.0f} cash"
+                      + (f"; {mb['return_pct']:+.2f}% since {_dw(mb.get('start_day'))}." if isinstance(mb.get("return_pct"), (int, float)) else "."))
+                     if isinstance(mb.get("value_inr"), (int, float)) else "The managed book, the paper account, has no value yet.")
     mp = mb.get("plan") or {}
     managed = ({"for_session": mp.get("for_session"), "brief": mp.get("brief"), "words": mp.get("words"), "no_change": mp.get("no_change"),
                 "cuts": [x.get("symbol") for x in mp.get("cuts") or []], "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr")} for b in mp.get("buys") or []],
@@ -232,7 +239,7 @@ def plan_today(session: str, rm: dict) -> dict:
                if mp and not mp.get("error") and mp.get("for_session") == session else
                {"for_session": session, "brief": ("The managed book has no plan for this session" + (f": {mp['error']}" if mp.get("error") else "") + ".") if mb else "The managed book has not started yet."})
     return {"status": "ok" if d else "missing", "decided_on": day, "picks": picks, "picks_by_family": dict(by), "random_picks": n_ctl, "options_line": opt,
-            "holdings_suggestions": sug, "allocation_headline": av.get("headline"), "account_words": ab.get("words"), "moves_today": [m.get("why") for m in (av.get("moves") or [])][:2],
+            "holdings_suggestions": sug, "allocation_headline": av.get("headline"), "account_words": account_words, "moves_today": [m.get("why") for m in (av.get("moves") or [])][:2],
             "managed_book": managed}
 
 

@@ -102,6 +102,14 @@ def _pr_silver():
     return przip.build()
 
 
+def _managed_mark() -> dict:
+    try:
+        from india import managed
+        return managed.mark_after_close()
+    except Exception as e:  # noqa: BLE001  the evening run still marks the book; the data build is not failed by this step
+        return {"status": "error", "why": f"{type(e).__name__}: {str(e)[:160]}"}
+
+
 def last_published_day(now_utc: dt.datetime | None = None) -> dt.date:
     """The newest NSE session whose end-of-day files should be out: today in India once it is past 19:00 there (NSE posts the bhavcopy
     and the F&O files by about 18:30-19:30), else yesterday in India. Weekends and holidays come back as "no file" and are skipped.
@@ -144,6 +152,9 @@ def run(sync: bool = True) -> dict:
         ("board_meetings", _board_meetings),
         ("results_html", _results_html),
         ("flows", _flows),
+        # 12 Nov 2026 (the keen outside audit, G-03): the managed book is filled and marked as soon as the day file and the factors are in,
+        # not 15 hours later in the evening run; the next plan stays with the evening run. Its result is reported here, never a failed build.
+        ("managed_mark", _managed_mark),
         ("pr_silver", _pr_silver),
         ("surveillance", _surveil),
         ("data_gaps", _data_gaps),

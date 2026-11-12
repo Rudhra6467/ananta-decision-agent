@@ -470,6 +470,9 @@ def run(day: str | None = None, replan: bool = False) -> dict:
         if not book:
             return {"status": "missing", "words": "the account twin has not opened yet, so the managed book cannot start"}
     filled = fill(book, day, df, c) if day in set(df["date"].dt.strftime("%Y-%m-%d")) else []
+    before = _load(_dir() / "view.json", {}) or {}
+    if not filled and before.get("day") == day and before.get("filled_today"):
+        filled = before["filled_today"]                # 12 Nov (G-03): the nightly job filled them; the view still says what the day did
     mark(book, day, df)
     _options_one_amount(book, day)
     feats = features(df, day)
@@ -501,6 +504,33 @@ def run(day: str | None = None, replan: bool = False) -> dict:
     v = view(book, day, plan, filled, c, opened)
     (_dir() / "view.json").write_text(json.dumps(v, indent=1))
     return v
+
+
+def mark_after_close(day: str | None = None) -> dict:
+    """12 Nov 2026, the keen outside audit (G-03; open-list flag 118): for about 15 hours after each Indian close the account's value was the
+    session before's, because the only run that marks this book is the evening run (06:50 IST the next morning), which also writes the next
+    plan. This runs in the nightly job as soon as the official day file and the corporate-action factors are in (23:15 IST): it fills the
+    session's plan at its open and marks the book at its close, exactly as the evening run would, and writes no plan (the next plan's inputs
+    land later, and a plan is written once). The evening run then finds the fills done (filled_plans) and the marks the same. It does nothing
+    when the book is already marked at that close (the nightly's 02:30 Toronto catch-up falls in the next session)."""
+    c = cfg()
+    df = bars()
+    day = day or str(df["date"].max().date())
+    st = _dir() / "state.json"
+    book = _load(st)
+    if not book:
+        return {"status": "missing", "words": "the managed book has not started"}
+    old = _load(_dir() / "view.json", {}) or {}
+    if str(old.get("day") or "") >= day:
+        return {"status": "already marked", "day": old.get("day")}
+    filled = fill(book, day, df, c) if day in set(df["date"].dt.strftime("%Y-%m-%d")) else []
+    mark(book, day, df)
+    _options_one_amount(book, day)
+    st.write_text(json.dumps(book, indent=1))
+    v = view(book, day, old.get("plan"), filled, c)
+    v["marked_by"] = "the nightly job, at the close (the next plan comes with the evening run)"
+    (_dir() / "view.json").write_text(json.dumps(v, indent=1))
+    return {"status": "marked", "day": day, "value_inr": v["value_inr"], "fills": sum(1 for t in filled if t.get("filled"))}
 
 
 def _options_one_amount(book: dict, day: str) -> None:

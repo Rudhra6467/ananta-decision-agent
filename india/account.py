@@ -254,6 +254,19 @@ def frozen(book: dict) -> dict:
     return f
 
 
+def _quotebook_closes(day: str, symbols: list[str]) -> dict:
+    """symbol -> (close, its day) from the nightly stock quote book (manifests/quotebook.json, built from the official NSE day file), for the
+    session `day` or the last one on file before it; nothing for a symbol it does not carry."""
+    q = _load(paths.manifest_dir() / "quotebook.json", {}) or {}
+    out = {}
+    for s in symbols:
+        r = (q.get("quotes") or {}).get(s) or {}
+        on = str(r.get("as_of") or q.get("as_of") or "")[:10]
+        if on and on <= str(day)[:10] and isinstance(r.get("close"), (int, float)) and r["close"] > 0:
+            out[s] = (float(r["close"]), on)
+    return out
+
+
 def benchmark(book: dict, marks: dict) -> dict:
     """One row a session in paper/account/benchmark.jsonl: the twin, the frozen portfolio and the Nifty 500 (price index; dividends of about
     1.2-1.5% a year are not in it and are said) since the day the twin opened. Words for the view and the facts."""
@@ -267,10 +280,18 @@ def benchmark(book: dict, marks: dict) -> dict:
     except Exception:  # noqa: BLE001
         pass
     px = {**{s: v.get("last_at_open", 0) for s, v in f["positions"].items()}, **{s: v for s, v in nse.items() if v}, **{s: v for s, v in last.items() if v}}
+    day = marks.get("last_session") or marks.get("snapshot_day")
+    # 12 Nov 2026, the keen outside audit (G-13): a holding the twin no longer holds (Indian Energy Exchange) had no mark when the Zerodha
+    # snapshot was current, so "your holdings, as you have them" kept it at its 30 Oct price (about Rs 184 low on 11 Nov). It now takes the
+    # session's close from the nightly stock quote book (built from the official day file; not the sealed store); a holding with no close
+    # on file is named in the row and the words, never silently left at its old price.
+    unmarked = [s for s in f["positions"] if not last.get(s) and not nse.get(s)]
+    qb = _quotebook_closes(day, unmarked) if unmarked and day else {}
+    px.update({s: c for s, (c, _d) in qb.items()})
+    stale = sorted(s for s in unmarked if s not in qb)
     frozen_val = sum(v["qty"] * px.get(s, v["last_at_open"]) for s, v in f["positions"].items()) + f["cash_inr"] + f["options_inr"]
     twin_val = sum(v["qty"] * v["last"] for v in book["positions"].values()) + book["cash_inr"] + book["options_inr"]
     start = float(f.get("start_inr") or book.get("opened_value_inr") or twin_val)
-    day = marks.get("last_session") or marks.get("snapshot_day")
     n500 = None
     try:
         ix = sealed.read_index("paper_context", f["day"], ["NIFTY 500"])
@@ -282,6 +303,7 @@ def benchmark(book: dict, marks: dict) -> dict:
     except Exception as e:  # noqa: BLE001
         n500 = {"error": f"{type(e).__name__}: {str(e)[:80]}"}
     row = {"day": day, "at": _now(), "twin_inr": round(twin_val), "frozen_inr": round(frozen_val), "start_inr": round(start),
+           "frozen_marked_from_quotebook": {s: d for s, (_c, d) in qb.items()}, "frozen_stale": stale,
            "twin_ret_pct": round(100 * (twin_val / start - 1), 2), "frozen_ret_pct": round(100 * (frozen_val / start - 1), 2),
            "nifty500_ret_pct": (n500 or {}).get("ret_pct"), "twin_minus_frozen_pct": round(100 * (twin_val - frozen_val) / start, 2)}
     managed = _load(paths.data_dir() / "paper" / "managed" / "view.json")      # 30 Oct (Madhav's yes): the managed book, the fourth column
@@ -303,6 +325,8 @@ def benchmark(book: dict, marks: dict) -> dict:
              f"Since {f['day']} ({sessions} sessions): the twin {row['twin_ret_pct']:+.2f}%, your holdings left as they were {row['frozen_ret_pct']:+.2f}%. ")
     if row.get("managed_ret_pct") is not None:
         words += f"The managed book (cuts replaced on paper, since {row.get('managed_start_day')}, session {row.get('managed_sessions')} of 60): {row['managed_ret_pct']:+.2f}%. "
+    if stale:
+        words += (f"{len(stale)} of your holdings had no close on file and stay at their opening price in this line ({', '.join(stale)}). ")
     words += "Nothing is read into the gap before 60 sessions; the twin's changes so far are the allocator's sleeve and weak-holding moves."
     return {"status": "ok", **row, "sessions": sessions, "frozen_day": f["day"], "words": words}
 

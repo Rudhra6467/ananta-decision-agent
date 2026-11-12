@@ -561,3 +561,54 @@ def test_the_minutes_of_the_model_call_fall_on_the_next_night_not_on_none():
     j.db.commit()
     assert officer.facts(j)["background"]["brain_today"] == {"PASS": 1}
     assert officer.night_window(j)[2] == NOV(12, 0, 6)
+
+
+# ---- the second confirm check of 12 Nov (recheck/pkg3_confirm2.md) ----
+
+def test_a_try_cut_short_still_starts_the_night_test(monkeypatch):
+    """S4: the service stopping during the third try (a restart, the Mac asleep or off) left the tries used up, no note and no night
+    test, and every later loop returned at once."""
+    j = _j(NOV(12, 3))
+    _ready(j, NOV(11, 23))
+    j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:2026-11-12", json.dumps({"n": 3, "t": NOV(12, 1)})))
+    j.db.commit()
+    calls = []
+
+    def start(j):
+        calls.append(1)
+        j.db.execute("INSERT OR REPLACE INTO engine_state VALUES ('nightcheck_started:2026-11-12', '1')")
+        return True
+
+    monkeypatch.setattr("jarvis.service.universe_watch.start_night_test", start)
+    out = officer.write_when_due(j, call=lambda r, u: pytest.fail("no fourth try of the paid call"))
+    assert out["night_test_started"] is True and calls == [1]
+    assert officer.write_when_due(j) is None and calls == [1]                            # once: the night test's own stamp is there
+
+
+def test_a_note_whose_facts_do_not_parse_never_starts_the_night_at_midnight():
+    """S5: the facts are saved cut at 20,000 characters; facts that did not parse started the next night at midnight UTC."""
+    j = _j(NOV(13, 0, 20))
+    _state(j, last_bar=NOV(12))
+    cut = json.dumps({"background": {"counted_to": NOV(12, 0, 6)}, "rest": "x" * 50})[:-20]           # cut short: no longer JSON
+    j.db.execute("INSERT INTO officer_notes VALUES ('2026-11-12', ?, 'x', ?, 0)", (NOV(12, 0, 7), cut))
+    j.db.commit()
+    assert officer.night_window(j)[2] == NOV(12, 0, 6)                                   # the moment it counted to, read from the text
+    j.db.execute("UPDATE officer_notes SET facts=?", ('{"account": {"x": "' + "y" * 100,))
+    j.db.commit()
+    assert officer.night_window(j)[2] == NOV(12, 0, 7)                                   # else the note's save time, never 00:00 UTC
+
+
+def test_the_ask_and_the_note_give_a_closed_trades_toronto_days():
+    """A sibling of G-28: the Ask's book tool (officer.book_status) and the note's facts gave only the book's UTC days, unlabelled (the
+    Solana trade 'in 2026-10-27, out 2026-11-06', on every screen Mon 26 Oct to Thu 5 Nov)."""
+    j = _j(NOV(12, 0, 6))
+    sol = {"coin": "SOL", "sleeve": "CORE", "in": "2026-10-27", "out": "2026-11-06", "pnl_cad": 1.0}
+    _state(j, last_bar=NOV(11), closed=[sol], brakes={"fired": {}})
+    j.db.executemany("INSERT INTO book500_fills (t, coin, side, sleeve, qty, px, bid, ask, fee, why) VALUES (?, 'SOL', ?, 'CORE', 1, 1, 1, 1, 0, 'x')",
+                     [(calendar.timegm((2026, 10, 27, 0, 6, 0)), "BUY"), (NOV(6, 0, 6), "SELL")])
+    j.db.commit()
+    st = officer.book_status(j)
+    assert (st["closed"][-1]["bought"], st["closed"][-1]["sold"]) == ("Mon 26 Oct", "Thu 5 Nov") and "UTC" in st["closed_days_note"]
+    acct = officer.facts(j)["account"]
+    assert (acct["closed_recent"][-1]["bought"], acct["closed_recent"][-1]["sold"]) == ("Mon 26 Oct", "Thu 5 Nov")
+    assert "Toronto" in acct["closed_days_note"]

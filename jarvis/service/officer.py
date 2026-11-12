@@ -105,7 +105,13 @@ def night_window(j) -> tuple[int, int, int, int]:
         r = j.db.execute("SELECT t, facts FROM officer_notes WHERE day < ? ORDER BY day DESC LIMIT 1",
                          (time.strftime("%Y-%m-%d", time.gmtime(now)),)).fetchone()
         if r:
-            upto = ((json.loads(r[1] or "{}") or {}).get("background") or {}).get("counted_to") if r[1] else None
+            try:
+                upto = ((json.loads(r[1] or "{}") or {}).get("background") or {}).get("counted_to") if r[1] else None
+            except ValueError:
+                # the second confirm check (S5): facts saved cut at 20,000 characters do not parse, and the night then started at midnight
+                # UTC; the moment is read from the text, else the note's save time
+                m = re.search(r'"counted_to":\s*(\d+)', r[1] or "")
+                upto = int(m.group(1)) if m else None
             last = int(upto) if isinstance(upto, (int, float)) else int(r[0] or 0)
             since = max(since, last)
     except Exception:  # noqa: BLE001  no notes table yet: the candle's own day
@@ -147,7 +153,7 @@ def facts(j, daily: dict | None = None) -> dict:
                         "brakes": brake_record({**(s.get("brakes") or {}), "log": (s.get("brakes") or {}).get("log") or s.get("brake_log") or []},
                                                s.get("repairs")),
                         "last_step": s.get("last_step"), "started": s.get("started"),
-                        "closed_recent": (s.get("closed") or [])[-3:]}
+                        "closed_recent": toronto_days(j, (s.get("closed") or [])[-3:]), "closed_days_note": CLOSED_DAYS_NOTE}
         # 25 Oct: the note said "the day-loss brake fired once today" when it had fired on 22 Oct ("fired" counts are totals since the start).
         # Say in words what fired today and when each brake last fired.
         # 10 Nov 2026 (the outsider's review): a brake's day is the candle it fired on, and the note is written on the UTC day after that
@@ -443,7 +449,27 @@ def book_status(j) -> dict:
     br = brake_record({**(st.get("brakes") or {}), "log": st.get("brake_log") or []}, st.get("repairs"))
     st["brake_log"] = br.pop("log", [])
     st["brakes"] = br
+    st["closed"] = toronto_days(j, st.get("closed") or [])
+    st["closed_days_note"] = CLOSED_DAYS_NOTE
     return st
+
+
+CLOSED_DAYS_NOTE = ("A closed trade's 'in' and 'out' are the book's UTC days (its step runs at the 00:00 UTC close, the evening before in "
+                    "Toronto); say its days as 'bought' and 'sold', Madhav's Toronto days, as every screen does")
+
+
+def toronto_days(j, closed: list[dict]) -> list[dict]:
+    """Each closed trade with the Toronto days of its buy and its sale ('bought', 'sold': 'Mon 26 Oct'), the screens' own rule
+    (places._sold_day). 12 Nov 2026 (the second confirm check, a sibling of G-28): the Ask's book tool and the note's facts gave only the
+    book's UTC days, unlabelled (the Solana trade 'in 2026-10-27, out 2026-11-06', which the screens show as Mon 26 Oct to Thu 5 Nov)."""
+    try:
+        from jarvis.service import places
+
+        fills = places._fills(j)
+        words = lambda d: _dt.date.fromisoformat(d[:10]).strftime("%a %-d %b") if re.match(r"\d{4}-\d\d-\d\d", str(d or "")) else d  # noqa: E731
+        return [dict(c, bought=words(places._sold_day(c, fills, "BUY")), sold=words(places._sold_day(c, fills))) for c in closed]
+    except Exception:  # noqa: BLE001  the UTC days stay, with the note that says what they are
+        return [dict(c) for c in closed]
 
 
 NOTE_DAILY_KEYS = ("book500", "brain_woke", "pushed", "missed", "brain_rebuild", "weekly_review", "steps_failed")
@@ -508,7 +534,22 @@ def write_when_due(j, push: Callable | None = None, call: Callable | None = None
         daily["still_waiting_when_written"] = left
     tries = json.loads((j.db.execute("SELECT v FROM engine_state WHERE k=?", ("officer_tries:" + day,)).fetchone() or ["{}"])[0] or "{}")
     if int(tries.get("n") or 0) >= NOTE_TRIES:          # 12 Nov check: a failing note was tried every 15 minutes all day, the night test waiting
-        return None
+        # the second confirm check (S4): a try cut short (a restart, the Mac asleep or off) never reached the step below that starts the
+        # night test, and every later loop returned here, so the night had no note and no night test. With the tries used up and no note,
+        # the night test starts here, once (the tries' record keeps that it started).
+        if tries.get("night_test"):
+            return None
+        out = {"ok": False, "error": "the note's tries were used up and no note was saved"}
+        try:
+            from jarvis.service import universe_watch
+
+            out["night_test_started"] = universe_watch.start_night_test(j)
+        except Exception as exc:  # noqa: BLE001
+            out["night_test_error"] = str(exc)[:120]
+        tries["night_test"] = True
+        j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:" + day, json.dumps(tries)))
+        j.db.commit()
+        return out
     # the try is counted before the paid call, so a failure raised anywhere after it (saving the note, say) counts too (the confirm check)
     tries = {"n": int(tries.get("n") or 0) + 1, "t": int(j.now())}
     j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:" + day, json.dumps(tries)))
@@ -519,8 +560,6 @@ def write_when_due(j, push: Callable | None = None, call: Callable | None = None
         out = {"ok": False, "error": f"{type(exc).__name__}: {str(exc)[:100]}"}
     if not out.get("ok"):
         tries["error"] = str(out.get("error") or "")[:120]
-        j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:" + day, json.dumps(tries)))
-        j.db.commit()
         if tries["n"] >= NOTE_TRIES:                    # the last try: the night test runs without the note; the run check shows it missing
             try:
                 from jarvis.service import universe_watch
@@ -528,6 +567,9 @@ def write_when_due(j, push: Callable | None = None, call: Callable | None = None
                 out["night_test_started"] = universe_watch.start_night_test(j)
             except Exception as exc:  # noqa: BLE001
                 out["night_test_error"] = str(exc)[:120]
+            tries["night_test"] = True
+        j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:" + day, json.dumps(tries)))
+        j.db.commit()
     if out.get("ok") and not out.get("already"):
         try:
             from jarvis.service import universe_watch

@@ -1,8 +1,10 @@
 """Tests never push to a real phone, even when run on the laptop where .env holds the ntfy topic; and they never reach the web
 or touch the live paid-search counters."""
+import atexit
 import importlib.util
 import os
 import pwd
+import shutil
 import sys
 import tempfile
 
@@ -16,6 +18,14 @@ import pytest
 #    under his home is written, nothing leaves this machine or reaches the live services, no network or service program is started, and
 #    every Python a test starts puts up the same wall. The first version of the morning (a patched socket class) was got through by the
 #    outside check four ways; this one is what it could not get through. What it refused is printed at the end of the run.
+# 12 Nov 2026: test runs left their scratch folders in the Mac's temporary folder (13,716 folders, 47 GB in five days; the disk reached
+# 99% on the evening of 12 Nov). Everything a run makes there now sits inside one run folder, which is emptied when the run ends. What
+# is left of it holds no data: the tests' home with its two links to the code checkouts, which the wall does not let a test process
+# remove (they lead under Madhav's home). ~/ananta_runs/keen_audit/recheck/fix/clean_test_scratch.py clears those, and a killed run's.
+RUN_TMP = tempfile.mkdtemp(prefix="ananta-tests-run-")
+tempfile.tempdir = RUN_TMP                                          # every mkdtemp() and TemporaryDirectory() of this process
+os.environ["TMPDIR"] = RUN_TMP                                      # and of every Python a test starts
+atexit.register(shutil.rmtree, RUN_TMP, ignore_errors=True)
 REAL_HOME = pwd.getpwuid(os.getuid()).pw_dir
 TEST_HOME = tempfile.mkdtemp(prefix="ananta-tests-home-")
 os.makedirs(os.path.join(TEST_HOME, "code"))

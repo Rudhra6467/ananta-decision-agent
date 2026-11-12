@@ -510,7 +510,9 @@ def test_every_module_that_opens_a_paper_position_is_on_the_guard_list_and_asks_
     delegates = {"jarvis/service/feed.py": "builds the guard's Prices for its callers; opens nothing",
                  "jarvis/service/evidence_live.py": "the gate reads the guard's log and coverage; opens nothing",
                  "src/intelligence/portfolio_layer.py": "the trend books take the guard as a callable from explorer_live (T3) and core (approval)",
-                 "src/intelligence/explorer_engine.py": "the Explorer's engine asks slot_ok, which explorer_live answers (KILL_SWITCH_UNREAD)"}
+                 "src/intelligence/explorer_engine.py": "the Explorer's engine asks slot_ok, which explorer_live answers (KILL_SWITCH_UNREAD)",
+                 # 12 Nov 2026 (audit repair 3): the nightly note reads the kill switch only to know the bold book decides nothing tonight
+                 "jarvis/service/officer.py": "reads the kill switch so the note does not wait for a bold book that is held; opens nothing"}
     # a module that opens positions is on the list (or is a known delegate); a module that asks the guard is on the list (or a delegate)
     assert not [m for m in sorted(opens) if m not in listed and m not in delegates], "a position-opening module is not on the guard list"
     assert not [m for m in sorted(asks) if m not in listed and m not in delegates], "a module asks the guard but is not on the list"

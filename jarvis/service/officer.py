@@ -29,6 +29,7 @@ from zoneinfo import ZoneInfo
 TOR = ZoneInfo("America/Toronto")
 PHONE_CHARS = 220
 NOTE_WAITS_S = 45 * 60          # the note waits at most this long after the close for the brain's moments of the night
+NOTE_TRIES = 3                  # a note that fails is tried this many times a night, then the night test runs without it
 # Until this moment the note counts the measuring books' closes and never sums their money: eight crypto findings (breakouts and the bold
 # book among them) are pre-registered for a forward test that ends 14 Dec (the audit's rule 9). The same moment as shadow.SEALED_UNTIL
 # and learning.SEALED_UNTIL_T (tests/test_nightly_note_12nov.py keeps the three equal).
@@ -48,12 +49,14 @@ last seven days. Never invent a number: every figure must come from the facts. N
 greeting by time of day. If the facts say a brake fired or a strategy passed, lead with that. What fired at this close is
 "account.brakes_today"; mention the brakes ONLY when it says one fired, and never write that no brake fired;
 the "fired" numbers inside "brakes" are totals since the book started, never today's, and count fires on real losses only: a log entry
-marked "false_fall" came from a value read too low and is never a real fire. "background" counts the night from "counted_from" (the open
-of the candle the book stepped on) to the note; if "background.still_waiting_when_written" is there, say in one short sentence what was
+marked "false_fall" came from a value read too low and is never a real fire. "background" counts the night as "counted_from" says (the
+rules' signals and closes of the candle that just closed, and what the brain and the bold book did since the last note); if
+"background.still_waiting_when_written" is there, say in one short sentence what was
 still to come when you wrote. If "account.corrections" is there, say the
 correction once in plain words (what was put right and the money). If "dial.warning" is there, say it. If "background.old_paper_trades_closed_late_tonight" is there, say in one sentence
 how many old paper trades of the measuring books were closed late tonight by their own rules, their net in US dollars only when the facts
-give it (before 15 Dec they never do: no money of a measuring book is said before then), and that the account itself is untouched. "background.missed_moves" lists the day's big moves by coin, each with what happened in plain words; a
+give it (before 15 Dec they never do), and that the account itself is untouched. Before 15 Dec the night's closes are counts only, and the
+results of breakouts and the bold book are never in the facts: never guess or add one. "background.missed_moves" lists the day's big moves by coin, each with what happened in plain words; a
 coin's code is a coin, never a word ("ERA" is a coin): write "a measuring book held the coin ERA on paper", never "a measuring book was in
 ERA" and never "caught" as if it were a win (11 Nov note). Mention them in one short sentence at most, and only if one touches the account. In a check's words, the books after "Paused books still closing"
 are different books from the ones before: never call a live book paused. A check with state DECIDED is one Madhav has already decided: say his decision, not a failure."""
@@ -87,19 +90,31 @@ def evening(t) -> str:
     return f"{d:%a} {d.day} {d:%b}"
 
 
-def night_start(j) -> int:
-    """The open (00:00 UTC) of the daily candle the $500 book last stepped on: the night counts from there (G-25). The measuring books
-    stamp a signal and an exit with the candle's open, so a night counted from midnight UTC, six minutes before the note, was empty."""
-    from jarvis.service import ndax_book
-
-    try:
-        t = (ndax_book._get(j, "state") or {}).get("last_bar")
-        if t:
-            return int(t)
-    except Exception:  # noqa: BLE001
-        pass
+def night_window(j) -> tuple[int, int, int, int]:
+    """The night the note counts (G-25), as (candle_open, candle_close, since, now). The measuring books stamp a rule's signal and exit with
+    the daily candle's open (exactly 00:00 UTC); the brain and the bold book stamp the moment they act. A night counted from midnight UTC,
+    six minutes before the note, was empty; counted from the candle's open to the note, it counted the step's own minutes again the next
+    night (the outside check of 12 Nov: the bold book's 00:09 buy, 77 brain decisions since 14 Oct). So: the candle-stamped rows of the
+    candle that has just closed (the one before the note's UTC day, whatever the book's step did), and the rows stamped at a moment after
+    the last note and up to now."""
     now = int(j.now())
-    return now - now % 86400 - 86400
+    close = now - now % 86400
+    since = close - 86400
+    try:
+        r = j.db.execute("SELECT MAX(t) FROM officer_notes WHERE day < ?", (time.strftime("%Y-%m-%d", time.gmtime(now)),)).fetchone()
+        if r and r[0]:
+            since = max(since, int(r[0]))
+    except Exception:  # noqa: BLE001  no notes table yet: the candle's own day
+        pass
+    return close - 86400, close, since, now
+
+
+NIGHT_SQL = "((%(c)s %% 86400 = 0 AND %(c)s >= ? AND %(c)s < ?) OR (%(c)s %% 86400 != 0 AND %(c)s > ? AND %(c)s <= ?))"
+
+
+def _night(col: str) -> str:
+    """The WHERE part for a column stamped either at a candle's open or at the moment something acted (see night_window)."""
+    return NIGHT_SQL % {"c": col}
 
 
 def phone_text(note: str, limit: int = PHONE_CHARS) -> str:
@@ -107,7 +122,7 @@ def phone_text(note: str, limit: int = PHONE_CHARS) -> str:
     note = " ".join(str(note or "").split())
     if len(note) <= limit:
         return note
-    ends = [m.end() for m in re.finditer(r"[.!?](?=\s|$)", note[:limit + 1])]
+    ends = [m.end() for m in re.finditer(r"[.!?](?=\s|$)", note) if m.end() <= limit]     # 12 Nov check: one came out at 221
     if ends and ends[-1] > 20:
         return note[:ends[-1]]
     return note[:limit].rsplit(" ", 1)[0].rstrip(",;:") + "…"
@@ -161,22 +176,24 @@ def facts(j, daily: dict | None = None) -> dict:
     f["today_in_the_account"] = {k: b5.get(k) for k in ("bought", "sold", "skipped") if b5.get(k)} or "no change"
     # the background, counted from the database itself (never trusted from the caller): today's signals per rule and tier,
     # the brain's decisions today, and what each measuring book closed today
-    day0 = night_start(j)                          # 12 Nov (G-25): was midnight UTC, six minutes before the note
+    win = night_window(j)                          # 12 Nov (G-25): was midnight UTC, six minutes before the note
     held = int(j.now()) < HELD_UNTIL
     bg: dict = {"signals_today_by_rule": {}, "closed_today_by_rule": {}, "brain_today": {},
-                "counted_from": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(day0)) + " (the open of the candle the book stepped on)"}
+                "counted_from": (f"the rules' signals and closes of the {time.strftime('%Y-%m-%d', time.gmtime(win[0]))} candle, and what the "
+                                 f"brain and the bold book did after {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(win[2]))} (the last note)")}
     if held:
         bg["closed_counts_only"] = ("the measuring books' closes are counted, never summed in money, before 15 Dec: eight findings are under "
                                     "a pre-registered forward test to 14 Dec (breakouts and the bold book among them)")
     try:
-        for watch, n in j.db.execute("SELECT watch, COUNT(*) FROM evidence_trades WHERE signal_t >= ? GROUP BY watch", (day0,)):
+        for watch, n in j.db.execute(f"SELECT watch, COUNT(*) FROM evidence_trades WHERE {_night('signal_t')} GROUP BY watch", win):
             if not watch.startswith(("RANDOM", "JARVIS_RANDOM")):
                 bg["signals_today_by_rule"][watch] = n
-        # 12 Nov 2026 (audit repair 3): counted from the candle's open, the closes are now found every night; until 15 Dec their money is
-        # left out, since a breakout's or the bold book's result would be an early look (the audit's rule 9). Counting is fine.
-        for watch, n, net in j.db.execute("SELECT watch, COUNT(*), ROUND(SUM(net_usd), 2) FROM evidence_trades WHERE status='CLOSED' AND exit_t >= ? GROUP BY watch", (day0,)):
+        # 12 Nov 2026 (audit repair 3): counted by the night, the closes are now found every night; until 15 Dec their money is left
+        # out, since a breakout's or the bold book's result would be an early look (the audit's rule 9). Counting is fine.
+        for watch, n, net in j.db.execute(f"SELECT watch, COUNT(*), ROUND(SUM(net_usd), 2) FROM evidence_trades WHERE status='CLOSED' AND "
+                                          f"{_night('exit_t')} GROUP BY watch", win):
             bg["closed_today_by_rule"][watch] = {"n": n} if held else {"n": n, "net_usd": net}
-        for action, n in j.db.execute("SELECT action, COUNT(*) FROM brain_decisions WHERE t >= ? GROUP BY action", (day0,)):
+        for action, n in j.db.execute("SELECT action, COUNT(*) FROM brain_decisions WHERE t > ? AND t <= ? GROUP BY action", win[2:]):
             bg["brain_today"][action] = n
         bg["evidence_rows_open"] = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE status IN ('OPEN','WAITING') AND watch NOT LIKE 'RANDOM%'").fetchone()[0]
     except Exception as exc:  # noqa: BLE001
@@ -449,15 +466,17 @@ def waiting_for(j, day: str, since: int) -> list[str]:
     out = []
     try:
         from jarvis.service import bold
+        from jarvis.service import trade_guard as tg
 
-        if bold.enabled()[0]:
+        # a bold book held by the kill switch decides nothing tonight: nothing to wait for, and nothing "still to come" (12 Nov check)
+        if bold.enabled()[0] and not tg.blocked(j, bold.WATCH):
             bold._table(j)
             if not j.db.execute("SELECT 1 FROM bold_decisions WHERE day=?", (day,)).fetchone():
                 out.append("the bold measuring book's decision")
     except Exception:  # noqa: BLE001
         pass
-    try:
-        n = j.db.execute("SELECT COUNT(*) FROM brain_queue WHERE state='NEW' AND t >= ?", (int(since),)).fetchone()[0]
+    try:                                              # a moment the brain is deciding right now waits too (12 Nov check)
+        n = j.db.execute("SELECT COUNT(*) FROM brain_queue WHERE state IN ('NEW', 'DECIDING') AND t >= ?", (int(since),)).fetchone()[0]
         if n:
             out.append(f"{n} moment{'s' if n != 1 else ''} the brain has not decided yet")
     except Exception:  # noqa: BLE001  no queue table yet: nothing waits
@@ -483,7 +502,21 @@ def write_when_due(j, push: Callable | None = None, call: Callable | None = None
         return {"waiting": left}
     if left:
         daily["still_waiting_when_written"] = left
+    tries = json.loads((j.db.execute("SELECT v FROM engine_state WHERE k=?", ("officer_tries:" + day,)).fetchone() or ["{}"])[0] or "{}")
+    if int(tries.get("n") or 0) >= NOTE_TRIES:          # 12 Nov check: a failing note was tried every 15 minutes all day, the night test waiting
+        return None
     out = write(j, daily, push=push, call=call)
+    if not out.get("ok"):
+        tries = {"n": int(tries.get("n") or 0) + 1, "t": int(j.now()), "error": str(out.get("error") or "")[:120]}
+        j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:" + day, json.dumps(tries)))
+        j.db.commit()
+        if tries["n"] >= NOTE_TRIES:                    # the last try: the night test runs without the note; the run check shows it missing
+            try:
+                from jarvis.service import universe_watch
+
+                out["night_test_started"] = universe_watch.start_night_test(j)
+            except Exception as exc:  # noqa: BLE001
+                out["night_test_error"] = str(exc)[:120]
     if out.get("ok") and not out.get("already"):
         try:
             from jarvis.service import universe_watch
@@ -529,7 +562,7 @@ def corrections(j, day: str, note: str, facts: dict, t: int = 0) -> list[str]:
                     if n > int((late.get("books") or {}).get(b) or 0)}
             names = ", ".join(f"{n} of {b.replace('_', ' ').lower()}" for b, n in sorted(left.items())) or "some"
             out.append(f"Corrected later: {rec['n']} old paper trades of the measuring books were closed late that night, not {late['n']} "
-                       f"({names} were left out of the count), and the dollar figure was too small the same way; the account was untouched.")
+                       f"({names} were left out of the count); the account was untouched.")   # no money of the measuring books (rule 9)
     acct = facts.get("account") or {}
     fix = (surfaces._night_fixes(j) or {}).get(day) or {}
     v, add = acct.get("value_cad"), float(fix.get("add_cad") or 0)
@@ -540,11 +573,19 @@ def corrections(j, day: str, note: str, facts: dict, t: int = 0) -> list[str]:
     if dial.get("candle") and dial.get("book_stepped_on") and dial["candle"] != dial["book_stepped_on"]:
         out.append(f"Corrected later: this note read Bitcoin's {dial['candle']} candle, not the {dial['book_stepped_on']} candle the book "
                    "stepped on, so its dial words describe the day before.")
-    elif not dial.get("candle") and "2026-10-28" <= day <= "2026-11-10":              # G-36: the notes before the 10 Nov fix
+    elif not dial.get("candle") and day <= "2026-11-10":                             # G-36: every note before the 10 Nov fix
         out.append("Corrected later: notes written before 11 Nov read Bitcoin's daily candle a day behind the one the book stepped on on "
-                   "most nights (12 of the 14 nights before 11 Nov), so this note's dial words may describe the day before.")
+                   "most nights, so this note's dial words may describe the day before.")
     m = re.search(r"\b(?:all[- ]cash\b|cash is 100%|100% (?:of the book )?(?:in )?cash\b)[^.]{0,90}?\b(\d+)\s+days\b|"
                   r"\b(\d+)\s+days\b[^.]{0,60}?\ball[- ]cash\b|\b(?:all[- ]cash|100%)[^.]*\.\s*It has been that way for (\d+) days\b", note, re.I)
+    weeks = None if m else re.search(r"\b(?:all[- ]cash|cash is 100%|100%)[^.]{0,120}?\bfor over (two|three|four|\d+) weeks\b", note, re.I)
+    if weeks and t:                                                                 # 9 Nov: "for over two weeks" (the 12 Nov check)
+        n = {"two": 2, "three": 3, "four": 4}.get(weeks.group(1).lower()) or int(weeks.group(1))
+        since = all_cash_since(j, t)
+        real = (_dt.datetime.fromtimestamp(t, TOR).date() - since).days if since else None
+        if real is not None and real < 7 * n:
+            out.append(f"Corrected later: the book held coins until the evening of {since:%a} {since.day} {since:%b}, so it had been all cash "
+                       f"for {real} day{'s' if real != 1 else ''} at this note, not over {weeks.group(1)} weeks.")
     if m and t:                                                                     # G-38: "all cash for 12 to 16 days"
         said = int(next(g for g in m.groups() if g))
         since = all_cash_since(j, t)

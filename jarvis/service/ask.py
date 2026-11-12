@@ -668,7 +668,8 @@ def _window_words(j) -> str:
         from jarvis.service import knowledge_build
 
         w = knowledge_build.window(j)
-        return f" [evidence window: day {w['day']} of {w['of']}, from {w['started']}; never count it yourself]" if w else ""
+        return (f" [evidence window: day {w['day']} of {w['of']}" + (" (it has ended)" if w.get("ended") else "")
+                + f", from {w['started']}; never count it yourself]") if w else ""
     except Exception:  # noqa: BLE001
         return ""
 

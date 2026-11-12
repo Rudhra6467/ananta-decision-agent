@@ -183,5 +183,6 @@ def window(j) -> dict | None:
         loop["weekly_review"] = weekly[-1].stem if weekly else "none yet (first Sunday ahead)"
     except Exception:  # noqa: BLE001
         pass
-    return {"day": max(0, dayn), "of": int(w.get("days") or 60), "started": w["start"],
+    of = int(w.get("days") or 60)              # 12 Nov check: past the end the screens stop at "day 60 of 60"; one count, so here too
+    return {"day": max(0, min(dayn, of)), "of": of, "ended": dayn > of, "started": w["start"],
             "rule": w.get("rule") or "", "loop": loop}

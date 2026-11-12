@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 DAY = 86400
+HELD_BOOKS = ("BRK", "JARVIS_BOLD", "RANDOM_BOLD")   # held for the forward test to 14 Dec (the audit's rule 9): never summed before 15 Dec
 _CACHE: dict = {"m": None, "v": {}}
 STATES = ("CLOSED", "FRAGILE", "CONFIRMED")
 STATE_WORDS = {"CLOSED": "the dial is closed (Bitcoin under its 50- or 200-day average)",
@@ -271,6 +272,12 @@ def officer_checks(j) -> list[dict]:
         rows = j.db.execute("SELECT watch, COUNT(*), SUM(net_usd) FROM evidence_trades WHERE status='CLOSED' AND exit_t >= ? GROUP BY watch", (since,)).fetchall()
         fam: dict[str, list[float]] = {}
         watched: dict[str, list[float]] = {}   # tier C books are watched only, never judged (Universe Rule v2): counted apart (#107, Madhav 26 Oct: yes)
+        # 12 Nov 2026 (the outside check of audit repair 3; the audit's rule 9): breakouts and the bold book with its twin are held for a
+        # forward test to 14 Dec, so until 15 Dec this check neither sums nor judges their money
+        from jarvis.service import officer
+
+        held = int(j.now()) < officer.HELD_UNTIL
+        rows = [r for r in rows if not (held and (r[0].split("-U")[0] if "-U" in r[0] else r[0]) in HELD_BOOKS)]
         for w, n, net in rows:
             if w.endswith("-UC"):
                 b = watched.setdefault(w[:-3], [0, 0.0])

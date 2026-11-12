@@ -33,11 +33,11 @@ def _day(t) -> str:
     return dt.datetime.fromtimestamp(float(t), S.TOR).strftime("%Y-%m-%d")
 
 
-def _sold_day(cl: dict, fills: list[dict]) -> str:
-    """A closed trade's Toronto day: its sale's own time when the fills have it; else the UTC day of the step, which ran just after the
-    00:00 UTC close, so the evening before in Toronto."""
-    out = str(cl.get("out") or "")
-    t = next((f["t"] for f in reversed(fills) if f["side"] == "SELL" and f["coin"] == cl.get("coin") and _utc_day(f["t"]) == out), None)
+def _sold_day(cl: dict, fills: list[dict], side: str = "SELL") -> str:
+    """A closed trade's Toronto day (its sale's, or with side BUY its buy's): the fill's own time when the fills have it; else the UTC day
+    of the step, which ran just after the 00:00 UTC close, so the evening before in Toronto."""
+    out = str(cl.get("out" if side == "SELL" else "in") or "")
+    t = next((f["t"] for f in reversed(fills) if f["side"] == side and f["coin"] == cl.get("coin") and _utc_day(f["t"]) == out), None)
     if t is not None:
         return _day(t)
     try:
@@ -278,26 +278,28 @@ def receipt(cl: dict, fills: list[dict]) -> dict:
     amt = lambda fs: sum((f.get("qty") or 0) * (f.get("px") or 0) for f in fs)   # noqa: E731
     pnl, pct = cl.get("pnl_cad"), cl.get("pct")
     tone = S._tone(pnl)
+    # 12 Nov 2026 (the outside check of audit repair 3, G-28): the page named the sale by its UTC day while Activity said the Toronto evening
+    bday, sday = _sold_day(cl, fills, "BUY"), _sold_day(cl, fills)
     g1 = []
     if buys:
-        g1.append(K.kvrow("Bought", S._cad(amt(buys)), k_sub=S._dw(cl.get("in")), v_sub=f"at {S._cad(buys[-1]['px'])}"))
+        g1.append(K.kvrow("Bought", S._cad(amt(buys)), k_sub=S._dw(bday), v_sub=f"at {S._cad(buys[-1]['px'])}"))
     else:
-        g1.append(K.kvrow("Bought", S._dw(cl.get("in"))))
+        g1.append(K.kvrow("Bought", S._dw(bday)))
     if sells:
-        g1.append(K.kvrow("Sold", S._cad(amt(sells)), k_sub=S._dw(cl.get("out")), v_sub=f"at {S._cad(sells[-1]['px'])}"))
+        g1.append(K.kvrow("Sold", S._cad(amt(sells)), k_sub=S._dw(sday), v_sub=f"at {S._cad(sells[-1]['px'])}"))
     else:
-        g1.append(K.kvrow("Sold", S._dw(cl.get("out"))))
+        g1.append(K.kvrow("Sold", S._dw(sday)))
     if buys and sells:
         g1.append(K.kvrow("Fees", S._cad(sum((f.get("fee") or 0) for f in buys + sells))))
     g1.append(K.kvrow("Result", S._cad(pnl), tone=tone, bold=True))
     g2 = [K.kvrow("Amount", f"{sum(f.get('qty') or 0 for f in buys):.8f}".rstrip("0").rstrip(".") + f" {coin}") if buys else None,
           K.kvrow("Why bought", _buy_why(buys[-1])) if buys else None,
           K.kvrow("Why sold", _sell_why(cl.get("why")))]
-    parts = [K.hero(f"Sold {name} · {S._dw(cl.get('out'))}", S._cad(pnl), change=(S._pct(pct, 2) if isinstance(pct, (int, float)) else None), tone=tone, since="on paper"),
+    parts = [K.hero(f"Sold {name} · {S._dw(sday)}", S._cad(pnl), change=(S._pct(pct, 2) if isinstance(pct, (int, float)) else None), tone=tone, since="on paper"),
              K.kv(g1), K.kv(g2),
              K.link("Why did the dial close?", K.place("why")) if S._why(cl.get("why")) == "the dial closed" else None,
              K.trust("Paper only, at real NDAX prices.")]
-    return K.page("Trade", parts, ask_q=f"Tell me about the {name} trade the $500 book closed on {S._dw(cl.get('out'))}: why it was bought, why it was sold, and what it taught.")
+    return K.page("Trade", parts, ask_q=f"Tell me about the {name} trade the $500 book closed on {S._dw(sday)}: why it was bought, why it was sold, and what it taught.")
 
 
 def trade_rows(j, c: dict) -> list[tuple]:

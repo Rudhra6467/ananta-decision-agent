@@ -53,7 +53,36 @@ def test_the_night_counts_from_the_candle_the_book_stepped_on():
     bg = officer.facts(j)["background"]
     assert bg["signals_today_by_rule"] == {"H07-UA": 1}     # it said "no rule fired a signal" on 11 Nov, the night 3 were raised
     assert bg["closed_today_by_rule"]["BRK-UA"] == {"n": 1}  # counted, never summed in money: a breakout's result is held to 15 Dec
-    assert bg["counted_from"].startswith("2026-11-11 00:00 UTC")
+    assert "the 2026-11-11 candle" in bg["counted_from"]
+
+
+def test_nothing_is_counted_on_two_nights_and_a_missed_step_does_not_repeat_a_night():
+    """The outside check of 12 Nov: counted from the candle's open to the note, the step's own minutes (the bold book's 00:09 buy, brain
+    decisions just after the close) were counted again the next night; and with the book's step missed, two candles were counted."""
+    from jarvis.service import brain
+
+    j = _j(NOV(12, 0, 20))
+    _state(j, last_bar=NOV(10))                             # the book's step was missed: its last bar is a day older
+    j.db.execute("INSERT INTO officer_notes VALUES ('2026-11-11', ?, 'x', '{}', 0)", (NOV(11, 0, 20),))
+    _trade(j, "a", "H07-UA", NOV(11))                       # the 11 Nov candle's signal
+    _trade(j, "old", "H07-UA", NOV(10))                     # the 10 Nov candle's: counted on the night before
+    _trade(j, "bold", "JARVIS_BOLD", NOV(12, 0, 9, 42))     # the bold book's buy just after the close: this night
+    _trade(j, "bold0", "JARVIS_BOLD", NOV(11, 0, 9))        # last night's, before the last note: not again
+    j.db.executemany("INSERT INTO brain_decisions (t, coin, action) VALUES (?, 'ETH', ?)",
+                     [(NOV(11, 0, 15), "PASS"), (NOV(11, 14), "PASS"), (NOV(12, 0, 10), "TAKE")])
+    j.db.commit()
+    bg = officer.facts(j)["background"]
+    assert bg["signals_today_by_rule"] == {"H07-UA": 1, "JARVIS_BOLD": 1}, bg["signals_today_by_rule"]
+    assert bg["brain_today"] == {"PASS": 1, "TAKE": 1}      # the decision at 00:15 on 11 Nov was the night before's
+    j2 = _j(NOV(13, 0, 20))                                 # the next night: the 12 Nov note was written at 00:20
+    brain._table(j2)
+    _state(j2, last_bar=NOV(12))
+    j2.db.execute("INSERT INTO officer_notes VALUES ('2026-11-12', ?, 'x', '{}', 0)", (NOV(12, 0, 20),))
+    _trade(j2, "bold", "JARVIS_BOLD", NOV(12, 0, 9, 42))
+    j2.db.execute("INSERT INTO brain_decisions (t, coin, action) VALUES (?, 'ETH', 'TAKE')", (NOV(12, 0, 10),))
+    j2.db.commit()
+    bg2 = officer.facts(j2)["background"]
+    assert bg2["signals_today_by_rule"] == {} and bg2["brain_today"] == {}   # counted once, on the night it happened
 
 
 def test_no_money_of_a_measuring_book_reaches_the_note_before_the_forward_test_ends():
@@ -400,8 +429,99 @@ def test_each_checkpoint_says_which_day_of_the_window_it_is():
         n, due = int(m.group(1)), dt.date.fromisoformat(it["due"])
         day_n = start + dt.timedelta(days=n - 1)
         j = types.SimpleNamespace(db=sqlite3.connect(":memory:"), now=lambda: calendar.timegm((due.year, due.month, due.day, 17, 0, 0)))
-        assert knowledge_build.window(j)["day"] == n + 1                                   # the check reads N whole days: it is the day after
+        w = knowledge_build.window(j)                                                      # the check reads N whole days: it is the day after
+        assert (w["day"], bool(w.get("ended"))) == ((n + 1, False) if n + 1 <= w["of"] else (w["of"], True)), w
         said = it["plain"]
-        assert f"day {n}" in said.lower() and f"{day_n:%a} {day_n.day} {day_n:%b}" in said and f"day {n + 1}" in said, said
+        assert f"day {n}" in said.lower() and f"{day_n:%a} {day_n.day} {day_n:%b}" in said, said
+        assert (f"day {n + 1}" in said) if n + 1 <= w["of"] else ("the last" in said and f"day {n + 1}" not in said), said
         seen += 1
     assert seen == 2                                                                       # 'Day 30' on 14 Nov was day 31 by the screens
+
+
+# ---- what the fresh outside check of 12 Nov found (recheck/pkg3_check.md) ----
+
+def test_the_phone_text_never_passes_its_limit():
+    note = ("The book stayed in cash tonight because the dial is closed. " * 3 + "x" * 5)[:221] + ". And more words follow here."
+    assert len(officer.phone_text(note)) <= officer.PHONE_CHARS                          # one came out at 221
+
+
+def test_a_trades_own_page_names_the_toronto_evening_like_its_row():
+    from jarvis.service import places
+
+    cl = {"coin": "ETH", "in": "2026-10-27", "out": "2026-11-06", "pnl_cad": -1.0, "why": "the dial closed"}
+    fills = [{"t": NOV(6, 0, 6, 30), "side": "SELL", "coin": "ETH", "qty": 0.01, "px": 4900.0, "fee": 0.1}]
+    page = places.receipt(cl, fills)
+    hero = next(p for p in page["parts"] if p.get("t") == "hero")
+    assert "Thu 5 Nov" in hero["label"] and "Fri 6 Nov" not in str(page)                 # Activity said Thu 5 Nov, the page Fri 6 Nov
+
+
+def test_the_bleeding_book_check_neither_sums_nor_judges_the_held_books_before_15_dec():
+    from jarvis.service import discipline
+
+    for now, held in ((NOV(12, 0, 6), True), (calendar.timegm((2026, 12, 16, 0, 6, 0)), False)):
+        j = _j(now)
+        _state(j)
+        for i in range(6):
+            _trade(j, f"b{i}", "BRK-UA", now - 3 * 86400, exit_t=now - 2 * 86400)
+            j.db.execute("UPDATE evidence_trades SET net_usd=-20 WHERE id=?", (f"b{i}",))
+        j.db.commit()
+        c = next(x for x in discipline.officer_checks(j) if x["id"] == "book_bleed")
+        assert ("BRK" in c["words"]) is not held and all(b["book"] != "BRK" for b in c.get("books") or []) is held
+
+
+def test_every_note_before_the_dial_fix_says_its_dial_may_be_a_day_behind():
+    j = _j(NOV(12, 0, 6))
+    fx = officer.corrections(j, "2026-10-26", "The dial is open.", {"dial": {}}, calendar.timegm((2026, 10, 26, 0, 5, 0)))
+    assert any("a day behind" in x for x in fx) and not any("12 of the 14" in x for x in fx)
+
+
+def test_over_two_weeks_of_all_cash_is_read_and_corrected():
+    j = _j(NOV(12, 0, 6))
+    j.db.executemany("INSERT INTO book500_fills (t, coin, side, qty) VALUES (?,?,?,?)",
+                     [(NOV(1, 0, 5), "BTC", "BUY", 0.001), (NOV(6, 0, 6, 30), "BTC", "SELL", 0.001)])
+    j.db.commit()
+    fx = officer.corrections(j, "2026-11-09", "The book is all cash and has been for over two weeks.", {}, NOV(9, 0, 5))
+    assert any("not over two weeks" in x and "for 3 days" in x for x in fx), fx
+
+
+def test_a_late_close_correction_says_no_money():
+    j = _j(NOV(12, 0, 6))
+    j.db.execute("INSERT INTO engine_state VALUES ('late_closes:2026-11-11', ?)", (json.dumps({"n": 50, "books": {"H07": 50}}),))
+    j.db.commit()
+    fx = officer.corrections(j, "2026-11-11", "x", {"background": {"old_paper_trades_closed_late_tonight": {"n": 41, "books": {"H07": 41}}}})
+    assert fx and "dollar" not in fx[0] and "50 old paper trades" in fx[0]
+
+
+def test_the_note_waits_for_a_moment_being_decided_not_for_a_blocked_bold_book_and_stops_after_three_tries(monkeypatch):
+    from jarvis.service import bold
+    from jarvis.service import trade_guard as tg
+
+    j = _j(NOV(12, 0, 6))
+    j.db.execute("CREATE TABLE IF NOT EXISTS brain_queue (id INTEGER PRIMARY KEY, t INTEGER, coin TEXT, trigger TEXT, detail TEXT, state TEXT)")
+    j.db.execute("INSERT INTO brain_queue (t, coin, state) VALUES (?, 'ETH', 'DECIDING')", (NOV(12, 0, 5),))
+    j.db.commit()
+    monkeypatch.setattr(bold, "enabled", lambda: (True, "on"))
+    monkeypatch.setattr(tg, "blocked", lambda j, watch, *a, **k: "the kill switch is on")
+    left = officer.waiting_for(j, "2026-11-12", NOV(12))
+    assert left == ["1 moment the brain has not decided yet"]                           # deciding counts; a blocked bold book does not
+    _ready(j, NOV(11, 23))                                                               # the step ran long ago: no more waiting
+    j.db.execute("UPDATE brain_queue SET state='DONE'")
+    j.db.commit()
+    calls = []
+    monkeypatch.setattr("jarvis.service.universe_watch.start_night_test", lambda j: calls.append(1) or True)
+    for _ in range(5):
+        officer.write_when_due(j, call=lambda r, u: (_ for _ in ()).throw(RuntimeError("model down")))
+    tries = json.loads(j.db.execute("SELECT v FROM engine_state WHERE k='officer_tries:2026-11-12'").fetchone()[0])
+    assert tries["n"] == 3 and calls == [1]                                              # three tries, then the night test once
+
+
+def test_after_the_window_the_note_and_the_ask_stop_at_its_last_day_like_the_screens(monkeypatch):
+    import datetime as dt
+
+    from jarvis.service import ask, knowledge_build, strategy_status, surfaces
+
+    monkeypatch.setattr(strategy_status, "load", lambda *a, **k: {"evidence_window": {"start": "2026-10-15", "days": 60}})
+    j = _j(calendar.timegm((2026, 12, 15, 17, 0, 0)))
+    w = knowledge_build.window(j)
+    assert w["day"] == 60 and w["ended"] and surfaces._window(dt.date(2026, 12, 15))["day"] == 60
+    assert "day 60 of 60 (it has ended)" in ask._window_words(j)

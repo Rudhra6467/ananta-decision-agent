@@ -202,6 +202,11 @@ def words(p: dict) -> str:
     x = p["cross_50_200"]
     if x["state"] is None:
         xs = "too little history for a 200-day average"
+    elif x["last_cross"] and ((x["direction"] == "up" and "200" in below and "50" in below) or (x["direction"] != "up" and "200" in above and "50" in above)):
+        # 12 Nov 2026 (the keen outside audit, G-23): "in an uptrend" beside "a death cross" 162 sessions old read as two calls on one index.
+        # When the price has gone the other side of both averages, the old cross is said as what is still true, without its name.
+        xs = (f"the 50-day is still {'above' if x['direction'] == 'up' else 'below'} the 200-day (it crossed on {_dw(x['last_cross'])}, "
+              f"{x['sessions_ago']} sessions ago), though the price is now {'below' if x['direction'] == 'up' else 'above'} both")
     elif x["last_cross"]:
         xs = (f"the 50-day crossed {'above' if x['direction'] == 'up' else 'below'} the 200-day on {_dw(x['last_cross'])} ({x['sessions_ago']} sessions ago: "
               f"a {'golden' if x['direction'] == 'up' else 'death'} cross)")

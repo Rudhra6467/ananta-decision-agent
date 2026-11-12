@@ -174,6 +174,34 @@ def value_of(book: dict) -> float:
     return sum(v["qty"] * v["last"] for v in book["positions"].values()) + book["cash_inr"] + book["options_inr"]
 
 
+def options_line(start_day: str, upto_day: str | None = None) -> dict:
+    """The options line's paper result as the account counts it. 12 Nov 2026 (the keen outside audit, G-11; Madhav's yes of 12 Nov 01:52):
+    the account counted the options money at the flat amount set aside, so the line's result was in no account figure; it now counts the
+    line at its own value, with a sentence. One row per trade (a late score follows its note in the append-only ledger, G-01), realistic
+    fills, and only the trades the line decided after the book's start day (4 of its first 15 came before the book existed) and, when
+    given, up to `upto_day`. An open lot counts at its cost (inside the money set aside) until it is scored."""
+    rows: dict = {}
+    for r in _jsonl(paths.data_dir() / "paper" / "sp1" / "outcomes.jsonl"):
+        if r.get("kind") == "outcome" and "index_proxy" in r:
+            rows[(str(r.get("date")), str(r.get("index")))] = r
+    nets = [((r.get("legs") or {}).get("option") or {}).get("net_rs_realistic") for (d, _i), r in rows.items()
+            if d > start_day and (upto_day is None or d <= upto_day)]
+    nets = [x for x in nets if isinstance(x, (int, float))]
+    return {"result_inr": round(sum(nets), 2), "trades": len(nets)}
+
+
+def options_words(set_aside: float, ol: dict, start_day: str) -> str:
+    """The sentence every account total carries (G-11), short enough for a screen's line (22 words at most); the book's start day is on
+    the same screen. An open lot counts at its cost until it is scored (OPEN_LOT, for the voice)."""
+    res = float(ol.get("result_inr") or 0)
+    n = int(ol.get("trades") or 0)
+    return (f"Options are counted at the options line's own value: ₹{set_aside:,.0f} set aside, "
+            f"{'+' if res >= 0 else '−'}₹{abs(res):,.0f} from its {n} trade{'s' if n != 1 else ''} since the book started.")
+
+
+OPEN_LOT = "An open options lot counts at its cost until it is scored at its exit."
+
+
 def _plans() -> list[dict]:
     return _jsonl(_dir() / "plans.jsonl")
 
@@ -571,7 +599,8 @@ def _options_one_amount(book: dict, day: str) -> None:
 
 
 def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, opened: bool = False) -> dict:
-    value = value_of(book)
+    ol = options_line(book["start_day"], day)                 # 12 Nov 2026 (G-11): the options money at the line's own value
+    value = value_of(book) + ol["result_inr"]
     start = float(book["start_inr"])
     n = sessions_between(book["start_day"], day) if day > book["start_day"] else 0      # 31 Oct: session 1 is the first session the book trades (its first plan's day), not the evening it opened
     reps = [{"symbol": s, **{k: round(v, 2) if isinstance(v, float) else v for k, v in p.items()}, "value_inr": round(p["qty"] * p["last"]),
@@ -589,6 +618,8 @@ def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, o
     if kept:                                                          # 12 Nov evening (N7): never an old price without a word
         words += (f"{len(kept)} holding{'s' if len(kept) != 1 else ''} had no close on {day} and stay at an older price ("
                   + ", ".join(f"{s}, last marked {d}" if d else f"{s}, from before {day}" for s, d in sorted(kept.items())) + "). ")
+    counted = options_words(book["options_inr"], ol, book["start_day"])
+    words += counted + " " + OPEN_LOT + " "
     if plan and not plan.get("error"):
         words += plan["words"]
     elif plan:
@@ -601,7 +632,9 @@ def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, o
                   for s, p in book["positions"].items()), key=lambda r: -r["value_inr"])
     return {"built_at": _now(), "paper": True, "day": day, "opened_today": opened, "kept_old_price": kept, "start_day": book["start_day"], "start_inr": round(start), "value_inr": round(value),
             "return_pct": round(100 * (value / start - 1), 2), "stocks_inr": round(sum(v["qty"] * v["last"] for v in book["positions"].values())), "cash_inr": round(book["cash_inr"]),
-            "options_inr": round(book["options_inr"]), "positions": len(book["positions"]), "holdings": own, "marks": _jsonl(_dir() / "marks.jsonl"),
+            "options_inr": round(book["options_inr"]), "options_result_inr": round(ol["result_inr"]), "options_trades": ol["trades"],
+            "options_value_inr": round(book["options_inr"] + ol["result_inr"]), "options_counted": counted,
+            "positions": len(book["positions"]), "holdings": own, "marks": _jsonl(_dir() / "marks.jsonl"),
             "replacements": sorted(reps, key=lambda r: -r["value_inr"]), "filled_today": filled,
             "plan": plan, "trades_count": len(book["trades"]), "costs_inr": round(book["costs_inr"], 2), "clock": clock, "chain": chain, "chain_ok": ok, "rules": c["version"], "words": words}
 

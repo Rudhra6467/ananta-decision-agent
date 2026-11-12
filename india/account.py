@@ -267,6 +267,29 @@ def _quotebook_closes(day: str, symbols: list[str]) -> dict:
     return out
 
 
+def count_options(rows: list[dict], managed_start: float) -> int:
+    """12 Nov 2026 (the keen outside audit, G-11; Madhav's yes of 12 Nov 01:52): the managed book now counts the options money at the
+    options line's own value. The rows written before that kept it at the flat amount set aside, so the chart would jump on the day the
+    rule came in: each such row gets the line's result through its own day, once, marked ("managed_options_inr"), its percentages with it.
+    Returns how many rows it corrected."""
+    from india import managed as M
+
+    n = 0
+    for r in rows:
+        if r.get("managed_inr") is None or "managed_options_inr" in r or not r.get("managed_start_day") or not r.get("day"):
+            continue
+        add = round(M.options_line(str(r["managed_start_day"]), str(r["day"]))["result_inr"])
+        r["managed_inr"] = round(float(r["managed_inr"]) + add)
+        r["managed_options_inr"] = add
+        r["managed_options_note"] = "the options line's result added on 12 Nov 2026 (G-11), as the account now counts it"
+        if managed_start:
+            r["managed_ret_pct"] = round(100 * (r["managed_inr"] / managed_start - 1), 2)
+        if r.get("start_inr") and r.get("frozen_inr") is not None:
+            r["managed_minus_frozen_pct"] = round(100 * (r["managed_inr"] - float(r["frozen_inr"])) / float(r["start_inr"]), 2)
+        n += 1
+    return n
+
+
 def benchmark(book: dict, marks: dict) -> dict:
     """One row a session in paper/account/benchmark.jsonl: the twin, the frozen portfolio and the Nifty 500 (price index; dividends of about
     1.2-1.5% a year are not in it and are said) since the day the twin opened. Words for the view and the facts."""
@@ -311,9 +334,12 @@ def benchmark(book: dict, marks: dict) -> dict:
     if managed and managed.get("value_inr"):
         row.update({"managed_inr": managed["value_inr"], "managed_ret_pct": managed.get("return_pct"), "managed_start_day": managed.get("start_day"),
                     "managed_sessions": (managed.get("clock") or {}).get("sessions"), "managed_minus_frozen_pct": round(100 * (managed["value_inr"] - frozen_val) / start, 2)})
+        if managed.get("options_result_inr") is not None:                       # 12 Nov (G-11): this value counts the options line
+            row["managed_options_inr"] = managed["options_result_inr"]
     p = _dir() / "benchmark.jsonl"
     rows = [json.loads(x) for x in p.read_text().splitlines() if x.strip()] if p.exists() else []
     rows = [r for r in rows if r.get("day") != day] + [row]
+    count_options(rows, float((managed or {}).get("start_inr") or 0))
     p.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
     try:                                   # 30 Oct outsider r4: "since 22 Oct (2 sessions)" counted benchmark rows, while the clock said 6: count trading days
         from india import managed

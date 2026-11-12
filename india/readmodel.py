@@ -143,8 +143,10 @@ def call(day: str) -> dict:
     return {"status": "ok", "source": str(src), "data_through": today.get("data_through") if today else None, "call": today.get("call") if today else None,
             "rule": today.get("rule") if today else None, "scored": len(scores), "hits": hits, "null_hits": null_hits,
             "five_sessions": {"scored": len(s5), "hits": sum(1 for s in s5 if s.get("score") == 1), "null_hits": sum(1 for s in s5 if s.get("null_score") == 1)},
+            # 12 Nov 2026 (the keen audit, G-23): "a coin flip scored 9 of 15" read as a fair coin's score; it is one seeded draw, so the
+            # baseline is named beside it (chance alone averages half)
             "words": (f"Daily call for the next session: {today.get('call')} (mechanical rule {today.get('rule')}); so far {hits} of {len(scores)} calls right "
-                      f"against {null_hits} for the coin flip") if today else "no call written"}
+                      f"against {null_hits} for the coin flip, one seeded draw (chance alone averages {len(scores) / 2:g})") if today else "no call written"}
 
 
 def stock_book(day: str) -> dict:

@@ -227,8 +227,12 @@ def plan_today(session: str, rm: dict) -> dict:
     # 12 Nov 2026, the keen outside audit (G-08): the morning view passed on the folded-away account twin's words ("Rs 167,641 on paper ...
     # in 13 stocks"), and its writer spoke them as the paper account, while Home's paper account is the managed book (Rs 1,64,725, 11
     # stocks). The twin was folded into the managed book on 3 Nov: the paper account here is the managed book's, at the close it is marked at.
+    # 12 Nov 2026 (G-11, Madhav's yes of 12 Nov 01:52): the options money at the options line's own value, the sentence beside it
+    opt_words = (f"₹{mb['options_value_inr']:,.0f} in options at the options line's own value (₹{mb.get('options_inr') or 0:,.0f} set aside, "
+                 f"{'+' if (mb.get('options_result_inr') or 0) >= 0 else '−'}₹{abs(mb.get('options_result_inr') or 0):,.0f} since the book started)"
+                 if isinstance(mb.get("options_value_inr"), (int, float)) else f"₹{mb.get('options_inr') or 0:,.0f} set aside for options")
     account_words = ((f"The paper account (the managed book): ₹{mb['value_inr']:,.0f} at the {_dw(mb.get('day'))} close: "
-                      f"₹{mb.get('stocks_inr') or 0:,.0f} in {mb.get('positions')} stocks, ₹{mb.get('options_inr') or 0:,.0f} set aside for options, "
+                      f"₹{mb.get('stocks_inr') or 0:,.0f} in {mb.get('positions')} stocks, {opt_words}, "
                       f"₹{mb.get('cash_inr') or 0:,.0f} cash"
                       + (f"; {mb['return_pct']:+.2f}% since {_dw(mb.get('start_day'))}." if isinstance(mb.get("return_pct"), (int, float)) else "."))
                      if isinstance(mb.get("value_inr"), (int, float)) else "The managed book, the paper account, has no value yet.")
@@ -301,7 +305,8 @@ def _chances_words(rec: dict, call: dict, book: dict, opt_sessions: int) -> str:
     26 Nov) keep their rows in the forecast ledger and the scorecard (Proof), but are no longer spoken here."""
     bits = []
     if call.get("scored"):
-        bits.append(f"the daily call has been right {call['hits']} of {call['scored']} sessions against {call['coin_flip_hits']} for a coin flip")
+        bits.append(f"the daily call has been right {call['hits']} of {call['scored']} sessions against {call['coin_flip_hits']} for a coin flip, one seeded "
+                    f"draw (chance alone averages {call['scored'] / 2:g})")          # 12 Nov 2026 (G-23): the baseline named
     else:
         bits.append("the daily call has no scored session yet")
     closed = sum(b.get("closed", 0) for b in book.values())

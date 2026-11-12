@@ -3,6 +3,7 @@ fix. G-09 (the options review day) is checked in tests/test_voice_knows_plan_11n
 import datetime as dt
 import json
 
+from jarvis import placekit as K
 from jarvis.india import livesession as L
 from jarvis.india import places as IP
 from jarvis.india import surfaces as IS
@@ -75,10 +76,14 @@ def test_homes_plan_block_names_the_plans_own_day_after_the_indian_day_turns(ind
     Before: 'Before the open · Thu 12 Nov' over 'No change on Wednesday.'"""
     monkeypatch.setattr(IP, "_clk", lambda: {"state": "before_open", "latest_session": "2026-11-11", "next_session": "2026-11-12",
                                              "today_india": "2026-11-12"})
+    monkeypatch.setattr(IP, "_evening_at", lambda: "8:20 pm Toronto (06:50 IST)")
     today = next(p for p in IP.home()["parts"] if p["t"] == "today")
     assert today["label"] == "Last plan · Wed 11 Nov"
     assert today["line"] == "No change on Wednesday."
-    assert today["sub"].startswith("The plan for Thu 12 Nov is ") and "Wed" not in today["sub"]
+    assert today["sub"] == "Plan for Thu 12 Nov: written at 8:20 pm Toronto (06:50 IST)." and "Wed" not in today["sub"]
+    assert K.nwords(today["sub"]) <= K.MAX["today_sub"]           # 12 Nov (N11): it was one word over the block's second line
+    monkeypatch.setattr(IP, "_evening_at", lambda: "")
+    assert next(p for p in IP.home()["parts"] if p["t"] == "today")["sub"] == "The plan for Thu 12 Nov is not written yet."
 
 
 def test_when_the_plan_is_for_the_coming_session_the_block_is_as_before(india, monkeypatch):

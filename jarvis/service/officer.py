@@ -40,7 +40,7 @@ paper book. You are its risk officer and narrator, not a trader: the rules decid
 Write 4 to 6 short sentences in plain everyday English, first person, to "sir" once at most. Numbers rounded, at most two a sentence.
 Order: (1) what the account did today and why (the dial, the sleeves, the brakes); (2) what the engine recorded in the background
 (signals, measuring books, anything that passed or was pushed), in one or two sentences, without listing every book; (3) the checks:
-the facts carry "checks" (idle cash, a core without an exit, a bleeding book, an explorer eaten by costs) and "layer_conflicts"; name every
+the facts carry "checks" (idle cash, a core without an exit, a bleeding book, Explorer trades that mostly moved less than their costs, up or down: say its words, never "eaten by costs") and "layer_conflicts"; name every
 FAIL and every conflict plainly in one sentence each, with its number, and say what the rule does about it ("the stance wins", "trimmed to
 target"); if all pass, one short sentence says so; then what needs him, or "nothing needs you". Never write "nothing changed" when a check
 fails. A check with state OK is not a failure, however high the cash is: when buying is off and no rule may trade, cash is what the rules want.
@@ -122,6 +122,37 @@ def night_window(j) -> tuple[int, int, int, int]:
 NIGHT_SQL = "((%(c)s %% 86400 = 0 AND %(c)s >= ? AND %(c)s < ?) OR (%(c)s %% 86400 != 0 AND %(c)s > ? AND %(c)s <= ?))"
 
 
+def night_counts(j, win: tuple | None = None) -> dict:
+    """The night's counts, one place for the nightly note and the Ask (12 Nov 2026, the keen outside audit, G-30: asked "did we buy
+    anything tonight", the Ask said "Nothing is open in any book" 37 minutes after the bold book bought ZEC, with 171 measuring trades
+    open). Each rule's signals and closes of the night (night_window), the brain's decisions since the last note, the measuring books'
+    open rows (in all and by book) and the coins the bold book bought. Until 15 Dec a close is a count, never its money (rule 9)."""
+    from jarvis.service import bold
+
+    win = win or night_window(j)
+    held = int(j.now()) < HELD_UNTIL
+    out: dict = {"signals_today_by_rule": {}, "closed_today_by_rule": {}, "brain_today": {}, "open_by_book": {}, "bold_bought_tonight": []}
+    try:
+        for watch, n in j.db.execute(f"SELECT watch, COUNT(*) FROM evidence_trades WHERE {_night('signal_t')} GROUP BY watch", win):
+            if not watch.startswith(("RANDOM", "JARVIS_RANDOM")):
+                out["signals_today_by_rule"][watch] = n
+        # 12 Nov 2026 (audit repair 3): counted by the night, the closes are now found every night; until 15 Dec their money is left
+        # out, since a breakout's or the bold book's result would be an early look (the audit's rule 9). Counting is fine.
+        for watch, n, net in j.db.execute(f"SELECT watch, COUNT(*), ROUND(SUM(net_usd), 2) FROM evidence_trades WHERE status='CLOSED' AND "
+                                          f"{_night('exit_t')} GROUP BY watch", win):
+            out["closed_today_by_rule"][watch] = {"n": n} if held else {"n": n, "net_usd": net}
+        for action, n in j.db.execute("SELECT action, COUNT(*) FROM brain_decisions WHERE t > ? AND t <= ? GROUP BY action", win[2:]):
+            out["brain_today"][action] = n
+        out["evidence_rows_open"] = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE status IN ('OPEN','WAITING') AND watch NOT LIKE 'RANDOM%'").fetchone()[0]
+        for watch, n in j.db.execute("SELECT watch, COUNT(*) FROM evidence_trades WHERE status IN ('OPEN','WAITING') AND watch NOT LIKE 'RANDOM%' GROUP BY watch"):
+            out["open_by_book"][watch] = n
+        out["bold_bought_tonight"] = [c for (c,) in j.db.execute(f"SELECT coin FROM evidence_trades WHERE watch=? AND {_night('entry_t')} ORDER BY entry_t",
+                                                                  (bold.WATCH, *win))]
+    except Exception as exc:  # noqa: BLE001
+        out["error"] = str(exc)[:120]
+    return out
+
+
 def _night(col: str) -> str:
     """The WHERE part for a column stamped either at a candle's open or at the moment something acted (see night_window)."""
     return NIGHT_SQL % {"c": col}
@@ -194,20 +225,8 @@ def facts(j, daily: dict | None = None) -> dict:
     if held:
         bg["closed_counts_only"] = ("the measuring books' closes are counted, never summed in money, before 15 Dec: eight findings are under "
                                     "a pre-registered forward test to 14 Dec (breakouts and the bold book among them)")
-    try:
-        for watch, n in j.db.execute(f"SELECT watch, COUNT(*) FROM evidence_trades WHERE {_night('signal_t')} GROUP BY watch", win):
-            if not watch.startswith(("RANDOM", "JARVIS_RANDOM")):
-                bg["signals_today_by_rule"][watch] = n
-        # 12 Nov 2026 (audit repair 3): counted by the night, the closes are now found every night; until 15 Dec their money is left
-        # out, since a breakout's or the bold book's result would be an early look (the audit's rule 9). Counting is fine.
-        for watch, n, net in j.db.execute(f"SELECT watch, COUNT(*), ROUND(SUM(net_usd), 2) FROM evidence_trades WHERE status='CLOSED' AND "
-                                          f"{_night('exit_t')} GROUP BY watch", win):
-            bg["closed_today_by_rule"][watch] = {"n": n} if held else {"n": n, "net_usd": net}
-        for action, n in j.db.execute("SELECT action, COUNT(*) FROM brain_decisions WHERE t > ? AND t <= ? GROUP BY action", win[2:]):
-            bg["brain_today"][action] = n
-        bg["evidence_rows_open"] = j.db.execute("SELECT COUNT(*) FROM evidence_trades WHERE status IN ('OPEN','WAITING') AND watch NOT LIKE 'RANDOM%'").fetchone()[0]
-    except Exception as exc:  # noqa: BLE001
-        bg["error"] = str(exc)[:120]
+    nc = night_counts(j, win)
+    bg.update({k: nc[k] for k in ("signals_today_by_rule", "closed_today_by_rule", "brain_today", "evidence_rows_open", "error") if k in nc})
     try:                                                  # 10 Nov 2026: paper trades closed tonight on a rule's day long past (a frozen row let go)
         row = j.db.execute("SELECT v FROM engine_state WHERE k=?", ("late_closes:" + f["day"],)).fetchone()
         if row:

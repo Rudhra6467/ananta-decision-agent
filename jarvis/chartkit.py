@@ -79,7 +79,9 @@ def shape(name: str, market: str, rng: str, tf: str, ok: list[str], bars: Iterab
         first = float(base) if isinstance(base, (int, float)) and base else (bs[0][1] if kind == "candles" else bs[0][4])
         last = bs[-1][4]
         out.update({"first": first, "last": last, "hi": max(b[2] for b in bs), "lo": min(b[3] for b in bs), "change": _r(last - first),
-                    "change_pct": round(100 * (last / first - 1), 2) if first else None, "over": RANGE_WORDS.get(rng, "")})
+                    "change_pct": round(100 * (last / first - 1), 2) if first else None,
+                    # 12 Nov 2026 (the keen audit, G-29): a crypto day has no session; its 1D is the last 24 hours, said as such
+                    "over": "over the last 24 hours" if rng == "1D" and market != "india" else RANGE_WORDS.get(rng, "")})
     return out
 
 

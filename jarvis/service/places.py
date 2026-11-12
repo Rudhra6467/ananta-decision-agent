@@ -200,15 +200,15 @@ def why(j, c: dict | None = None) -> dict:
     n = S._dial_numbers(dial)
     items = [{"text": p, "tone": ("bad" if " below its" in p else "good" if " above its" in p else None)} for p in pts[:4]]
     under = [k for k in ("50", "200") if n.get("side" + k) == "below"]
-    one = (f"Bitcoin closed under its {' and '.join(u + '-day' for u in under)} average{'s' if len(under) > 1 else ''}, so cash is the position."
+    one = (f"Bitcoin closed under its {' and '.join(u + '-day' + (' exponential' if u == '50' else '') for u in under)} average{'s' if len(under) > 1 else ''}, so cash is the position."
            if not is_open and under else "Bitcoin closed above both its averages, so buying is allowed." if is_open else "Buying is off: cash is the position.")
     ch = S._safe(S.coin_chart, j, "BTC", default={}) or {}
     cc = ch.get("chart") or {}
     lines = [{"values": K.thin((cc.get("sma200") or [])[-60:], 12), "style": "dot", "color": "dim"},
              {"values": K.thin((cc.get("sma50") or [])[-60:], 20), "style": "dash", "color": "dim"},
              {"values": K.thin((cc.get("closes") or [])[-60:], 60), "style": "main", "color": "ink"}]
-    parts = [K.chart(lines, legend=[{"label": "Bitcoin", "style": "main"}, {"label": "50-day average", "style": "dash"}, {"label": "200-day", "style": "dot"}],
-                     label="Bitcoin's daily closes for 60 days with its 50-day and 200-day averages") if cc.get("closes") else None,
+    parts = [K.chart(lines, legend=[{"label": "Bitcoin", "style": "main"}, {"label": "50-day exponential", "style": "dash"}, {"label": "200-day", "style": "dot"}],
+                     label="Bitcoin's daily closes for 60 days with its 50-day exponential and 200-day averages") if cc.get("closes") else None,
              K.pill("Buying is on" if is_open else "Buying is off", icon="play" if is_open else "pause", tone="good" if is_open else None),
              K.heading("Why Ananta may buy" if is_open else "Why Ananta is not buying"),
              K.line(one), K.points(items),
@@ -230,8 +230,20 @@ def coin_page(j, coin: str) -> dict:
     last = closes[-1] if closes else None
     d1 = 100 * (closes[-1] / closes[-2] - 1) if len(closes) > 1 and closes[-2] else None
     pts = [S._plain(x) for x in S._sentences(ch.get("words") or "")][:4]
-    parts = [K.hero(name, f"${last:,.2f}" if isinstance(last, (int, float)) and last < 1000 else f"${last:,.0f}" if isinstance(last, (int, float)) else "—",
-                    change=S._pct(d1) if d1 is not None else None, tone=S._tone(d1), since=f"at the {ch.get('as_of')}" if ch.get("as_of") else None),
+    # 12 Nov 2026 (the keen audit, G-29): one tap from Home's box (the live price, its move since the 7 pm close) this page led with the
+    # last close and that day's move in red (-2.1% "at the 10 Nov close") while the price was up. It now leads with Home's own figure
+    # (surfaces._coin_pages: one place) and says the last close on a line of its own.
+    live = next((p for p in (S._safe(S._coin_pages, j, S._safe(S._dial, j, default={}) or {}, dt.datetime.now(S.TOR), default=[]) or [])
+                 if p.get("coin") == coin and str(p.get("sub2") or "").startswith("Live")), None)
+    close_words = (f"The {ch.get('as_of')}: ${last:,.2f}" if isinstance(last, (int, float)) and last < 1000 else
+                   f"The {ch.get('as_of')}: ${last:,.0f}" if isinstance(last, (int, float)) else "") + (f", {S._pct(d1)} on that day." if d1 is not None else ".")
+    if live:
+        chg, _, since = str(live.get("sub") or "").partition(" ")
+        hero = K.hero(name, live["value"], change=chg if chg[:1] in "+−-" else None, tone=live.get("tone"), since=" · ".join(x for x in (since, live.get("sub2")) if x))
+    else:
+        hero = K.hero(name, f"${last:,.2f}" if isinstance(last, (int, float)) and last < 1000 else f"${last:,.0f}" if isinstance(last, (int, float)) else "—",
+                      change=S._pct(d1) if d1 is not None else None, tone=S._tone(d1), since=f"at the {ch.get('as_of')}" if ch.get("as_of") else None)
+    parts = [hero, K.line(close_words) if live and ch.get("as_of") and isinstance(last, (int, float)) else None,
              K.pricechart(coin, name),
              K.heading("What it says"), K.points(pts) if pts else K.line("No daily closes on file for this coin yet."),
              K.trust(str(ch.get("note") or "Daily closes in US dollars."))]
@@ -621,7 +633,7 @@ def markets(j) -> dict:
     n = S._dial_numbers(c["dial"])
     gap = lambda k: 100 * (n["close"] / n[k] - 1) if n.get("close") and n.get(k) else None   # noqa: E731
     g50, g200 = gap("avg50"), gap("avg200")
-    worst = min([(g, k) for g, k in ((g50, "50-day"), (g200, "200-day")) if g is not None], default=(None, ""))
+    worst = min([(g, k) for g, k in ((g50, "50-day exponential"), (g200, "200-day")) if g is not None], default=(None, ""))   # G-41
     state_sub = ((f"Bitcoin is {abs(worst[0]):.1f}% under its {worst[1]} average" if worst[0] is not None and worst[0] < 0 else "Bitcoin is under one of its averages") if not is_open
                  else (f"Bitcoin is {abs(worst[0]):.1f}% above its {worst[1]} average" if worst[0] is not None else "Bitcoin is above both its averages"))
     su = _setups(S._plan_parts(c["plan"].get("line") or ""))
@@ -694,7 +706,8 @@ def proof(j) -> dict:
     p = S.proof(j)
     now = dt.datetime.now(S.TOR)
     win = S._window(now.date())
-    short = {"The evidence window (Rule A and B)": "Evidence window", "Round trips in the $500 book": "Closed trades", "Clean nights in a row (book, note and candle agree)": "Clean nights in a row"}
+    # 12 Nov (G-50): a "clean night" checks only that the book, the note and the candle agree, so the bar says that
+    short = {"The evidence window (Rule A and B)": "Evidence window", "Clean nights in a row (book, note and candle agree)": "Nights book, note, candle agree"}
     fin = lambda x: S._tidy(K.clip(str(x.get("finish_words") or "").replace("; counted", " · counted"), 9, 60))   # noqa: E731
     bars = [K.bar(short.get(x.get("name"), K.clip(x.get("name"), 5, 30)), x.get("done") or 0, x.get("need") or 1, right=("done" if x.get("complete") else f"{x.get('done')} of {x.get('need')}"),
                   note=fin(x)) for x in p.get("clocks") or []]
@@ -722,13 +735,16 @@ def proof(j) -> dict:
         lines = [str(x.get("line") or x.get("words") or x.get("name") or x) if isinstance(x, dict) else str(x) for x in (sc.get("lines") or [])]
         rows.append(K.row("Scorecard", f"{len(lines)} lines, read on review day", icon="list", tint="blue",
                           to=K.to_page(K.page("Scorecard", [K.heading("The crypto scorecard"), K.line(K.clip(sc.get("what"), 22, 150)), K.points(lines),
-                                                            K.trust(f"Days are counted from {S._dw(sc.get('freeze_from'))}. {sc.get('clean_nights_needed')} clean nights are needed.")],
+                                                            K.trust(f"Days are counted from {S._dw(sc.get('freeze_from'))}. {sc.get('clean_nights_needed')} clean nights in a row are needed. "
+                                                                    + (str(sc.get("clean_night") or "") + " A clean night checks that the records agree; it does not grade the trades.").strip())],
                                               ask_q="Explain the crypto scorecard: what the review day will read, and where each line stands today."))))
     except Exception:  # noqa: BLE001
         pass
     if p.get("missed"):
-        mm = re.search(r"(\d+) big moves?.*?(\d+) missed", p["missed"]["words"] or "")
-        rows.append(K.row("Missed moves", f"{mm.group(1)} big moves in 7 days" if mm else "The last 7 days", right=f"{mm.group(2)} missed" if mm else None, icon="eye", tint="blue", to=K.route("/missed")))
+        # 12 Nov (G-50): "29 big moves · 0 missed" read as if Ananta had been in them all; the row says who held them and who only saw them
+        mi = p["missed"]
+        rows.append(K.row("Big moves, 7 days", f"{mi.get('held', 0)} held by paper books, {mi.get('seen', 0)} only seen" if "held" in mi else "The last 7 days",
+                          right=f"{mi.get('missed', 0)} missed" if "missed" in mi else None, icon="eye", tint="blue", to=K.route("/missed")))
     links = [K.row(K.clip(x.get("label"), 5, 30), None, to=K.route(x.get("route"))) for x in p.get("links") or [] if x.get("route") != "/missed"]
     parts = [K.hero("The evidence window", f"Day {win['day']} of {win['of']}", since=f"No rule changes before {S._dw(S.RULE_B_END)}."),
              K.bars(bars), K.rows("Checks", rows), K.rows(None, links, plain=True) if links else None,
@@ -775,7 +791,8 @@ def more(j) -> dict:
     nt = S._safe(nightcheck.latest, default=None)
     n = c["list"].get("counts") or {}
     ex = p.get("exam") or {}
-    mm = re.search(r"(\d+) big moves?.*?(\d+) missed", ((p.get("missed") or {}).get("words") or ""))
+    mi = p.get("missed") or {}
+    ev_day = (p.get("last_night") or {}).get("day")
     ppl = S.people(j, is_owner=True)
     you = you_rows(c["list"])
     push = next((r for r in you if "phone notes" in str(r.get("title")).lower()), None)
@@ -784,8 +801,10 @@ def more(j) -> dict:
                                K.tile("Weekly exam", " · ".join(x for x in (ex.get("grade"), S._dm(ex.get("day")) if ex.get("day") else None) if x) or "Not run yet", "exam", "blue", K.place("proof")),
                                K.tile("Night test", (f"{nt.get('right')} of {nt.get('asked')} right" if nt and nt.get("asked") else "Starts tonight"), "moon", "blue", K.place("proof")),
                                K.tile("Clocks", f"Day {win['day']} of {win['of']}", "clock", "blue", K.place("proof")),
-                               K.tile("Missed", f"{mm.group(2)} of {mm.group(1)} moves" if mm else "Last 7 days", "eye", "blue", K.route("/missed")),
-                               K.tile("The evidence", "Live", "bars", "blue", K.route("/reconstruction"))]),
+                               # 12 Nov (G-50): "Missed 0 of 29 moves" for a week the account held nothing; the tile says only what the rule
+                               # checks (a move noticed or not), and the evidence tile its last night, never a constant "Live"
+                               K.tile("Big moves", f"{mi['big'] - mi.get('missed', 0)} of {mi['big']} noticed" if "big" in mi else "Last 7 days", "eye", "blue", K.route("/missed")),
+                               K.tile("The evidence", f"Updated {S._dm(ev_day)}" if ev_day else "Not run yet", "bars", "blue", K.route("/reconstruction"))]),
              K.tiles("You and others", [K.tile("People", f"{len(ppl.get('people') or [])} on the list", "people", "violet", K.place("people")),
                                         K.tile("The open list", f"{n.get('YOU', 0)} need you", "list", "violet", K.place("openlist")),
                                         K.tile("Repair board", f"{n.get('WORK', 0)} to do", "flag", "violet", K.route("/flags"))]),

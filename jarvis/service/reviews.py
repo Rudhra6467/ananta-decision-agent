@@ -28,7 +28,7 @@ TZ = ZoneInfo("America/Toronto")
 AFTER_S = 3 * 86400
 EVENING_HOUR, EVENING_MIN = 20, 30
 TAG_WORDS = {"STOPPED_THEN_RAN": "stopped out, then it ran", "GAVE_BACK": "was up and gave it back", "NEVER_WORKED": "never worked",
-             "LEFT_ON_TABLE": "sold too early", "COSTS_ATE": "too small to pay the costs", "CLEAN": "clean win"}
+             "LEFT_ON_TABLE": "sold too early", "COSTS_ATE": "moved less than its costs", "CLEAN": "clean win"}   # 12 Nov (G-47): up or down
 
 
 def _table(j) -> None:

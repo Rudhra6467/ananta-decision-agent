@@ -24,9 +24,9 @@ DAY = 86400
 HELD_BOOKS = ("BRK", "JARVIS_BOLD", "RANDOM_BOLD")   # held for the forward test to 14 Dec (the audit's rule 9): never summed before 15 Dec
 _CACHE: dict = {"m": None, "v": {}}
 STATES = ("CLOSED", "FRAGILE", "CONFIRMED")
-STATE_WORDS = {"CLOSED": "the dial is closed (Bitcoin under its 50- or 200-day average)",
-               "FRAGILE": "the dial is open but fragile (Bitcoin less than 3% above its 50-day average)",
-               "CONFIRMED": "the dial is open and confirmed (Bitcoin 3% or more above its 50-day average)"}
+STATE_WORDS = {"CLOSED": "the dial is closed (Bitcoin under its 50-day exponential or 200-day average)",       # 12 Nov (G-41): exponential
+               "FRAGILE": "the dial is open but fragile (Bitcoin less than 3% above its 50-day exponential average)",
+               "CONFIRMED": "the dial is open and confirmed (Bitcoin 3% or more above its 50-day exponential average)"}
 
 
 def _path() -> Path:
@@ -315,14 +315,23 @@ def officer_checks(j) -> list[dict]:
                     "books": [{"book": b, "n": n, "net_usd": round(net, 2), "decided": decided.get(b)} for b, n, net in live]})
     except Exception as exc:  # noqa: BLE001
         out.append({"id": "book_bleed", "state": "UNKNOWN", "words": str(exc)[:80]})
-    try:  # explorer setups whose closed trades are mostly eaten by costs (the reviews' tags)
-        rows = j.db.execute("SELECT book, tags FROM trade_reviews WHERE book LIKE '%Explorer%' AND t >= ?", (int(j.now()) - 30 * DAY,)).fetchall()
+    try:  # explorer setups whose closed trades mostly moved less than their costs (the reviews' COSTS_ATE tag)
+        rows = j.db.execute("SELECT book, tags, entry, exit, net_usd FROM trade_reviews WHERE book LIKE '%Explorer%' AND t >= ?",
+                            (int(j.now()) - 30 * DAY,)).fetchall()
         n = len(rows)
-        ate = sum(1 for _, tg in rows if "COSTS_ATE" in str(tg or ""))
+        tagged = [r for r in rows if "COSTS_ATE" in str(r[1] or "")]
+        ate = len(tagged)
         share = ate / n if n else None
         bad = share is not None and n >= 10 and share > float(oc.get("costs_ate_share", 0.5))
-        out.append({"id": "explorer_costs", "state": "FAIL" if bad else ("UNKNOWN" if share is None else "OK"),
-                    "words": (f"{ate} of {n} Explorer trades in 30 days were eaten by costs" if share is not None else "no Explorer reviews in 30 days")})
+        # 12 Nov 2026 (the keen audit, G-47): the tag counts every trade that moved less than its costs, up or down, and all of them were
+        # called "eaten by costs", while most had lost before any cost or still made money. The count and the check are as before; the
+        # words say what it counts, split three ways (counts only).
+        won = sum(1 for r in tagged if (r[4] or 0) > 0)
+        turned = sum(1 for r in tagged if (r[4] or 0) <= 0 and r[2] and r[3] and r[3] > r[2])
+        words = (f"{ate} of {n} Explorer trades in 30 days moved less than their costs, up or down: {turned} made money before costs and "
+                 f"lost after, {ate - won - turned} had lost before any cost, {won} still made money") if share is not None else "no Explorer reviews in 30 days"
+        out.append({"id": "explorer_costs", "state": "FAIL" if bad else ("UNKNOWN" if share is None else "OK"), "words": words,
+                    "split": {"moved_less_than_costs": ate, "gain_turned_to_loss": turned, "lost_before_costs": ate - won - turned, "still_made_money": won}})
     except Exception as exc:  # noqa: BLE001
         out.append({"id": "explorer_costs", "state": "UNKNOWN", "words": str(exc)[:80]})
     return out

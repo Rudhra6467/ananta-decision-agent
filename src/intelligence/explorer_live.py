@@ -415,8 +415,9 @@ class Explorer:
         by: dict[str, list] = {}
         for r in closed:
             by.setdefault(f"{r['type']} / {r['setup']}", []).append(r["ACTUAL_net"])
+        # 12 Nov 2026 (the keen outside audit, G-32): "Account $1,7xx" every night on the phone was this measuring book, not the $500 account
         lines = [f"# Ananta Explorer daily report, {day}", "",
-                 f"Rulebook {xe.RULEBOOK}, paper only. Account ${s['equity']:,.2f} (start ${START_CAPITAL:,.0f}); "
+                 f"Rulebook {xe.RULEBOOK}, paper only. The Explorer's book (a measuring book, not your account) ${s['equity']:,.2f} (start ${START_CAPITAL:,.0f}); "
                  f"realized ${s['realized_usd']:+.2f}, open P&L ${s['unrealized_usd']:+.2f}. Kill switch: {'ON' if s['kill_switch'] else 'off'}.", "",
                  "## Open trades and suggestions", ""]
         if s["open"]:
@@ -465,7 +466,7 @@ class Explorer:
         p = d / f"{day}.md"
         p.write_text("\n".join(lines) + "\n")
         sug = [f"{r['coin']} {r['suggestion']}" for r in s["open"] if r["suggestion"] != "HOLD"]
-        self.alert("Ananta daily report", f"Account ${s['equity']:,.0f}; open {len(s['open'])}; closed today {len(closed)} "
+        self.alert("The Explorer's daily report (a measuring book, not your account)", f"Its book ${s['equity']:,.0f}; open {len(s['open'])}; closed today {len(closed)} "
                    f"(${sum(r['ACTUAL_net'] for r in closed):+.2f})" + (f"; {', '.join(sug)}" if sug else "; all HOLD"), "EVENT")
         return p
 

@@ -91,7 +91,7 @@ def test_the_second_box_is_the_account_then_its_coins():
 def test_the_market_card_says_the_dial_in_simple_words():
     closes = {"BTC": 75368.41, "ETH": 2135.24, "SOL": 86.74}
     pts = S._dial_points(CLOSED, closes, NOW)
-    assert pts[:4] == ["Bitcoin closed at $75,368 on Mon 9 Nov", "That is 5.0% below its 50-day average ($79,321), so buying is off",
+    assert pts[:4] == ["Bitcoin closed at $75,368 on Mon 9 Nov", "That is 5.0% below its 50-day exponential average ($79,321), so buying is off",   # G-41
                        "It is 2.9% above its 200-day average ($73,209)", "Buying turns on when Bitcoin closes above both averages"]
     assert "Ethereum closed at $2,135 · Solana at $86.74" in pts and "Next check at the daily close, 7 pm Toronto" in pts
     up = S._dial_points(OPEN, closes, NOW)
@@ -222,7 +222,7 @@ def test_the_status_line_says_a_high_self_check_item_first(monkeypatch):
 def test_money_says_the_plan_in_simple_words(monkeypatch, tmp_path):
     j = _fake_today(monkeypatch, tmp_path)
     m = S.money(j)
-    assert m["plan"]["brief"] == "Buying is off. The core (the Bitcoin and Ethereum part) is in cash until Bitcoin closes above both its 50-day and 200-day averages."
+    assert m["plan"]["brief"] == "Buying is off. The core (the Bitcoin and Ethereum part) is in cash until Bitcoin closes above both its 50-day exponential and 200-day averages."
     assert m["under_check"] is None and "Under check" not in m["holdings_note"]
 
 
@@ -234,7 +234,7 @@ def test_the_strategies_card_opens_an_explanation():
     assert e["title"] == "The strategies, explained" and e["ask"] == S.STRAT_Q and e["source"] == "the strategy register" and e["updated"]
     pts = e["points"]
     assert pts[0].startswith("A strategy is one way of trading") and " are on record: " in pts[1]
-    assert any(p.startswith("The one measured edge is the short dip trade.") for p in pts)
+    assert any(p.startswith("The one rule that passed its research test on history is the short dip trade;") for p in pts)   # G-50
     assert any(p.startswith("Until Mon 14 Dec no new crypto strategy is added and no rule changes without your yes (Rule B). Day 27 of 60") for p in pts)
     assert not any(code in p for p in pts for code in ("H07", "E1-E8", "ZONE_TOUCH", "UNDER_REVIEW", "PARKED"))
 
@@ -271,7 +271,7 @@ def test_a_coin_chart_is_closes_with_the_dials_two_averages(monkeypatch):
     assert len(ch["dates"]) == len(ch["closes"]) == len(ch["sma50"]) == len(ch["sma200"]) == 120 and ch["dates"][-1] == "2026-11-09"
     closes = [b[4] for b in bars]
     assert ch["sma50"][-1] == round(R.ema(closes, 50)[-1], 2) and ch["sma200"][-1] == round(R.sma(closes, 200)[-1], 2)   # the dial's own averages
-    assert "its 50-day average" in c["words"] and "over the last 30 days" in c["words"] and c["words"].endswith("Buying is on only while Bitcoin closes above both lines.")
+    assert "its 50-day exponential average" in c["words"] and "over the last 30 days" in c["words"] and c["words"].endswith("Buying is on only while Bitcoin closes above both lines.")
     assert c["x_labels"] == [S._dm(ch["dates"][0]), "9 Nov"] and c["note"].endswith("They are the averages the dial reads.")
     eth = S.chart(None, "Ethereum")
     assert eth["name"] == "Ethereum" and eth["note"].endswith("The dial reads the same two averages on Bitcoin.") and S.chart(None, "SOL")["coin"] == "SOL"
@@ -519,7 +519,7 @@ def test_the_screens_after_the_review(monkeypatch, tmp_path):
     p = S.proof(j)
     assert p["missed"]["words"] == ("In 7 days your ten main coins made 29 big moves. A paper book was in 11 of them (2 by a book allowed to trade, the rest by "
                                     "measuring books only); 17 were seen and not traded; 1 missed. 9 were held back on purpose while buying was off.")
-    assert [c["name"] for c in p["clocks"]] == ["The evidence window (Rule A and B)", "Round trips in the $500 book"]
+    assert [c["name"] for c in p["clocks"]] == ["The evidence window (Rule A and B)"]       # 12 Nov (G-50): the old gate's 50 round trips left
     assert S._pace(9, 50, "2026-10-11", dt.date(2026, 11, 10)) == "about Mar 2027 at this pace" and S._pace(0, 50, "2026-10-11", dt.date(2026, 11, 10)) == ""
 
 

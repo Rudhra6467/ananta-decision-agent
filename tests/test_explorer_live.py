@@ -104,7 +104,9 @@ def test_daily_report_is_written_and_pushed():
     _advance(ex, clock, 8)
     p = ex.report("2020-01-01")
     assert p.exists() and "Open trades and suggestions" in p.read_text()
-    assert any(a[0] == "Ananta daily report" for a in alerts)
+    # 12 Nov 2026 (the keen audit, G-32): "Ananta daily report: Account $1,7xx" was this measuring book, said as if it were the account
+    assert any(a[0] == "The Explorer's daily report (a measuring book, not your account)" and a[1].startswith("Its book $") for a in alerts)
+    assert not any("Account $" in str(a[1]) for a in alerts)
 
 
 def test_weekly_evidence_report():

@@ -134,7 +134,7 @@ WHAT ANANTA IS (use these words)
   say "held back by the closed dial" for a moment the board sent but the brain did not review, and give the brain's last decision with its exact
   date from the tools, never "about".
 - Paper only. No real money, no exchange connected. Market: crypto spot, buying only, NDAX costs (0.20% fee + spread per side). Since Oct 9 Ananta watches the whole market live: about 393 coins on Binance against USDT (tier A big, B mid-size, C small and watched only), every rule on every coin; the 10 lab coins (BTC ETH SOL ADA DOGE AVAX BCH LINK LTC XRP) also run the 15-minute Explorer (the hourly watch is parked). When asked what you watch, say this, never "10 coins".
-- OUR BOOKS (say these names): the Explorer (its own $100 paper trades, started with $2,000); the trend portfolio (T3, started with $2,000, plus an automatic copy for comparison); Hunter's book (the hourly watch's strategy book, SD6); your own paper book (orders Madhav asked for, $1,000); the short dip shadow (H07, $100 per signal); MY OWN BOOK (Jarvis's book: the trades I decide myself, $100 each, every one with a random twin). The two system books started with $4,000 together (Explorer $2,000 + trend portfolio $2,000). When he says "portfolio" or "how are we doing" without saying which, give ONE line for all books together first, then the book that moved most.
+- OUR BOOKS (say these names): THE $500 ACCOUNT (the book500 lookup, in CAD: his account on paper); and the measuring books, which measure ideas and are never his money: the Explorer (its own $100 paper trades, started with $2,000); the trend portfolio (T3, started with $2,000, plus an automatic copy for comparison); Hunter's book (the hourly watch's strategy book, SD6); the manual practice book (orders Madhav asked for by hand, $1,000; call it "the manual book", never "your own paper book" or "your money"); the short dip shadow (H07, $100 per signal); MY OWN BOOK (Jarvis's book: the trades I decide myself, $100 each, every one with a random twin). 12 Nov (the keen audit, G-32): "how much is my paper money", "how are we doing overall", "my money", "the portfolio" and "how are we doing", with no book named, mean THE $500 ACCOUNT: answer from book500 first, in CAD; give the measuring books only when he names one or asks about all the books, and then call them measuring books. Never add the measuring books up into one figure for him.
 - Watches (processes that keep running):
   * The 15-minute Explorer: checks 10 coins every 15 minutes for setups E1-E6 (wide mode W1, since Oct 3: up to 3 trades per coin per kind when far enough apart, at most 20 open and 60 new a day) and trades them on paper ($100 each, own stop/target/warning bells). Trade types: Long-term (weeks), Short-term (days), Intraday (hours). Also records shadows (random entries = the baseline, blocked or untyped orders) and sightings of every setup, matched to the intraday atlas (history of that setup in that market condition). In 7 years of history its rulebook lost money after costs (costs are the whole loss), so live it collects evidence; it is not a proven money maker.
   * The hourly watch: PARKED since Oct 11 (Madhav's decision D6: 2 setups in 12 days); its code is kept. It ran the strategies Hunter (reversal at support) and Squeeze (compression breakout) in the backend. Hunter is rare: about 2-8 times per coin per year. Its strategy book (Hunter's book, SD6) holds one trade per coin from version v3 (before: one in total), and keeps refused TAKEs as shadows when it is full.
@@ -142,7 +142,7 @@ WHAT ANANTA IS (use these words)
   * The eye (live prices every 10 seconds): your stops and alerts, a sudden Bitcoin drop, price entering a support zone, and the zone-touch evidence trade.
 - MY OWN DECISIONS (jarvis_book lookup): when the eye or a watch flags a moment (price into a zone, a setup firing, a coin's attention turning high, the market turning allowed), I weigh everything we know and decide: a paper trade in my own book with the plan written first (entry, stop, target or trailing stop, days, size, confidence, the knowledge I used), or a pass. As many decisions a day as the $1 AI budget allows; strong points add confidence, weak ones lower the size, only red flags stop me. Each trade has a random twin (another coin, same moment, same plan): beating the twins is my real score. Talk about it in the first person ("I bought Solana at the 200-day zone", "I passed on XRP because...").
 - AGENT QUESTIONS (plan 4.3): 'what are you watching / doing' -> agent_state (and my_watches for the person's own watches); 'what changed since this morning' -> account_activity (hours back to the person's morning); 'show me the setup you like most / your best idea' -> best_setup, then show its decision card in words; 'keep watching that but ask me first' -> change_watch on the watch just discussed with mode ask, then confirm in one line what changed. SAY ONLY WHAT HAPPENED: describe an action, a filter or a check only when a lookup result in this answer shows it ran.
-- FINDINGS, NOT WATCHES: Madhav asks what I FOUND, not what I'm watching. "What did we miss / what moved today?" -> missed_moves (the day's biggest rises: caught, seen or missed, and why; misses that keep repeating). "How are your trades doing / are you beating random?" -> jarvis_book. "What did we learn from the trades?" -> trade_reviews (every closed trade reviewed, lessons, and my evening review). "Is everything running?" -> system_health. Lead with the finding, then the evidence behind it.
+- FINDINGS, NOT WATCHES: Madhav asks what I FOUND, not what I'm watching. "What did we miss / what moved today?" -> missed_moves (the day's biggest rises: caught, seen or missed, and why; misses that keep repeating). "How are your trades doing / are you beating random?" -> jarvis_book. "What did we learn from the trades?" -> trade_reviews (every closed trade reviewed, lessons, and my evening review). "What did the night test say?" -> night_test (my own test of my answers after the close; never the trade review). "Did we buy anything tonight / is anything open / what happened tonight?" -> books_tonight (the $500 account first, then the bold book and the measuring books in counts; never "nothing is open in any book" unless every count there is 0). "Is everything running?" -> system_health. Lead with the finding, then the evidence behind it.
 - WATCHES AND THE SCOREBOARD: every watch is declared once in the registry (watches lookup), in sections: market weather, coin structure and zones, setups, risk and exits, news and events, baselines. Each watch that trades has its own evidence book; the scoreboard lookup compares them all against random with the same holding time. Never call a watch "working" with fewer than 10 independent events.
 - Strategies: Hunter and Squeeze (hourly watch); Continuation is benched (shadow only); Explorer setups E1 Pullback in an uptrend, E2 Breakout after a quiet period, E3 Bounce at support, E4 Momentum continuation, E5 Squeeze breakout, E6 Deep dip (15-minute RSI under 30); E7-E8 dip setups are watched, never traded; T3 is the trend portfolio.
 - Portfolio layer (T3): holds a coin while its daily close is above its 20- and 50-day averages and BTC is above its 50-day average; equal weights; ratings STRONG / OK / WEAK / OUT. MAIN book (owner approves in SUGGEST mode, automatic in AUTO) and SHADOW book (always automatic, for comparison).
@@ -154,7 +154,7 @@ HOW ANANTA REASONS (Madhav's framework; docs/knowledge/FRAMEWORK.md)
 - Candles, volume, patterns and relative strength are EVIDENCE at a location inside a regime, never commands ("bullish engulfing, therefore buy" is wrong).
 - The stop goes where the idea is proven wrong; size comes from that distance. Correlated alts are one bet with BTC.
 - LAYERS: Ananta is one system in 9 layers (layers lookup): 0 Madhav and safety, 1 market truth, 2 measurements (incl. zones), 3 knowledge ranked by evidence, 4 situation and attention, 5 decision, 6 execution and risk, 7 learning, 8 interface. A lower layer overrides a higher one; only parts marked "acts" may change a decision. Use it to explain how parts connect and what is missing; be plain about gaps.
-- HOW TO REACT (docs/knowledge/PLAYBOOK.md): always the same order: data there? -> market allowed (the exposure dial: BTC above BOTH its 50-day and 200-day averages, review #25; the 50-day alone is only the trend portfolio's own rule) -> where is price (which zone, does history support that kind) -> the plan (wrong if / confirmed if / stop / size / exposure) -> other evidence (your setups, chain, relative strength, volume, news) said with its history -> simple answer first. Wicks, closes back above a zone and volume describe the day; they are not reasons (review #7). The zones lookup gives each coin's attention (HIGH / WATCH / LOW) and why: start with HIGH coins when asked what to watch. Every coin gets one AI news check a day after the close (HIGH first); quote that verdict (CLEAR / CAUTION / BLOCK) as the last look for blunders, never as the reason to buy.
+- HOW TO REACT (docs/knowledge/PLAYBOOK.md): always the same order: data there? -> market allowed (the exposure dial: BTC above BOTH its 50-day exponential average and its 200-day average, review #25; the 50-day line leans on recent days, so a chart's plain 50-day average sits elsewhere: say "the 50-day exponential average" when he could check it on a chart; the 50-day alone is only the trend portfolio's own rule) -> where is price (which zone, does history support that kind) -> the plan (wrong if / confirmed if / stop / size / exposure) -> other evidence (your setups, chain, relative strength, volume, news) said with its history -> simple answer first. Wicks, closes back above a zone and volume describe the day; they are not reasons (review #7). The zones lookup gives each coin's attention (HIGH / WATCH / LOW) and why: start with HIGH coins when asked what to watch. Every coin gets one AI news check a day after the close (HIGH first); quote that verdict (CLEAR / CAUTION / BLOCK) as the last look for blunders, never as the reason to buy.
 - ZONES: price is always in or near a zone (a band, not a line); zones lookup. Talk about levels as zones and say when price is inside one. Review #6: zones hold a little more often than random bands (the 200-day average and overlapping zones the most; how many times a level held before mattered little), and entering a zone is not a trade by itself: inside a zone, the lookout (chain, your setups, news, the reaction) decides.
 - YOUR SETUPS: Madhav's three buy setups from his own SOL trades (reads lookup): capitulation at the lows, higher-low retest, quiet base after a run. They find the places he would look; on their own, history 2018-2023 did not support them as buy signals (review #5), so present a fired read as "your setup is showing on X" plus what history said, never as a buy call. The news check (blunder guard) runs when he asks.
 - NEW PEOPLE (guests or "what is this / what are we doing here"): Ananta is Madhav's trading assistant, built as a learning system, all in PAPER money (no real money yet). It watches 10 coins (Bitcoin, Ethereum, Solana, Cardano, Dogecoin, Avalanche, Bitcoin Cash, Chainlink, Litecoin, XRP) all day, paper-trades the 30 most-traded coins once a day with the two ideas that passed on them, and keeps the checked history of 120 coins for research; finds zones (price bands where the market reacted before) and checks every idea through the rule gates (the decision chain: market allowed? coin's own trend? at a good zone? signal? where is it wrong? can it be sized? too much in one bet?); runs three paper books (the Explorer, which trades small $100 ideas on its rulebook; T3, the portfolio that holds coins in uptrends; and the practice/manual book); records everything and tests ideas in the repair shop before trusting them. Explain this simply, then offer the tour ("Show me around"). To make a paper trade: ask in words ("buy $100 of Solana"), Ananta prepares it as a card with the price and a stop, and nothing happens until the person taps Confirm; a guest's trades go to their own practice book. Say which gates a coin passes before any trade idea; never call anything a sure thing.
@@ -176,7 +176,7 @@ HOW ANANTA REASONS (Madhav's framework; docs/knowledge/FRAMEWORK.md)
 - KNOWLEDGE TIERS: always make clear where a statement comes from: "our tested rule" (verified variables like V01, V02 or a passed repair-shop review), "Madhav's policy" (P01 and P02; P03, the 8% book stop, was tested in review #13 and rejected), "a teacher's idea" (hypotheses H01-H18 with their status: UNVERIFIED / FIRST_LOOK / PROMISING / NOT_SUPPORTED / SUPPORTED / REJECTED / INSUFFICIENT; only UNVERIFIED means not tested yet), or "what the data showed in your own trades" (the casebook), or "your note" (Madhav's own notes: his view, quoted back to him, not verified). The knowledge lookup returns a map of which document holds what; open a whole document with read_doc only when the passages are not enough. Never present a teacher's claim (Rayner, Trade With Trend, Weinstein, O'Neil, Minervini) as proven; say what our first look found when the knowledge lookup has it.
 
 RULES
-0. FAST PATH: a PORTFOLIO_BRIEF and/or MARKET_BRIEF may be attached to the question. They are live data. Answer straight from them WITHOUT calling lookups whenever they hold what is needed. Call a lookup only for detail the brief does not have (one coin's conditions in full, a trade's detail, history odds, research notes, the mandate, or an action). Portfolio questions are about OUR books (trades, T3 portfolio, my paper book, what we watch or skipped); market questions are about the market itself (trend, scan results, Hunter/Squeeze, evidence and lessons). MARKET_BRIEF.stance is Ananta's own written view (the brain writes it once a day after the daily close): for a market question start from its view and its expectations, and if your answer differs, say what changed since it was written; never contradict it silently.
+0. FAST PATH: a PORTFOLIO_BRIEF and/or MARKET_BRIEF may be attached to the question. They are live data. Answer straight from them WITHOUT calling lookups whenever they hold what is needed. Call a lookup only for detail the brief does not have (one coin's conditions in full, a trade's detail, history odds, research notes, the mandate, or an action). Portfolio questions are about OUR books (THE $500 ACCOUNT first, the brief's your_account; then the measuring books' trades, the T3 portfolio, the manual book, what we watch or skipped); market questions are about the market itself (trend, scan results, Hunter/Squeeze, evidence and lessons). MARKET_BRIEF.stance is Ananta's own written view (the brain writes it once a day after the daily close): for a market question start from its view and its expectations, and if your answer differs, say what changed since it was written; never contradict it silently.
 1. Facts only from the briefs and lookups. Call the lookups you need before answering (usually 1-4, at most 6; ask for several in one round when you can; never call the same lookup twice; after a propose_* lookup succeeds, answer straight away); use only the lookups listed, by their exact names. Never invent prices, trades, counts or history. If a lookup returns nothing, say the evidence is not there.
 2. Setups: in the setups lookup, "complete" means all conditions were met at the last check. Report complete setups as complete even when no new trade was placed, and say why (already holding that coin's trade type, no trade type fits, caps). Never say "none are triggering" when the lookup shows complete ones.
 2b. Keep separate: what the market is doing, what Ananta observed, which setup may be forming, which conditions are met or missing, what history says, what action (if any) is justified, whether anything was executed, the outcome, what was learned.
@@ -243,6 +243,8 @@ TOOLS = [
     ("jarvis_book", "My own paper book (Jarvis's decisions): closed and open trades, average per $100 against the random twins, independent events and verdict, calibration (does higher confidence mean better results), which knowledge pieces earned their keep, today's decisions and the latest plans with their thesis, and passes that ran 5%+ afterwards. Use for 'how are your trades doing', 'what did you decide today', 'why did you buy X', 'are you beating random'.", OFF),
     ("situations", "The learning loop: the week's brain decisions seen four ways (what we did, what if we had done the other thing, what the other signals did that day, what the random twin, Bitcoin and the benchmark did), the lessons counted, the tickets they raised (a pattern needs 3 cases), credit for each piece of knowledge the brain cited (its buys' average $ and the move after its passes), the change log's after-numbers and the two classic peer playbooks (BREAKOUT20, ROTATE5). Use for 'what did we learn this week', 'which knowledge is helping', 'how do we compare with simple playbooks'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
     ("book500", "The $500 NDAX paper book in CAD (Madhav's D9/D12/D13): value, cash, positions by sleeve (CORE up to 60% by the dial: BTC 40% + ETH 20%; EDGE up to 30%: H07 dips on tier-A NDAX coins while the dial is closed, no stop, 10-day exit; JUDGMENT up to 10%: my own buys on NDAX coins; each setup trade risks 0.5% of the book, at most 10% of the book in one trade, at most 6% at risk in total; when the dial is closed the core is cash), closed trades, the brakes (2% day, 4% week, 4 losses in a row, 15% fall = paused until Madhav resumes) and what fired, and the execution check (every paper fill inside NDAX's bid and ask). The 2018-2026 backtest is in docs research BOOK500.md. Use for 'how is the 500 book', 'what would the real account hold', 'did a brake fire'.", OFF),
+    ("books_tonight", "Every book tonight, counted as the nightly note counts the night (since the last daily close): what the $500 account bought and sold and holds (in CAD); the bold book's buys; each measuring book's open trades and tonight's signals and closes (counts only, never money, until 15 Dec); the Explorer's open trades; the brain's decisions. Use for 'did we buy anything tonight', 'what happened tonight', 'is anything open', 'what did the books do'. Never say a book holds nothing unless its row here says 0.", OFF),
+    ("night_test", "The night test: after each daily close Ananta asks itself a fixed bank of questions and marks every answer against the book (Home and Activity show it). Which evening, how many asked and right, each wrong one and why, the answers it could not mark, the figures worth a second look, whether it stopped at its budget, what it cost. Use for 'what did the night test say', 'did you pass your test', 'how did the night test go'. It is NOT the nightly trade review (trade_reviews) and NOT the nightly note (officer_note).", OFF),
     ("missed_moves", "The daily what-did-we-miss loop: each day's biggest up-moves (at least one daily range and 3%) with whether we caught them, saw them without trading, or missed them, and why (market regime, at a support zone or not, rebound / breakout / swing); plus the kinds of moves we keep missing. Use for 'what did we miss', 'what moved today', 'did we catch the SOL run'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
     ("last_week", "Wins and losses of the last N days (default 7) across EVERY book: the Explorer, Jarvis's own trades and its random twins, the zone touch watch, the dip trade (H07), the other daily watches, random entries, and the owner's own paper book: trades closed, wins, losses, net and average per $100 after costs, best and worst, market events. Use for 'how did last week go', 'good vs bad trades this week', 'wins and losses in the last 7 days'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
     ("trade_reviews", "Reviews of every closed paper trade in every book (best and worst while open, what happened in the 3 days after, plain lessons like 'stopped then it ran' or 'sold too early'), the lesson counts, and my latest evening self-reviews. Use for 'what did we learn', 'review the last trades', 'how was your day'.", _schema({"days": {"type": "number", "description": "days back, default 7"}})),
@@ -1073,6 +1075,8 @@ class Lookups:
         return {"now_utc": time.strftime("%Y-%m-%d %H:%M", time.gmtime(self.j.now())), "summary": s, "systems": c["systems"],
                 "switches": {w["key"]: w["on"] for w in c["switches"]},
                 "open_trades": [{k: t[k] for k in ("id", "coin", "setup", "type", "entry", "price", "pnl_usd", "suggestion", "why")} for t in (xs["open"] if xs else [])],
+                # 12 Nov (G-30): these are the Explorer's alone; "nothing is open in any book" was said from them
+                "open_trades_are": "the Explorer's open trades only (a measuring book); the $500 account is book500; every book tonight: books_tonight",
                 "pending_orders": xs["pending_orders"] if xs else []}
 
     def t_market(self, coin: str | None = None) -> dict:
@@ -1497,6 +1501,51 @@ class Lookups:
 
     def t_book500(self) -> dict:
         return _book_status(self.j)
+
+    def t_books_tonight(self) -> dict:
+        """12 Nov 2026 (the keen outside audit, G-30): "did we buy anything tonight" was answered "Nothing is open in any book" while the
+        bold book had bought ZEC and 171 measuring trades were open: the overview's open trades are the Explorer's only. The night is the
+        nightly note's own (officer.night_window, officer.night_counts: one place)."""
+        from jarvis.service import officer
+
+        if self.guest:
+            return {"error": "Every book here is the owner's; a visitor cannot see them."}
+        win = officer.night_window(self.j)
+        nc = officer.night_counts(self.j, win)
+        st = _book_status(self.j)
+        try:
+            fills = self.j.db.execute("SELECT coin, side FROM book500_fills WHERE t >= ? ORDER BY t", (win[1],)).fetchall()
+        except Exception:  # noqa: BLE001
+            fills = []
+        xs = self.ex.status() if self.ex else None
+        return {"tonight": f"since the {officer.evening(win[1])} daily close (7 pm Toronto); the rules' signals and closes of that candle",
+                "your_account": {"what": "THE $500 ACCOUNT, his account on paper (CAD)", "bought_tonight": [c for c, s in fills if s == "BUY"],
+                                 "sold_tonight": [c for c, s in fills if s == "SELL"], "holds": sorted((st.get("positions") or {}).keys()),
+                                 "value_cad": st.get("value_cad"), "cash_cad": st.get("cash_cad")},
+                "bold_book_bought_tonight": nc.get("bold_bought_tonight"),
+                "measuring_books": {"what": "books that measure ideas on paper, never his money; counts only until 15 Dec",
+                                    "open_by_book": nc.get("open_by_book"), "open_in_all": nc.get("evidence_rows_open"),
+                                    "signals_tonight_by_rule": nc.get("signals_today_by_rule"), "closed_tonight_by_rule": nc.get("closed_today_by_rule")},
+                "explorer_open_trades": len(xs["open"]) if xs else None, "brain_decisions_tonight": nc.get("brain_today"),
+                "say": "say what the $500 account did first; then, if asked, the bold book and the measuring books in counts; never say a book "
+                       "holds nothing unless its count here is 0"}
+
+    def t_night_test(self) -> dict:
+        """12 Nov 2026 (the keen outside audit, G-31): asked "what did the night test say" 41 minutes after it ran, the Ask described the
+        nightly trade review: it had no way to read the night test that Home and Activity show (nightcheck.latest)."""
+        from jarvis.service import nightcheck, officer
+
+        if self.guest:
+            return {"error": "The night test is the owner's; a visitor cannot see it."}
+        r = nightcheck.latest()
+        if not r or not r.get("asked"):
+            return {"ran": False, "words": "No night test result is on record yet."}
+        return {"what_it_is": "Ananta asks itself a fixed bank of questions after the daily close and marks each answer against the book",
+                "evening": officer.evening(r.get("t")), "asked": r.get("asked"), "right": r.get("right"),
+                "wrong": [{"question": w.get("question"), "why": w.get("why")} for w in (r.get("wrong") or [])[:8]],
+                "could_not_mark": r.get("ungraded"), "figures_worth_a_second_look": len(r.get("look") or []),
+                "stopped_for_budget": r.get("stopped_for_budget"), "not_asked": r.get("not_asked"), "cost_usd": r.get("cost_usd"),
+                "line": r.get("line"), "not_this": "not the nightly trade review (trade_reviews), not the nightly note (officer_note)"}
 
     def t_trade_reviews(self, days: float = 7) -> dict:
         from jarvis.service import reviews
@@ -2086,6 +2135,31 @@ def route(text: str) -> tuple[str, str]:
     if os.getenv("ANTHROPIC_API_KEY"):
         return "haiku", "Auto: Claude Haiku, routine question"
     return "gemini", "Auto: Gemini, everyday question"
+
+
+DENIES_A_RECORD = re.compile(
+    r"\b(?:we|i)\s+(?:haven'?t|have not|hasn'?t|has not|never|didn'?t|did not)\s+(?:yet\s+)?(?:run|done|made|had|started|recorded|opened|written|got|held)\b"
+    r"|\bno record (?:of|that)\b|\bthere (?:is|are|was|were|'s) no (?:such )?(?:review|record|trade|test|note|book|study|checkpoint)s?\b"
+    r"|\b(?:does not|doesn'?t|did not|didn'?t) exist\b|\bnever (?:ran|happened|existed)\b|\bnot (?:been )?(?:run|started) yet\b", re.I)
+BACKUP_CANNOT_DENY = ("I can't check that properly right now: the main model wasn't available, and the backup model can't vouch for what "
+                      "our records hold or don't hold. Ask me again in a minute and I'll look it up.")
+
+
+def backup_cannot_deny(reply: dict, planned: str, used: str) -> bool:
+    """12 Nov 2026 (the keen outside audit, G-34): two crypto answers on 11 Nov came from the free backup model after Claude could not
+    answer; one said "we haven't run a review 42 yet" five minutes after another answer described review 42. A backup answer may still
+    say what it found, but it may not deny that a record exists: that answer is withheld (kept in the reply as backup_withheld) and the
+    owner is asked to ask again. Returns True when it withheld one."""
+    try:
+        fell_back = MODELS[planned]["provider"] == "claude" and MODELS[used]["provider"] != "claude"
+    except KeyError:
+        return False
+    if not fell_back or reply.get("kind") != "answer" or not DENIES_A_RECORD.search(str(reply.get("answer") or "")):
+        return False
+    reply["backup_withheld"] = reply.get("answer")
+    reply["answer"] = BACKUP_CANNOT_DENY
+    reply["breakdown"], reply["evidence"] = [], []
+    return True
 
 
 def _local_doubt(raw: str, context: str) -> str:
@@ -2706,6 +2780,7 @@ class Ask:
             key, note = "sonnet", "Auto: Claude Sonnet (faster and better here; Haiku stays for practice accounts)"
         if voice and key in ("gemini", "gemini_deep") and "gemini_voice" in self.providers:
             key, note = "gemini_voice", (note + "; " if note else "") + "voice: the fastest Gemini first"
+        planned = key                                    # 12 Nov (G-34): the engine meant to answer, before any budget or failure fallback
         if source != "eval" and self.today_count() >= DAILY_LIMIT:
             raise ValueError(f"daily question limit reached ({DAILY_LIMIT}); it resets in 24 hours")
         if MODELS[key]["provider"] == "claude" and source == "eval":
@@ -2915,7 +2990,10 @@ class Ask:
                 elif MODELS[used]["provider"] == "claude" and "gemini" in self.providers and not L.created:
                     why = ("no Anthropic credit left" if "credit balance" in str(exc).lower() else "Claude is unavailable right now")
                     used = "gemini_voice" if voice and "gemini_voice" in self.providers else "gemini"
-                    note = (note + "; " if note else "") + f"{why}, so Gemini answered"
+                    # 12 Nov (G-34): why the backup answered was found by no one; the failure's kind is kept (its class and status code,
+                    # never its text) and the seconds it took
+                    kind = type(exc).__name__ + (f" {exc.status_code}" if isinstance(getattr(exc, "status_code", None), int) else "")
+                    note = (note + "; " if note else "") + f"{why} ({kind} after {time.time() - t0:.0f} s), so Gemini answered"
                     log.clear()
                     L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                     raw, usage = self.providers[used](system, history, user_msg, L, log)
@@ -2962,6 +3040,8 @@ class Ask:
         if reply["kind"] in ("clarify", "not_understood") and source != "eval":     # 12 Nov (G-55): a test question is not his
             self.j.db.execute("INSERT INTO ask_misunderstood VALUES (?,?,?,?,?)", (now, thread, text, reply["kind"], used))
         ms = int(1000 * (time.time() - t0))
+        if backup_cannot_deny(reply, planned, used):
+            note = (note + "; " if note else "") + "the backup model's answer denied a record, so it was withheld"
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created
         _clean_next(reply)

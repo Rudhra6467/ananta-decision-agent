@@ -802,7 +802,9 @@ def studies_explain(rm: dict) -> dict:
         elif seen and not (seen & {"VALIDATED", "CONDITIONAL"}) and (seen & {"REJECTED", "OPPOSITE"}):
             failed.append(fam)
     points = ["A version is one exact way of stating an idea, such as 'RSI over 70' against 'RSI over 80'; one idea can have several versions.",
-              f"{research.get('versions_tested') or 0} versions were tested on 2000-2017 and then checked on 2018-2023; 2024 onward is sealed and never looked at.",
+              # 12 Nov 2026 (the keen audit, G-50): "never looked at" was not so: the sealed years were opened on 20 Oct for another study
+              f"{research.get('versions_tested') or 0} versions were tested on 2000-2017 and then checked on 2018-2023, never on 2024 onward. "
+              "The years from 2024 are kept sealed from research; they were opened on 20 Oct 2026 for another study, the index options line.",
               f"{v.get('VALIDATED', 0)} held up in both periods, {v.get('CONDITIONAL', 0)} held with conditions, {v.get('REJECTED', 0)} did not hold, "
               f"{v.get('OPPOSITE', 0)} showed the opposite of the claim, {v.get('INCONCLUSIVE', 0)} had too little data to judge."]
     if held:

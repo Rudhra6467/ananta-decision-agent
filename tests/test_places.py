@@ -42,8 +42,8 @@ def _closes(n=120, start=80000.0):
     return [start * (1 + 0.001 * ((k * 7) % 13 - 6)) for k in range(n)]
 
 
-@pytest.fixture()
-def crypto(monkeypatch):
+def crypto_setup(monkeypatch):
+    """The fixed crypto inputs every Places test reads (a plain function, so another test file can use it without importing a fixture)."""
     from jarvis import selfknow
     from jarvis.service import discipline, feed, health, nightcheck, officer, openlist
     monkeypatch.setattr(S, "_book", lambda j: json.loads(json.dumps(BOOK)))
@@ -83,6 +83,11 @@ def crypto(monkeypatch):
         def people(self):
             return {"visitors": []}
     return J()
+
+
+@pytest.fixture()
+def crypto(monkeypatch):
+    return crypto_setup(monkeypatch)
 
 
 def _targets(x, path="payload"):
@@ -163,7 +168,7 @@ def test_home_says_the_account_today_and_what_needs_you(crypto):
 def test_nothing_the_old_screens_showed_is_lost(crypto):
     """Coverage: the old Today's four cards and Money's blocks are each one tap down, in the same facts."""
     why = CP.get(crypto, "why")
-    assert any("below its 50-day average ($79,321)" in i["text"] for i in next(p for p in why["parts"] if p["t"] == "points")["items"])
+    assert any("below its 50-day exponential average ($79,321)" in i["text"] for i in next(p for p in why["parts"] if p["t"] == "points")["items"])   # G-41
     acct = CP.get(crypto, "account")
     text = json.dumps(acct, ensure_ascii=False)
     for fact in ("C$467.55", "Bitcoin, just held", "−9.2%", "Closed trades", "Day "):

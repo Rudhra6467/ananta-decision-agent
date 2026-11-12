@@ -66,16 +66,29 @@ def _r(x, n=2):
 def portfolio_brief(j) -> dict:
     def build() -> dict:
         out: dict[str, Any] = {"as_of_toronto": views._local(j.now())}
+        # 12 Nov 2026 (the keen audit, G-32): this brief, which the Ask answers portfolio questions from without a lookup, had every book
+        # but the $500 account and told it to answer "how are we doing" with the measuring books together; "how much is my paper money"
+        # was answered with them. The account comes first, from the one report every reader uses (officer.book_status).
+        try:
+            from jarvis.service import officer
+
+            st = officer.book_status(j)
+            out["your_account"] = {"what": "THE $500 ACCOUNT: his account on paper, in Canadian dollars. 'My money', 'my paper money', 'how are we "
+                                           "doing', 'how are we doing overall', 'the portfolio' and 'our book' with no book named mean THIS: answer from it first",
+                                   "value_cad": st.get("value_cad"), "cash_cad": st.get("cash_cad"), "return_pct": st.get("return_pct"),
+                                   "started_with_cad": 500.0, "holds": sorted((st.get("positions") or {}).keys())}
+        except Exception as exc:  # noqa: BLE001
+            out["your_account"] = {"what": "THE $500 ACCOUNT", "error": f"could not be read just now ({str(exc)[:60]}): call book500"}
         t = views.trades_list(j)
         out["explorer_book"] = {
-            "what": "the 15-minute Explorer's own paper trades, $100 each",
+            "what": "a measuring book (never his money): the 15-minute Explorer's own paper trades, $100 each",
             "value": t["value"], "start": t["start"], "open_pnl": t["unrealized"], "closed_pnl": t["realized"],
             "open_trades": [{"id": x["id"], "coin": x["coin"], "setup": x["setup_name"], "type": x["type_name"], "bought": x["entry"],
                              "now": x["price"], "pnl_usd": x["pnl_usd"], "status": x["status"], "since": x["since"]} for x in t["open"]],
             "closed_trades": t["closed"][:8], "closed_count": len(t["closed"]), "waiting_to_fill": t["pending"]}
         h = views.holdings(j)
         out["t3_portfolio"] = {
-            "what": "the T3 trend portfolio (holds coins in uptrends, cash in slides)", "mode": h["mode"],
+            "what": "a measuring book (never his money): the T3 trend portfolio (holds coins in uptrends, cash in slides)", "mode": h["mode"],
             "value": h["value"], "start": h["start"], "return_pct": h["return_pct"], "cash": h["cash"], "costs_paid": h["costs_paid"],
             "holdings": [{"coin": x["coin"], "value": x["value"], "pnl_pct": x["pnl_pct"], "rating": x["rating"], "weight_pct": x["weight_pct"]} for x in h["holdings"]],
             "not_held": [x["coin"] for x in h["not_held"]], "suggested_changes_waiting": len(h["pending"]),
@@ -91,8 +104,10 @@ def portfolio_brief(j) -> dict:
             from jarvis.service.manual import Manual
 
             mb = Manual(j.db, j.now).state(j.prices())
-            out["my_paper_book"] = {"what": "orders the owner asked for", "value": mb["equity"], "return_pct": mb["return_pct"],
-                                    "positions": [{"coin": p["coin"], "value": p["value"], "pnl": p["pnl"], "stop": p["stop"]} for p in mb["positions"]]}
+            out["manual_book"] = {"what": "the manual practice book: paper orders he asked for by hand, in US dollars; call it 'the manual book', "
+                                          "never 'your own paper book' or his money",
+                                  "value": mb["equity"], "return_pct": mb["return_pct"],
+                                  "positions": [{"coin": p["coin"], "value": p["value"], "pnl": p["pnl"], "stop": p["stop"]} for p in mb["positions"]]}
         except Exception:  # noqa: BLE001
             pass
         hb = [x for x in views._jsonl(j.dir / "watch_heartbeat.jsonl", 30) if x.get("ok")]
@@ -109,11 +124,12 @@ def portfolio_brief(j) -> dict:
             "skip_rule": "a complete setup is skipped when that coin already has an open trade of the same type, or no trade type fits"}
         try:
             s = views.day_summary(j)
-            mine = (out.get("my_paper_book") or {}).get("value")
-            out["all_books"] = {"what": "one line for 'how are we doing' when he does not say which book",
-                                "explorer_plus_trend_portfolio_value": s.get("paper_value"), "their_start": s.get("start_value"),
-                                "change_usd": round((s.get("paper_value") or 0) - (s.get("start_value") or 0), 2),
-                                "today_change_usd": s.get("today_change"), "my_paper_book_value": mine, "my_paper_book_start": 1000.0}
+            mine = (out.get("manual_book") or {}).get("value")
+            out["measuring_books_together"] = {"what": "the measuring books (the Explorer and the trend portfolio), never his money: only when he "
+                                                       "asks about those books or all the books, and then called measuring books; never his account",
+                                               "explorer_plus_trend_portfolio_value": s.get("paper_value"), "their_start": s.get("start_value"),
+                                               "change_usd": round((s.get("paper_value") or 0) - (s.get("start_value") or 0), 2),
+                                               "today_change_usd": s.get("today_change"), "manual_book_value": mine, "manual_book_start": 1000.0}
         except Exception:  # noqa: BLE001
             pass
         try:
@@ -159,8 +175,10 @@ def market_brief(j) -> dict:
         except Exception:  # noqa: BLE001
             ds = {}
         if ds.get("dial_words"):
-            market = (f"{ds['dial_words']} ({'; '.join(ds.get('why') or [])}). The exposure dial (review #25): Bitcoin above BOTH its "
-                      "50-day and 200-day averages = buying allowed; otherwise no new buys and cash is the position.")
+            # 12 Nov (G-41): the dial's 50-day line is an exponential average; the pinned dial writes it as 'its 50-day average'
+            why = re.sub(r"\bits 50-day average\b", "its 50-day exponential average", "; ".join(ds.get("why") or []))
+            market = (f"{ds['dial_words']} ({why}). The exposure dial (review #25): Bitcoin above BOTH its "
+                      "50-day exponential average and its 200-day average = buying allowed; otherwise no new buys and cash is the position.")
         else:
             market = ("UNKNOWN: the exposure dial could not be read; the trend portfolio's own 50-day rule says "
                       + ("IN" if m["btc_gate"] else "OUT (cash)"))

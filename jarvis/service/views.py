@@ -1004,7 +1004,7 @@ def findings(j, days: int = 2, n: int = 5) -> list[dict]:
         from jarvis.service import reviews
 
         words = {"STOPPED_THEN_RAN": "Stopped out, then the price ran", "GAVE_BACK": "Was up, then gave it back", "NEVER_WORKED": "Never worked",
-                 "LEFT_ON_TABLE": "Sold too early", "COSTS_ATE": "Too small to pay the costs"}
+                 "LEFT_ON_TABLE": "Sold too early", "COSTS_ATE": "Moved less than its costs"}      # 12 Nov (G-47): up or down
         for r in reviews.recent_reviews(j, days + 3)["reviews"]:
             tags = [t for t in r["tags"] if t in words]
             if tags:

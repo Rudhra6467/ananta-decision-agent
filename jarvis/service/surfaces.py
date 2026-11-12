@@ -205,6 +205,12 @@ def _plan_parts(line: str) -> dict:
     return parts
 
 
+def _ema50(s) -> str:
+    """12 Nov 2026 (the keen audit, G-41): the dial's 50-day line is an exponential average; exposure.state (a pinned file) writes it
+    as 'its 50-day average', so what is shown names it (the numbers are read from the dial's own words, before this)."""
+    return re.sub(r"\bits 50-day average\b", "its 50-day exponential average", str(s or ""))
+
+
 def _dial_numbers(dial: dict) -> dict:
     """The dial's own three lines as numbers: Bitcoin's close and its two averages (exposure.state writes them as words)."""
     out: dict = {}
@@ -309,18 +315,21 @@ def _dial_points(dial: dict, closes: dict, now: dt.datetime) -> list[str]:
     gap = lambda k: 100 * (n["close"] / n[k] - 1) if n.get(k) else None   # noqa: E731
     g50, g200 = gap("avg50"), gap("avg200")
     pts = [f"Bitcoin closed at {_usd(n['close'])} on {_dw(dial.get('as_of_day'))}"]
+    # 12 Nov 2026 (the keen audit, G-41): the dial's 50-day line is an exponential average (recent days weigh more; $79,104 on 10 Nov
+    # where a chart's plain 50-day average was $81,449), so it is named as one; which average the dial uses is a question for 14 Dec
+    avg = {"50": "50-day exponential average", "200": "200-day average"}
     if g50 is not None and g200 is not None:
         if (dial.get("dial") or 0) > 0:
-            pts.append(f"That is {abs(g50):.1f}% above its 50-day average ({_usd(n['avg50'])}) and {abs(g200):.1f}% above its 200-day ({_usd(n['avg200'])}), so buying is on")
+            pts.append(f"That is {abs(g50):.1f}% above its {avg['50']} ({_usd(n['avg50'])}) and {abs(g200):.1f}% above its 200-day ({_usd(n['avg200'])}), so buying is on")
             pts.append("Buying turns off when Bitcoin closes below either average")
         elif g50 < 0 and g200 < 0:
-            pts.append(f"That is {abs(g50):.1f}% below its 50-day average ({_usd(n['avg50'])}) and {abs(g200):.1f}% below its 200-day ({_usd(n['avg200'])}), so buying is off")
+            pts.append(f"That is {abs(g50):.1f}% below its {avg['50']} ({_usd(n['avg50'])}) and {abs(g200):.1f}% below its 200-day ({_usd(n['avg200'])}), so buying is off")
             pts.append("Buying turns on when Bitcoin closes above both averages")
         else:
             lo, hi = ("50", "200") if g50 < 0 else ("200", "50")
             g_hi = gap("avg" + hi)
-            pts.append(f"That is {abs(gap('avg' + lo)):.1f}% below its {lo}-day average ({_usd(n['avg' + lo])}), so buying is off")
-            pts.append(f"It is {abs(g_hi):.1f}% {'above' if g_hi >= 0 else 'below'} its {hi}-day average ({_usd(n['avg' + hi])})")
+            pts.append(f"That is {abs(gap('avg' + lo)):.1f}% below its {avg[lo]} ({_usd(n['avg' + lo])}), so buying is off")
+            pts.append(f"It is {abs(g_hi):.1f}% {'above' if g_hi >= 0 else 'below'} its {avg[hi]} ({_usd(n['avg' + hi])})")
             pts.append("Buying turns on when Bitcoin closes above both averages")
     others = [(name, closes[c]) for c, name in COINS[1:] if isinstance(closes.get(c), (int, float))]
     if others:
@@ -584,7 +593,7 @@ def money(j) -> dict:
     cp = b.get("core_plan") or {}
     closed_dial = (dial.get("dial") or 0) <= 0
     brake = _brake(b, now)
-    brief = (("Buying is off. The core (the Bitcoin and Ethereum part) is in cash until Bitcoin closes above both its 50-day and 200-day averages."
+    brief = (("Buying is off. The core (the Bitcoin and Ethereum part) is in cash until Bitcoin closes above both its 50-day exponential and 200-day averages."
               if closed_dial else f"Buying is on. The core (the Bitcoin and Ethereum part) aims for {cp.get('words') or 'its targets'}.")
              + (f" {brake[0].upper() + brake[1:]}." if brake else "")
              + (" The coins held stay until their own rules sell." if pos else ""))
@@ -608,8 +617,8 @@ def money(j) -> dict:
                                               "The safety stop shown is a far line for real trading: on paper a trade ends by its own rule.") + (f" {under}" if under else ""),
             "under_check": under,
             "holdings_empty": "No coins held: the whole book is cash.",
-            "dial_block": {"state": "closed" if closed_dial else "open", "words": _plain(str(dial.get("dial_words") or "").replace("CLOSED", "Closed").replace("OPEN", "Open")), "why": [_isodates(x) for x in dial.get("why") or []], "as_of": _dw(dial.get("as_of_day")),
-                           "brake": brake, "rule": "Buying is allowed only while Bitcoin closes above both its 50-day and 200-day averages.",
+            "dial_block": {"state": "closed" if closed_dial else "open", "words": _plain(str(dial.get("dial_words") or "").replace("CLOSED", "Closed").replace("OPEN", "Open")), "why": [_isodates(_ema50(x)) for x in dial.get("why") or []], "as_of": _dw(dial.get("as_of_day")),
+                           "brake": brake, "rule": "Buying is allowed only while Bitcoin closes above both its 50-day exponential and 200-day averages.",
                            "closed": closed, "graduation": None},
             "options_book": None}
 
@@ -651,12 +660,10 @@ def proof(j) -> dict:
     count: dict[str, int] = {}
     for v in st.values():
         count[v.get("status") or "?"] = count.get(v.get("status") or "?", 0) + 1
-    b = _book(j)
-    g = b.get("graduation") or {}
     win = _window(now.date())
-    clocks = [{"name": "The evidence window (Rule A and B)", "done": win["day"], "need": WINDOW_DAYS, "finish_words": _dw(RULE_B_END), "complete": win["day"] >= WINDOW_DAYS},
-              {"name": "Round trips in the $500 book", "done": g.get("closed_trades") or 0, "need": 50, "finish_words": _pace(g.get("closed_trades") or 0, 50, b.get("started"), now.date()),
-               "complete": (g.get("closed_trades") or 0) >= 50}]
+    # 12 Nov 2026 (the keen audit, G-50): the "50 round trips" bar was an old graduation gate (they left Proof on 10 Nov, R-162) and read
+    # "9 of 50, about Apr 2027": it is gone; the book's closed trades are counted on the Account page, and the gates stay on the review day
+    clocks = [{"name": "The evidence window (Rule A and B)", "done": win["day"], "need": WINDOW_DAYS, "finish_words": _dw(RULE_B_END), "complete": win["day"] >= WINDOW_DAYS}]
     from jarvis.service import officer as _officer
 
     cn = _safe(_officer.clean_nights, j, default={}) or {}
@@ -688,10 +695,14 @@ def proof(j) -> dict:
                         "ask": STRAT_Q, "explain": _safe(strategies_explain, reg, win)},
             "exam": {**(_exam() or {"grade": None, "words": None}), "label": "Weekly exam ›",
                      "ask": EXAM_Q, "explain": _safe(exam_explain)},
-            "clocks": clocks, "clocks_ask": "Explain every crypto clock in detail: the 60-day evidence window, the round trips the $500 book needs, the graduation gates, where each stands and what would count as a pass.",
-            "missed": {"words": missed_words, "day": "last 7 days"} if missed_words else None,
-            "last_night": {"words": last_night} if last_night else None,
-            "links": [{"label": "The repair board", "route": "/flags"}, {"label": "What we missed", "route": "/missed"}, {"label": "The evidence, live", "route": "/reconstruction"}]}
+            "clocks": clocks, "clocks_ask": ("Explain every crypto clock in detail: the 60-day evidence window and the nights in a row where the book, the note "
+                                             "and the candle agree, where each stands and what would count as a pass."),
+            # 12 Nov (G-50): the counts themselves, so a tile never reads "0 missed of 29" as if the account had been in them
+            "missed": {"words": missed_words, "day": "last 7 days", "big": n_big, "held": c.get("CAUGHT", 0), "seen": c.get("SEEN", 0),
+                       "missed": c.get("MISSED", 0), "held_by_trading_books": c.get("CAUGHT_TRADE_OK", 0)} if missed_words else None,
+            "last_night": {"words": last_night, "day": r.get("day")} if last_night else None,
+            "links": [{"label": "The repair board", "route": "/flags"}, {"label": "What we missed", "route": "/missed"},
+                      {"label": "The nightly evidence", "route": "/reconstruction"}]}
 
 
 def people(j, is_owner: bool = True) -> dict:
@@ -713,8 +724,8 @@ def people(j, is_owner: bool = True) -> dict:
 # The same two things India's Proof and Today got on 7 Nov: each top card of Proof opens an explanation written from the facts on file
 # (so it changes when they do), with an Ask Ananta button; and each box on Today opens a chart.
 
-STRAT_Q = ("Explain the strategies on record: which are active, which are parked and why, which are only measured, what the one measured "
-           "edge is, and what Rule B means until 14 Dec.")
+STRAT_Q = ("Explain the strategies on record: which are active, which are parked and why, which are only measured, which one rule passed "
+           "its research test on history and what its live paper record still needs, and what Rule B means until 14 Dec.")
 EXAM_Q = "Explain the weekly exam: what it asks, how it is graded, what it found this week, and what is still open."
 
 
@@ -734,7 +745,7 @@ def _list(xs: list[str], n: int = 4) -> str:
 
 def strategies_explain(reg: dict, win: dict) -> dict:
     """The 'Strategies' card's explanation, from the strategy register (docs/knowledge/strategy_status.json): what a strategy is, how
-    many are in each state, which trade, which are switched off, the one measured edge, and what Rule B holds still."""
+    many are in each state, which trade, which are switched off, the one rule that passed its research test, and what Rule B holds still."""
     st = reg.get("strategies") or {}
     st = st if isinstance(st, dict) else {x.get("id"): x for x in st}
     by: dict[str, list[dict]] = {}
@@ -752,9 +763,12 @@ def strategies_explain(reg: dict, win: dict) -> dict:
     edge = next((v for v in st.values() if str(v.get("why") or "").startswith("The one measured edge")), None)
     if edge:
         pk = edge.get("parked") or {}
-        s = f"The one measured edge is the {_short_name(edge.get('name'))}."
+        # 12 Nov 2026 (the keen audit, G-50): "the one measured edge" promised more than its record: the rule passed its research test on
+        # history; its live paper record is not judged yet (the scorecard's line 8: ten closed trades are needed before any decision)
+        s = f"The one rule that passed its research test on history is the {_short_name(edge.get('name'))}; that is not yet a live result."
         if edge.get("status") == "EVIDENCE":
-            s += " Its paper record is running again on big coins only; it does not trade for the account."
+            s += (" Its paper record runs again on big coins only and does not trade for the account; ten closed trades are needed "
+                  "before anything is decided on it.")
         if edge.get("status") == "PARKED":
             s += f" Its paper book is switched off{' since ' + _dw(pk.get('date')) if pk.get('date') else ''}"
             s += "; the research result stands." if "research verdict is unchanged" in str(pk.get("note") or "") else "."
@@ -823,7 +837,7 @@ def coin_chart(j, coin: str, n: int = 120) -> dict:
     words = f"{name} closed at {_usd(last)} on {_dw(days[-1])}."
     side = lambda a: f"{abs(100 * (last / a - 1)):.1f}% {'above' if last >= a else 'below'}"   # noqa: E731
     if a50 and a200:
-        words += f" That is {side(a50)} its 50-day average ({_usd(a50)}) and {side(a200)} its 200-day ({_usd(a200)})."
+        words += f" That is {side(a50)} its 50-day exponential average ({_usd(a50)}) and {side(a200)} its 200-day ({_usd(a200)})."   # G-41
     w = c[-n:]
     wd = days[-n:]
     if len(c) > 30:
@@ -886,7 +900,7 @@ def account_chart(j) -> dict:
             f"The line's last nights were recorded before a correction, so it ends lower, at {_cad(yours[-1])}. " if fixes and isinstance(now_v, (int, float)) and abs(now_v - yours[-1]) > 0.5
             else f"The $500 book stood at {_cad(yours[-1])} at the {_dw(dates[-1])} close: {pct(yours[-1])} since it started with {_cad(start, 0)} on {_dw(started)}. ")
     words = (lead
-             + (f"Over the same weeks Bitcoin just held is {pct(hold[-1])} and the hurdle (Bitcoin held only above its 50-day average) is {pct(hurdle[-1])}, "
+             + (f"Over the same weeks Bitcoin just held is {pct(hold[-1])} and the hurdle (Bitcoin held only above its 50-day exponential average) is {pct(hurdle[-1])}, "
                 f"both counted from {_dw(exposure.START)}. " if hold[-1] is not None else "")
              + f"Drawn from {len(dates) - 1} recorded night{'s' if len(dates) != 2 else ''} and the start.")
     gap = _safe(book_gap, j, b, default=[]) or []

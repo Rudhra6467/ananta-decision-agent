@@ -421,3 +421,64 @@ def test_the_evidence_card_is_named_by_the_evening_it_was_made(monkeypatch, tmp_
     more = CP.more(j2)
     tiles = {t["label"]: t["value"] for part in more["parts"] if part.get("t") == "tiles" for t in part["items"]}
     assert tiles["The evidence"] == "Updated Wed 11 Nov" and not K.problems("more", more)
+
+
+# ------------------------------------------------------------------------------------------------ repair 5's confirm check (C1 to C7)
+
+def test_the_guard_catches_the_confirm_checks_denials_and_passes_its_not_yets():
+    # C1 (S3): fourteen real denials got through; C2 (S4): true "not yet" answers about held or future records were hidden
+    import datetime as dt
+    today = dt.date(2026, 11, 12)
+    for said in ("We never ran review 42.", "We haven't got a review 42.", "Review 42? We haven't run it.",
+                 "We haven't run the extreme-drop study yet.", "We have not done any research on buying after drops.", "No review 42 exists.",
+                 "No review 42 has been run.", "There has been no review 42.", "There have been no reviews of buying after drops.",
+                 "We didn't do a review 42.", "I have never seen a review 42.", "I'm not aware of any review 42.",
+                 "We never tested buying after drops.", "Ananta has never run review 42.", "The 9 Nov review hasn't been written."):
+        assert ask.denies_a_record(said), said                                                    # no date in them: today's date not needed
+    for said in ("Review 42's forward record has not been published yet; it is held until 15 Dec.",
+                 "Review 42's results haven't been published yet; they are held until 15 Dec.",
+                 "There are no findings yet: review 42's forward record is held until 15 Dec.",
+                 "The 14 Dec review hasn't been done yet; it comes after the close that day.",
+                 "Tonight's trade review hasn't been written yet; it comes after the close.",
+                 "The checkpoint hasn't been run yet; it is on 14 Dec.", "Review 41 showed no findings worth trading.",
+                 "We haven't made any trades since review 41.", "Review 41 found no bounce after extreme drops."):
+        assert not ask.denies_a_record(said, today), said
+    assert ask.denies_a_record("We haven’t run a review 42 yet; it is held until 15 Dec.", today)   # speaking for us: never excused
+    r = {"kind": "answer", "answer": "We never ran review 42."}                                    # a visitor cannot raise a budget
+    assert ask.backup_cannot_deny(r, "sonnet", "gemini", "Claude budget for today ($0.50) is used up, so Gemini answered", guest=True)
+    assert r["answer"] == ask.BACKUP_CANNOT_DENY_GUEST and "Voice and model" not in r["answer"]
+
+
+def test_the_markets_dial_card_names_the_exponential_line_from_its_route(monkeypatch, tmp_path):
+    # C3: the owner's Markets tab draws /v3/exposure's dial reasons, which still said "below its 50-day average (78,904)"
+    from jarvis.service import app, ev, exposure, universe_watch
+    d = {"dial_words": "Closed", "why": ["Bitcoin is below its 50-day average (78,904)"]}
+    j = J(tmp_path, now=MIDNIGHT_12NOV + 3600)
+    monkeypatch.setattr(app, "_main", lambda: j)
+    monkeypatch.setattr(exposure, "state", lambda j: d)
+    monkeypatch.setattr(exposure, "books", lambda j: {})
+    monkeypatch.setattr(ev, "table", lambda: [])
+    monkeypatch.setattr(ev, "fidelity", lambda j: {})
+    monkeypatch.setattr(universe_watch, "would_be", lambda j: {})
+    out = app.exposure_live(who="owner")
+    assert out["dial"]["why"] == ["Bitcoin is below its 50-day exponential average (78,904)"] and d["why"][0].endswith("50-day average (78,904)")
+
+
+def test_the_next_close_is_said_on_the_clock_change_sundays_too():
+    # C4: on Sun 1 Nov 2026 at noon the last close was 8 pm (summer time) and the next is 7 pm; on Sun 14 Mar 2027 the other way round
+    assert officer.close_clock(1793552400) == "8 pm" and officer.close_clock(1793552400, nxt=True) == "7 pm"
+    assert officer.close_clock(1805040000) == "7 pm" and officer.close_clock(1805040000, nxt=True) == "8 pm"
+
+
+def test_the_small_words_of_the_confirm_check():
+    import inspect
+
+    from jarvis.service import appmap, chain
+    # C5: the screen map the Ask reads, and the stop-and-target tool, called the manual book his own paper book
+    assert "the manual book" in appmap.SCREENS["portfolio:mine"]["shows"] and "own paper book" not in appmap.SCREENS["portfolio:mine"]["shows"]
+    assert "OWN paper book" not in next(t[1] for t in ask.TOOLS if t[0] == "propose_levels")
+    # C6: the Ask gives the card's evening, never its UTC day
+    assert "give the evening the card was made (made_on_the_evening_of" in ask.SYSTEM
+    # C7: the coin's own lines in the chain are named exponential too, like the market's line above them
+    src = inspect.getsource(chain)
+    assert "its 50-day exponential average ({_pct(c, e50)" in src and "above its 20- and 50-day exponential averages" in src

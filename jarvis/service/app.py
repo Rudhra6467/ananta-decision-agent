@@ -498,10 +498,14 @@ def universe_scoreboard(who: str = Depends(owner)) -> dict:
 @app.get("/v3/exposure")
 def exposure_live(who: str = Depends(owner)) -> dict:
     """Engine fixes 1-4: the dial, the benchmark books, the measured-edge table, the would-be account in R against the hurdle."""
-    from jarvis.service import ev, exposure, universe_watch
+    from jarvis.service import ev, exposure, officer, universe_watch
 
     j = _main()
-    return {"dial": exposure.state(j), "books": exposure.books(j), "measured_edges": ev.table(), "account": universe_watch.would_be(j),
+    # 12 Nov 2026 (G-41; repair 5's confirm check, C3): the Markets tab's dial card reads its reasons here; a copy, so the pinned dial's own
+    # cache is never changed, with its 50-day line named the exponential average it is
+    dial = dict(exposure.state(j) or {})
+    dial["why"] = officer.dial_why(dial)
+    return {"dial": dial, "books": exposure.books(j), "measured_edges": ev.table(), "account": universe_watch.would_be(j),
             "fidelity": ev.fidelity(j)}
 
 

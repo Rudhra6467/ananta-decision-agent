@@ -91,14 +91,15 @@ def evening(t) -> str:
     return f"{d:%a} {d.day} {d:%b}"
 
 
-def close_clock(t=None) -> str:
+def close_clock(t=None, nxt: bool = False) -> str:
     """The daily close (00:00 UTC) on Toronto's clock: "7 pm" in winter, "8 pm" in summer. 12 Nov 2026 (repair 5's outside check): four
-    lines still said "the daily close (8 pm Toronto)" in November, when it is 7 pm."""
+    lines still said "the daily close (8 pm Toronto)" in November, when it is 7 pm. nxt: the next close rather than the last one (its
+    confirm check, C4: on the two clock-change Sundays the last close and the next fall on different hours)."""
     try:
         t = int(time.time() if t is None else t)
     except (TypeError, ValueError):
         t = int(time.time())
-    close = t - t % 86400
+    close = t - t % 86400 + (86400 if nxt else 0)
     return _dt.datetime.fromtimestamp(close, TOR).strftime("%-I %p").lower()
 
 

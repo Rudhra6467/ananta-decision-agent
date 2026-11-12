@@ -931,7 +931,7 @@ def mission(j) -> dict:
                           # 12 Nov (G-41; its outside check, P5-N4): the dial's words name the exponential average
                           "dial": {"state": d.get("dial_words"), "why": officer.dial_why(d)}, "last_step": st.get("last_step"),
                           "execution_check": st.get("execution_check"),
-                          "next": f"the next decision comes at the daily close ({officer.close_clock(j.now())} Toronto)",   # 12 Nov: not a fixed 8 pm
+                          "next": f"the next decision comes at the daily close ({officer.close_clock(j.now(), nxt=True)} Toronto)",   # 12 Nov: not a fixed 8 pm
                           "note": notes[0] if notes else None, "lab": lab, "pushed_rule": strategy_status.pushed_rule(),
                           "core_plan": st.get("core_plan")}
         try:  # discipline items 5 and 8 (24 Oct 2026): tonight's one plan line and the officer's checks, beside the note

@@ -80,7 +80,7 @@ def _close_clock(j) -> str:
     try:
         from jarvis.service import officer
 
-        return officer.close_clock(j.now())
+        return officer.close_clock(j.now(), nxt=True)
     except Exception:  # noqa: BLE001
         return "7 pm" if time.localtime().tm_isdst == 0 else "8 pm"
 

@@ -72,9 +72,11 @@ def evaluate(ex, coin: str, open_trades: list[dict], equity: float, zone_row: di
     c, e20, e50 = bars[-1][4], d1.e20h[-1], d1.e50h[-1]
     e50_ago = d1.ema_ago("50", 5) or e50
     up = c > e20 and c > e50 and e50 >= e50_ago
-    why = ("above its 20- and 50-day averages, 50-day rising" if up else
-           f"{'below' if c < e50 else 'above'} its 50-day average ({_pct(c, e50):+.1f}%), {'below' if c < e20 else 'above'} its 20-day"
-           + ("" if e50 >= e50_ago else ", 50-day falling"))
+    # 12 Nov (repair 5's confirm check, C7): the coin's own lines are exponential too (e20h, e50h); said so, so the gate under the
+    # market's "BTC below its 50-day exponential average" does not read as another kind of line
+    why = ("above its 20- and 50-day exponential averages, the 50-day rising" if up else
+           f"{'below' if c < e50 else 'above'} its 50-day exponential average ({_pct(c, e50):+.1f}%), {'below' if c < e20 else 'above'} its 20-day"
+           + ("" if e50 >= e50_ago else ", the 50-day falling"))
     gates.append(_g("TREND", up, why, "V01 verified (KEEP)", {"close": round(c, 4), "ema20": round(e20, 4), "ema50": round(e50, 4)}))
 
     # 3 LOCATION (reviews #6-#7, Madhav 2026-10-03): price at a kind of zone history supports.

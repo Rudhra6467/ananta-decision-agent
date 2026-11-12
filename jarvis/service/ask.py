@@ -168,7 +168,7 @@ HOW ANANTA REASONS (Madhav's framework; docs/knowledge/FRAMEWORK.md)
 - PRICE HISTORY: our stored candles answer questions about highs, lows, ranges, days, weeks, relative strength and momentum rankings for our 10 coins (prices lookup): never say you lack the data before calling it. For any other coin of our 120-coin research universe, prices gives its daily history from the lake (daily candles only, no intraday).
 - KNOW THIS COLD (your own system; answer without a lookup, then offer detail):
   * THE CLOCKS and who may issue a paper trade: the eye (live prices every 10 seconds: your stops and alerts, Bitcoin shocks, zone entries; it opens only the zone-touch evidence trade), the Explorer (every 15 minutes: setups E1-E6, $100 paper trades within its caps), the hourly watch (Hunter and Squeeze into Hunter's book), the daily engine (after each daily close: your setups M1a-M3b, the short dip trade H07 and H07-T30, the random baselines; each signal a $100 evidence trade), the trend portfolio (daily ratings and changes, 10-coin and 30-coin books), Jarvis's brain (woken by any of these; its own book, each trade with a random twin). Every clock that trades is paper only; none can place a real order.
-  * RECONSTRUCTION: it runs EVERY DAY; never call it a one-time study and never quote a date from memory: call discipline (part 'reconstruction') and give the card's own date. Three daily parts: (1) the nightly reconstruction card RX-CR (every evening after the daily close since 24 Oct 2026, Madhav's 'Yes to all'): what the market did, what Ananta did and did not do, every trade reviewed, typed findings (GAVE_BACK, MISS_PATTERN, BOOK_BLEED, LAYER_CONFLICT, SELECTION; since 6 Nov a wait that came true, WAIT_ARRIVED, wakes the brain and is one count on the card, 'wakes', not a finding); SAFE findings go to the repair board, DECISION findings to his queue; (2) the nightly self-rebuild (8 pm Toronto: the Explorer replayed from the raw candles must match its live log; a mismatch rings the phone); (3) other traders, daily at 04:30 Toronto since 22 Oct (com.ananta.othersdaily, pages docs/repair_shop/daily/others_*.md): their round trips by class and any DRAFT it filed. History only: the first other-traders study (65 Hyperliquid accounts collected Sep 29, review #2 on Sep 30) found a tiny first-hour edge that did not persist; nothing uses other traders' data in decisions today.
+  * RECONSTRUCTION: it runs EVERY DAY; never call it a one-time study and never quote a date from memory: call discipline (part 'reconstruction') and give the evening the card was made (made_on_the_evening_of: the card made at 00:40 UTC on 12 Nov is Wednesday 11 Nov's), never its UTC 'day'. Three daily parts: (1) the nightly reconstruction card RX-CR (every evening after the daily close since 24 Oct 2026, Madhav's 'Yes to all'): what the market did, what Ananta did and did not do, every trade reviewed, typed findings (GAVE_BACK, MISS_PATTERN, BOOK_BLEED, LAYER_CONFLICT, SELECTION; since 6 Nov a wait that came true, WAIT_ARRIVED, wakes the brain and is one count on the card, 'wakes', not a finding); SAFE findings go to the repair board, DECISION findings to his queue; (2) the nightly self-rebuild (8 pm Toronto: the Explorer replayed from the raw candles must match its live log; a mismatch rings the phone); (3) other traders, daily at 04:30 Toronto since 22 Oct (com.ananta.othersdaily, pages docs/repair_shop/daily/others_*.md): their round trips by class and any DRAFT it filed. History only: the first other-traders study (65 Hyperliquid accounts collected Sep 29, review #2 on Sep 30) found a tiny first-hour edge that did not persist; nothing uses other traders' data in decisions today.
   * WHY NOT (Madhav's acceptance framework, Oct 6): for "why didn't you buy X / why did we miss that move", use missed_moves: every big move we did not catch has a miss class, and the class IS the answer: DATA (we couldn't see it: a part was down), INTENTIONAL (we saw it and a rule with supported evidence rightly said no, e.g. the market gate was shut: the rule working, not a failure), EXECUTION (a limit or an unfilled order stopped a trade we wanted), DECISION (it was noticed and the decision was not to trade), DETECTION (nothing of ours recognised a kind of move our setups should catch), KNOWLEDGE (a kind of move no setup covers). Only detection and knowledge misses count toward the repair shop. Never treat every missed move as a mistake.
   * VOCABULARY: a NO_TRADE (or "no trade", a pass) is a decision too: Jarvis's passes are scored by what the coin did over the next 1 and 5 days, and the missed-move loop labels each big move CAUGHT, SEEN or MISSED; a no-trade that would have won counts against the decision, not as a trade. Would-be trades (shadows): REJECTED_SLOT = a setup blocked only by a limit, NO_TYPE = no trade type fitted, MISSED_CHASE = a limit order that never filled, RANDOM = the random baseline; all are measured with the same exits so we can see what a limit or rule cost. An independent event = one market move (everything closing the same day, or daily entries within 3 days, counts once). The why-not ledger = the research audit's DUMP and CONTEXT rows: every idea that failed and why. Q1-Q6 = the repair shop's questions waiting for live evidence. Tiers: LIVE 10, PAPER TIER 30, RESEARCH 120.
 - OUR COIN UNIVERSE (universe lookup): Ananta knows 120 coins at three levels, always say which one a coin is at: the 10 LIVE coins (watched all day by every part of Ananta), the 30-coin PAPER TIER (the 30 most-traded coins: daily paper books for the trend portfolio T3-B and the short dip trade H07-T30, because those two ideas passed on them), and the 120-coin RESEARCH UNIVERSE (full checked history since 2017 incl. delisted coins, used by the repair shop; not watched or traded). For any coin in the 120, answer from our own data with the universe lookup (history and quality, costs, whether NDAX lists it against CAD, futures funding and open interest as context, buying pressure, the paper tier's rating and trades, and what each research review found on its tier); never send a coin we hold data on to the web. Rankings across the 30 or 120 (strongest, weakest, furthest from the high, most volatile, most traded, most crowded funding) also come from universe. A single trade's highest and lowest price while it was open is in the trade lookup.
@@ -274,7 +274,7 @@ TOOLS = [
     ("web_lookup", "OUTSIDE OUR SYSTEM: a quick web search (Google via Gemini, else Claude web search) for anything current our data does not cover: stocks and indexes, other coins' news, the economy, events (Fed, CPI), what moved the market today, and in Madhav's account everyday questions too (weather, news, sports, festivals). Returns a short sourced answer. Label it 'from the web' and never mix it into our books or setups.", _schema({"query": {"type": "string"}}, ["query"])),
     ("news_check", "Run the AI news check (the blunder guard) on one of our coins now: CLEAR / CAUTION / BLOCK with why and the headlines used. About a cent. Use when he asks to check the news on a coin.", _schema({"coin": COIN}, ["coin"])),
     ("remember", "Save something the owner asks you to remember or note down ('remember that I...', 'note that', 'keep this in mind'): it goes into his notes (found later by the knowledge lookup as 'your note') and the decision journal. Do it right away and confirm in a few words. Not for repair-shop requests (log_request) or alerts (propose_alert).", _schema({"text": {"type": "string", "description": "the note in his words, with the date context if relevant"}, "about": {"type": "string", "description": "optional: coin, trade or topic"}}, ["text"])),
-    ("propose_levels", "Prepare a stop and/or target on a position in the owner's OWN paper book (e.g. 'set a stop on my Dogecoin at 9 cents', 'move my stop up', 'remove the target'). stop/target are prices; use 0 to remove one. Creates a card he confirms with Face ID.", _schema({"coin": COIN, "stop": {"type": "number"}, "target": {"type": "number"}}, ["coin"])),
+    ("propose_levels", "Prepare a stop and/or target on a position in the manual book, the orders the owner asked for by hand (e.g. 'set a stop on my Dogecoin at 9 cents', 'move my stop up', 'remove the target'). stop/target are prices; use 0 to remove one. Creates a card he confirms with Face ID.", _schema({"coin": COIN, "stop": {"type": "number"}, "target": {"type": "number"}}, ["coin"])),
     ("propose_switch", "Prepare flipping a main switch: switch = kill_switch (on stops all new trading in the backend; off lets it trade again) or autopilot (the trend portfolio's mode: on = AUTO applies its changes itself, off = SUGGEST waits for his approval). on = true/false. Creates a card he confirms with Face ID.", _schema({"switch": {"type": "string", "enum": ["kill_switch", "autopilot"]}, "on": {"type": "boolean"}}, ["switch", "on"])),
     ("propose_portfolio_decision", "Prepare approving or rejecting the trend portfolio's suggested changes (the ones waiting in suggest mode): decision approve | reject, ids = 'all' or a list of suggestion ids from the portfolio lookup. Creates a card he confirms with Face ID.", _schema({"decision": {"type": "string", "enum": ["approve", "reject"]}, "ids": {"type": "string", "description": "'all' or comma-separated ids"}}, ["decision"])),
     ("propose_alert_off", "Prepare switching off one of the owner's active alerts: alert = its id from the alerts lookup. Creates a card he confirms.", _schema({"alert": {"type": "string"}}, ["alert"])),
@@ -1458,7 +1458,7 @@ class Lookups:
         if not b:
             from jarvis.service import officer                  # 12 Nov: 7 pm in winter, 8 pm in summer, never a fixed hour
 
-            return {"board": f"no board yet: the first scan runs after the next daily close ({officer.close_clock(self.j.now())} Toronto)"}
+            return {"board": f"no board yet: the first scan runs after the next daily close ({officer.close_clock(self.j.now(), nxt=True)} Toronto)"}
         rows = b.get("rows") or []
         if coin:
             rows = [r for r in rows if r["coin"] == coin.upper()]
@@ -2163,48 +2163,119 @@ def route(text: str) -> tuple[str, str]:
     return "gemini", "Auto: Gemini, everyday question"
 
 
-# 12 Nov 2026 (G-34; repair 5's outside check, N2 and N3). A backup answer is withheld when one of its sentences says a RECORD OF THE WORK
-# does not exist: a review, a study, a checkpoint, a finding, a registration, an experiment, an audit, a ledger, anything with a number
-# ("review 42", "study 7", "#42"), or anything "on file" or "in our records". Everyday answers about trades, positions, holdings, the dial,
-# tonight's note or tonight's night test pass: the backup is handed those in its data ("There were no trades tonight" is true, and was
-# withheld by the first word list). Curly apostrophes count as straight ones ("We haven’t run a review 42 yet" got through the first list).
-_RECORD = (r"(?:reviews?|stud(?:y|ies)|checkpoints?|findings?|records?|registrations?|experiments?|audits?|ledgers?"
-           r"|(?:review|study|test|flag|item|finding|checkpoint|experiment|rule|version|package|repair|number|no\.?)\s*#?\d+|#\d+)\b")
-_MADE = r"(?:yet\s+)?(?:run|done|made|had|started|recorded|opened|written|published|filed|conducted|held|carried\s+out)"
-_NEAR = r"\W+(?:[\w']+\W+){0,2}?"                                          # up to two words between the denial and the record
-_DENIAL_THEN_RECORD = (
-    r"(?:\b(?:we|i)(?:'ve|\s+have|\s+had)?\s+(?:not|never)\s+" + _MADE
-    + r"|\b(?:we|i)\s+(?:haven't|hadn't|didn't|did\s+not)\s+" + _MADE
-    + r"|\b(?:we|i)\s+(?:couldn't|could\s+not|can't|cannot|can\s+not)\s+(?:find|locate|see)"
-    + r"|\b(?:we|i)\s+(?:don't|do\s+not|didn't|did\s+not)\s+(?:see|have|find))" + _NEAR + _RECORD)
-_NO_RECORD = (r"\b(?:there\s+(?:is|are|was|were|'s)|(?:we|i)(?:'ve|\s+have)|shows?|showed|holds?|has|have|contains?|lists?)\s+no\s+(?:such\s+)?(?:[\w']+\s+)?"
-              + _RECORD + r"|\bno\s+such\s+" + _RECORD
-              + r"|\bno\s+records?\s+(?:of|that|for|on)\b|\b(?:not|nothing|isn't|aren't|wasn't|weren't)\s+(?:on\s+file|in\s+(?:our|the)\s+records)\b")
-_RECORD_THEN_DENIAL = (_RECORD + r"\W+(?:[\w']+\W+){0,4}?(?:(?:doesn't|does\s+not|didn't|did\s+not)\s+exist|never\s+(?:ran|happened|existed|took\s+place)"
-                       r"|(?:hasn't|has\s+not|haven't|have\s+not|wasn't|was\s+not|weren't|were\s+not)\s+(?:yet\s+)?(?:been\s+)?(?:run|done|started|written|held|published|made)"
-                       r"|(?:was|were|has|have)\s+never\s+(?:been\s+)?(?:run|done|started|written|held|published|made)"
-                       r"|(?:isn't|is\s+not|aren't|are\s+not)\s+(?:on\s+file|in\s+our\s+records))")
-DENIES_A_RECORD = re.compile(r"\b(?:" + _DENIAL_THEN_RECORD + "|" + _NO_RECORD + "|" + _RECORD_THEN_DENIAL + ")", re.I)
+# 12 Nov 2026 (G-34; repair 5's outside check, N2 and N3; its confirm check, C1 and C2). When the backup model answers in Claude's place it
+# cannot look up our records, so a sentence of its answer that says a RECORD OF THE WORK has not happened or does not exist is withheld:
+# a review, a study, research, a checkpoint, a finding, a registration, an experiment, an audit, a ledger, a backtest, anything with a
+# number ("review 42", "study 7", "#42"), anything "on file" or "in our records", and "we never tested ...". It is a word list, tested on
+# the outside checks' own sentences, not a proof. Everyday answers about trades, positions, holdings, the dial, tonight's note or night test
+# pass (the backup is handed those in its data), and so does a "not yet" that says when ("held until 15 Dec", "after tonight's close", "on
+# 14 Dec"), unless it denies a numbered record outright or speaks for us ("we haven't run review 42 yet", the 11 Nov answer). Curly
+# apostrophes count as straight ones.
+_NUMREC = r"(?:review|study|test|flag|item|finding|checkpoint|experiment|rule|version|package|repair|number|no\.?)\s*#?\d+"
+_WORDREC = (r"(?:reviews?|stud(?:y|ies)|research|checkpoints?|findings?|records?|registrations?|experiments?|audits?|ledgers?|backtests?)"
+            r"(?!\s*#?\d)")
+_REC = r"(?:" + _NUMREC + "|" + _WORDREC + r"|#\d+)\b(?!'s)"            # "review 42's results" names a record that is there
+_VERB = (r"(?:run|ran|do|did|done|make|made|have|had|start(?:ed)?|record(?:ed)?|open(?:ed)?|write|wrote|written|publish(?:ed)?|filed?|"
+         r"conduct(?:ed)?|hold|held|carr(?:y|ied)\s+out|test(?:ed)?|tr(?:y|ied)|see|saw|seen|get|got|gotten|find|found|stud(?:y|ied)|"
+         r"research(?:ed)?|review(?:ed)?|backtest(?:ed)?|look(?:ed)?\s+(?:at|into)|measured?|keep|kept|log(?:ged)?|created?|build|built|"
+         r"perform(?:ed)?)")
+_NEG = (r"(?:haven't|hasn't|hadn't|didn't|don't|doesn't|did\s+not|do\s+not|does\s+not|have\s+not|has\s+not|had\s+not|never|not\s+yet|"
+        r"cannot|can't|couldn't|could\s+not|wasn't|was\s+not|weren't|were\s+not|isn't|is\s+not|aren't|are\s+not|won't|will\s+not)")
+_ADV = r"(?:\s+(?:yet|ever|been|actually|really|even|still|properly|any))*"
+
+
+def _gap(n: int) -> str:
+    """Up to n words between, never across a word of time ("any trades since review 41" names a time, not the record denied)."""
+    return r"(?:\W+(?!(?:since|after|before|until|till|during|from)\b)[\w'-]+){0,%d}?\W+" % n
+
+
+_DENIALS = [re.compile(p, re.I) for p in (
+    r"\b" + _NEG + _ADV + r"\s+" + _VERB + r"\b" + _gap(3) + _REC,                                   # we never ran review 42
+    _REC + _gap(4) + r"(?:" + _NEG + _ADV + r"\s+" + _VERB + r"\b|(?:doesn't|does\s+not|didn't|did\s+not)\s+exist|never\s+(?:existed|"
+    r"happened|took\s+place)|(?:isn't|is\s+not|aren't|are\s+not|wasn't|was\s+not)\s+(?:on\s+file|in\s+(?:our|the)\s+records))",
+    r"\b(?:there\s+(?:is|are|was|were|'s|has\s+been|have\s+been|had\s+been)\s+no|no\s+such|(?:we|i)(?:'ve|\s+have|\s+had)?\s+no)\s+"
+    r"(?:(?!(?:in|of|for|from|on|about|at|to|with|by)\b)[\w'-]+\s+)?" + _REC,                         # there has been no review 42
+    r"\bno\s+(?:such\s+)?(?:[\w'-]+\s+){0,2}?" + _REC + r"\s+(?:exists?|existed|has\s+(?:ever\s+)?been|had\s+been|was\s+ever|"
+    r"were\s+ever|is\s+on\s+file)",                                                                      # no review 42 exists
+    r"\b(?:our|the)\s+(?:records?|ledgers?|files?|database|list|logs?|history)\s+(?:shows?|showed|holds?|has|have|contains?|lists?)\s+no\b",
+    r"\bno\s+records?\s+(?:of|that|for|on)\b|\b(?:not|nothing|isn't|aren't|wasn't|weren't)\s+(?:on\s+file|in\s+(?:our|the)\s+records)\b",
+    r"\b(?:not\s+aware\s+of|unaware\s+of|never\s+heard\s+of|(?:don't|do\s+not)\s+know\s+(?:of|about)|no\s+(?:knowledge|sign|trace)\s+of)"
+    + _gap(3) + _REC,
+    r"\b(?:we|i|ananta)(?:'ve|\s+have|\s+has|\s+had)?\s+(?:never|not\s+yet|haven't|hasn't|didn't|did\s+not|have\s+not|has\s+not)"
+    r"(?:\s+(?:yet|ever|actually|really))*\s+(?:tested|studied|researched|reviewed|backtested|measured|test|study|research|review|"
+    r"backtest|measure)\b",                                                                              # we never tested buying after drops
+)]
+_EXISTENCE = re.compile(r"\b(?:doesn't|does\s+not|didn't|did\s+not)\s+exist|\bnever\s+(?:existed|happened|took\s+place)|\bno\s+such\b|"
+                        r"\bnot\s+aware\b|\bunaware\b|\bnever\s+heard\b|\bin\s+(?:our|the)\s+records\b|\bon\s+file\b|\bno\s+records?\s+of\b|"
+                        r"\b(?:couldn't|could\s+not|can't|cannot|unable\s+to)\s+(?:find|locate|see)\b|\b(?:don't|do\s+not)\s+(?:see|have|know)\b",
+                        re.I)
+_FIRST_PERSON = re.compile(r"\b(?:we|i|ananta)\b(?:'ve|\s+have|\s+has|\s+had)?\s+(?:never|not|haven't|hasn't|hadn't|didn't|did\s+not|"
+                           r"don't|do\s+not)\b", re.I)
+_WHEN = re.compile(r"\b(?:held|frozen|kept|locked)\s+(?:until|till|to)\b|\b(?:until|till)\s+\d{1,2}\s+[a-z]{3}|\bafter\s+(?:the|tonight's|"
+                   r"today's)\s+(?:daily\s+)?close\b|\btonight'?s?\b|\btomorrow\b|\blater\s+today\b|\bnext\s+(?:week|month|close|session)\b|"
+                   r"\b(?:comes|is\s+due|runs|starts|ends|opens|will\s+(?:run|come|be\s+\w+))\s+(?:at|on|after|in|by)\b|\bno\s+early\s+looks?\b",
+                   re.I)
+_DATE = re.compile(r"\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b", re.I)
+_MON3 = "jan feb mar apr may jun jul aug sep oct nov dec".split()
 _APOSTROPHES = str.maketrans({"’": "'", "‘": "'", "ʼ": "'", "´": "'", "`": "'"})
+DENIES_A_RECORD = _DENIALS[0]                                           # kept for older callers; denies_a_record is the guard
+
+
+def _future_date(s: str, today) -> bool:
+    import datetime as _dt
+
+    for d, m in _DATE.findall(s):
+        try:
+            x = _dt.date(today.year, _MON3.index(m.lower()[:3]) + 1, int(d))
+        except ValueError:
+            continue
+        if x < today - _dt.timedelta(days=180):
+            x = x.replace(year=today.year + 1)
+        if x > today:
+            return True
+    return False
+
+
+def _said_when(text: str, m, today) -> bool:
+    """The match is a "not yet" that says when (in its own sentence or the next), and denies no record's existence nor speaks for us."""
+    said = m.group(0)
+    if _EXISTENCE.search(said) or _FIRST_PERSON.search(text[max(0, m.start() - 16):m.end()]):    # "We haven't run ..." starts before it
+        return False
+    if re.search(_NUMREC, said, re.I) and re.match(r"(?:there|no)\b", said, re.I):
+        return False                                                    # "there is no review 42", "no review 42 has been run"
+    ends = [x.end() for x in re.finditer(r"[.!?;:](?=\s|$)", text)]
+    a = max([e for e in ends if e <= m.start()], default=0)
+    after = [e for e in ends if e >= m.end()]
+    b = after[1] if len(after) > 1 else len(text)
+    ctx = text[a:b]
+    return bool(_WHEN.search(ctx) or _future_date(ctx, today))
+
+
+def denies_a_record(text: str, today=None) -> bool:
+    """True when the text says a record of the work has not happened or does not exist (see _DENIALS above), and does not say when."""
+    import datetime as _dt
+    from zoneinfo import ZoneInfo
+
+    today = today or _dt.datetime.now(ZoneInfo("America/Toronto")).date()
+    s = " ".join(str(text or "").translate(_APOSTROPHES).split())
+    return any(not _said_when(s, m, today) for p in _DENIALS for m in p.finditer(s))
+
+
 BACKUP_CANNOT_DENY = ("I can't check that properly right now: the main model wasn't available, and the backup model can't vouch for what "
                       "our records hold or don't hold. Ask me again in a minute and I'll look it up.")
 BACKUP_CANNOT_DENY_BUDGET = ("I can't check that properly right now: today's Claude budget is used up until midnight Toronto time, and the "
                              "backup model can't vouch for what our records hold or don't hold. Ask me again after midnight, or raise the "
                              "budget under More › Voice and model and ask again.")
+BACKUP_CANNOT_DENY_GUEST = ("I can't check that properly right now: today's questions for visitors are used up until midnight Toronto time, "
+                            "and the backup model can't vouch for what the records hold or don't hold. Ask me again after midnight.")
 
 
-def denies_a_record(text: str) -> bool:
-    """True when a sentence of the text says a record of the work does not exist (see _RECORD above)."""
-    s = str(text or "").translate(_APOSTROPHES)
-    return any(DENIES_A_RECORD.search(x) for x in re.split(r"(?<=[.!?;])\s+|\n+", s) if x.strip())
-
-
-def backup_cannot_deny(reply: dict, planned: str, used: str, note: str = "") -> bool:
+def backup_cannot_deny(reply: dict, planned: str, used: str, note: str = "", guest: bool = False) -> bool:
     """12 Nov 2026 (the keen outside audit, G-34): two crypto answers on 11 Nov came from the free backup model after Claude could not
     answer; one said "we haven't run a review 42 yet" five minutes after another answer described review 42. A backup answer may still
     say what it found, but it may not deny that a record exists: that answer is withheld (kept in the reply as backup_withheld) and the
-    owner is asked to ask again, at a time that is true (after midnight when the budget is what stood in the way). Returns True when it
-    withheld one."""
+    owner is asked to ask again, at a time that is true (after midnight when the budget is what stood in the way; a visitor cannot raise
+    a budget, so is not told to). Returns True when it withheld one."""
     try:
         fell_back = MODELS[planned]["provider"] == "claude" and MODELS[used]["provider"] != "claude"
     except KeyError:
@@ -2212,7 +2283,8 @@ def backup_cannot_deny(reply: dict, planned: str, used: str, note: str = "") -> 
     if not fell_back or reply.get("kind") != "answer" or not denies_a_record(reply.get("answer") or ""):
         return False
     reply["backup_withheld"] = reply.get("answer")
-    reply["answer"] = BACKUP_CANNOT_DENY_BUDGET if "budget" in str(note or "").lower() else BACKUP_CANNOT_DENY
+    budget = "budget" in str(note or "").lower()
+    reply["answer"] = (BACKUP_CANNOT_DENY_GUEST if budget and guest else BACKUP_CANNOT_DENY_BUDGET if budget else BACKUP_CANNOT_DENY)
     reply["breakdown"], reply["evidence"] = [], []
     return True
 
@@ -3095,7 +3167,7 @@ class Ask:
         if reply["kind"] in ("clarify", "not_understood") and source != "eval":     # 12 Nov (G-55): a test question is not his
             self.j.db.execute("INSERT INTO ask_misunderstood VALUES (?,?,?,?,?)", (now, thread, text, reply["kind"], used))
         ms = int(1000 * (time.time() - t0))
-        if backup_cannot_deny(reply, planned, used, note or ""):
+        if backup_cannot_deny(reply, planned, used, note or "", guest=str(who).startswith("guest:")):
             note = (note + "; " if note else "") + "the backup model's answer denied a record, so it was withheld"
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created

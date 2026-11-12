@@ -26,7 +26,8 @@ SCREENS = {
     "portfolio:explorer": {"name": "Explorer trades", "where": "Markets tab, second page 'Ananta market', Explorer sub-tab",
                            "shows": "the Explorer's paper book: open trades with P&L, orders waiting to fill, closed trades"},
     "portfolio:mine": {"name": "My trades", "where": "Markets tab, second page 'Ananta market', Mine sub-tab",
-                       "shows": "the owner's own paper book: positions, orders with reasons, research jobs"},
+                       "shows": "the manual book (orders the owner asked for by hand, kept apart from his $500 account): positions, orders "
+                                "with reasons, research jobs"},                     # 12 Nov (repair 5's confirm check, C5)
     "ananta": {"name": "Ask Ananta", "where": "Ask Ananta tab (the yellow voice wave, second tab)",
                "shows": "this conversation: type, dictate with the mic, or talk hands-free with the wave button; Sessions holds past conversations"},
     "evidence": {"name": "Evidence: inside the logic repair", "where": "the Evidence page (Home's Lab switch, then the Evidence row)",

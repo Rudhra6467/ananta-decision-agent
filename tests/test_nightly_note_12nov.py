@@ -612,3 +612,28 @@ def test_the_ask_and_the_note_give_a_closed_trades_toronto_days():
     acct = officer.facts(j)["account"]
     assert (acct["closed_recent"][-1]["bought"], acct["closed_recent"][-1]["sold"]) == ("Mon 26 Oct", "Thu 5 Nov")
     assert "Toronto" in acct["closed_days_note"]
+
+
+# ---- the third confirm check of 12 Nov (recheck/pkg3_confirm3.md) ----
+
+def test_a_stop_just_after_the_note_still_starts_the_night_test(monkeypatch):
+    """S4: the service stopping after the note was saved and before the night test started (the phone note being sent, say) left the
+    night with a note and no night test; every later loop saw the note and returned."""
+    j = _j(NOV(12, 0, 40))
+    _ready(j, NOV(12, 0, 5))
+    j.db.execute("INSERT INTO officer_notes VALUES ('2026-11-12', ?, 'The book stayed in cash.', '{}', 0)", (NOV(12, 0, 30),))
+    j.db.commit()
+    calls = []
+    monkeypatch.setattr("jarvis.service.universe_watch.start_night_test", lambda j: calls.append(1) or True)
+    assert officer.write_when_due(j)["night_test_started"] is True and calls == [1]
+    assert officer.write_when_due(j) is None and calls == [1]                            # once a night
+
+
+def test_facts_cut_inside_the_moment_never_start_the_night_at_midnight():
+    """S5: a cut falling inside the counted_to number read a small number and started the night at midnight UTC."""
+    j = _j(NOV(13, 0, 20))
+    _state(j, last_bar=NOV(12))
+    cut = '{"background": {"counted_to": ' + str(NOV(12, 0, 6))[:5]                       # cut inside the number
+    j.db.execute("INSERT INTO officer_notes VALUES ('2026-11-12', ?, 'x', ?, 0)", (NOV(12, 0, 7), cut))
+    j.db.commit()
+    assert officer.night_window(j)[2] == NOV(12, 0, 7)                                   # the note's save time

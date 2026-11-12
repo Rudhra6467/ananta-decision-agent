@@ -110,7 +110,7 @@ def night_window(j) -> tuple[int, int, int, int]:
             except ValueError:
                 # the second confirm check (S5): facts saved cut at 20,000 characters do not parse, and the night then started at midnight
                 # UTC; the moment is read from the text, else the note's save time
-                m = re.search(r'"counted_to":\s*(\d+)', r[1] or "")
+                m = re.search(r'"counted_to":\s*(\d+)\s*[,}]', r[1] or "")      # a whole number (the third confirm check): never one cut short
                 upto = int(m.group(1)) if m else None
             last = int(upto) if isinstance(upto, (int, float)) else int(r[0] or 0)
             since = max(since, last)
@@ -514,6 +514,25 @@ def waiting_for(j, day: str, since: int) -> list[str]:
     return out
 
 
+def _night_test_once(j, day: str) -> dict:
+    """The night test, started by this loop once a night whatever happened to the note. The second and third confirm checks of 12 Nov: a
+    try cut short (the service stopping mid-try), or a stop just after the note was saved, left the night with no night test, and every
+    later loop returned early. start_night_test keeps its own once-a-UTC-day stamp as well."""
+    key = "officer_night_test:" + day
+    if j.db.execute("SELECT 1 FROM engine_state WHERE k=?", (key,)).fetchone():
+        return {}
+    out: dict = {}
+    try:
+        from jarvis.service import universe_watch
+
+        out["night_test_started"] = universe_watch.start_night_test(j)
+    except Exception as exc:  # noqa: BLE001
+        out["night_test_error"] = str(exc)[:120]
+    j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (key, str(int(j.now()))))
+    j.db.commit()
+    return out
+
+
 def write_when_due(j, push: Callable | None = None, call: Callable | None = None) -> dict | None:
     """From the 15-minute loop, after the bold book's own step: the night's note once the nightly step has run and nothing of the night is
     still to be decided (or NOTE_WAITS_S after the step, whatever is still waiting, which the note then names). Then the night test."""
@@ -521,7 +540,7 @@ def write_when_due(j, push: Callable | None = None, call: Callable | None = None
     _state_table(j)
     day = time.strftime("%Y-%m-%d", time.gmtime(j.now()))
     if j.db.execute("SELECT 1 FROM officer_notes WHERE day=?", (day,)).fetchone():
-        return None
+        return _night_test_once(j, day) or None          # the note is there: the night test too (a stop just after the note left none)
     row = j.db.execute("SELECT v FROM engine_state WHERE k=?", ("officer_daily:" + day,)).fetchone()
     if not row:
         return None                                       # tonight's step has not run yet
@@ -536,20 +555,9 @@ def write_when_due(j, push: Callable | None = None, call: Callable | None = None
     if int(tries.get("n") or 0) >= NOTE_TRIES:          # 12 Nov check: a failing note was tried every 15 minutes all day, the night test waiting
         # the second confirm check (S4): a try cut short (a restart, the Mac asleep or off) never reached the step below that starts the
         # night test, and every later loop returned here, so the night had no note and no night test. With the tries used up and no note,
-        # the night test starts here, once (the tries' record keeps that it started).
-        if tries.get("night_test"):
-            return None
-        out = {"ok": False, "error": "the note's tries were used up and no note was saved"}
-        try:
-            from jarvis.service import universe_watch
-
-            out["night_test_started"] = universe_watch.start_night_test(j)
-        except Exception as exc:  # noqa: BLE001
-            out["night_test_error"] = str(exc)[:120]
-        tries["night_test"] = True
-        j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:" + day, json.dumps(tries)))
-        j.db.commit()
-        return out
+        # the night test starts here, once.
+        started = _night_test_once(j, day)
+        return {"ok": False, "error": "the note's tries were used up and no note was saved", **started} if started else None
     # the try is counted before the paid call, so a failure raised anywhere after it (saving the note, say) counts too (the confirm check)
     tries = {"n": int(tries.get("n") or 0) + 1, "t": int(j.now())}
     j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:" + day, json.dumps(tries)))
@@ -560,23 +568,12 @@ def write_when_due(j, push: Callable | None = None, call: Callable | None = None
         out = {"ok": False, "error": f"{type(exc).__name__}: {str(exc)[:100]}"}
     if not out.get("ok"):
         tries["error"] = str(out.get("error") or "")[:120]
-        if tries["n"] >= NOTE_TRIES:                    # the last try: the night test runs without the note; the run check shows it missing
-            try:
-                from jarvis.service import universe_watch
-
-                out["night_test_started"] = universe_watch.start_night_test(j)
-            except Exception as exc:  # noqa: BLE001
-                out["night_test_error"] = str(exc)[:120]
-            tries["night_test"] = True
         j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("officer_tries:" + day, json.dumps(tries)))
         j.db.commit()
+        if tries["n"] >= NOTE_TRIES:                    # the last try: the night test runs without the note; the run check shows it missing
+            out.update(_night_test_once(j, day))
     if out.get("ok") and not out.get("already"):
-        try:
-            from jarvis.service import universe_watch
-
-            out["night_test_started"] = universe_watch.start_night_test(j)
-        except Exception as exc:  # noqa: BLE001
-            out["night_test_error"] = str(exc)[:120]
+        out.update(_night_test_once(j, day))
     return {k: v for k, v in out.items() if k != "facts"}
 
 

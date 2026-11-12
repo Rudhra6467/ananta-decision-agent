@@ -107,3 +107,45 @@ def test_the_read_model_names_a_trade_left_out_until_it_is_scored(tmp_path, monk
     sp1paper.score(day=dt.date(2026, 11, 16), log=lambda s: None)
     s = readmodel.sp1("2026-11-06")
     assert "Not in these figures" not in s["words"] and s["left_out"] == [] and "1 scored trade(s) (1 scored late)" in s["words"]
+
+
+# ---- 12 Nov 2026, the outside check of repair 4 (N6): a weekday special session is no regular session either ----
+W2, W3, W4, W5 = (dt.date(2026, 11, d) for d in (2, 3, 4, 5))       # Tue 3 Nov decided; Wed 4 Nov made a short weekday session here
+
+
+def _bars_w(day: dt.date, start: float, step: float, gap: float = 0.0) -> list[dict]:
+    mins = range(270, 330) if day == W4 else range(ocstudy.NMIN)
+    return [{"date": day, "m": m, "open": start + gap + step * m, "high": start + gap + step * m + 1.0, "low": start + gap + step * m - 1.0,
+             "close": start + gap + step * m + 0.5, "volume": 1} for m in mins]
+
+
+def _fake_candles_w(k, token, interval, a, b):
+    rows = []
+    for day in (W2, W3, W4, W5):
+        if a <= day <= b:
+            if token == TOK["NIFTY 50"]:
+                rows += _bars_w(day, 25500.0, 0.05, gap=10.0 * (day - W2).days)
+            elif token == TOK["NIFTY BANK"]:
+                rows += _bars_w(day, 57000.0, 0.2, gap=60.0 * (day - W2).days)
+            elif token == OPT["token"] and day != W2:
+                rows += _bars_w(day, 300.0, 0.1, gap=0.0 if day == W3 else 500.0)
+    return pd.DataFrame(rows, columns=["date", "m", "open", "high", "low", "close", "volume"])
+
+
+def test_a_next_open_on_a_weekday_special_session_is_scored_at_the_next_whole_session(tmp_path, monkeypatch):
+    root, _ = _world(tmp_path, monkeypatch, noted=False)
+    (root / "decisions.jsonl").unlink()
+    plan = tmp_path / "plan_2026-11-03.json"
+    plan.write_text(json.dumps({"prev_date": "2026-11-02", "index_tokens": TOK, "overnight": {"BANKNIFTY": {"atr14_prev": 600.0}},
+                                "contracts": {"NIFTY": {"lot": 75}, "BANKNIFTY": {"lot": 35}}}))
+    monkeypatch.setattr(sp1paper, "_plan_path", lambda d: plan)
+    monkeypatch.setattr(sp1paper, "_candles", lambda *a: _fake_candles_w(*a))
+    sp1paper._append(root / "decisions.jsonl", {
+        "kind": "decision", "date": "2026-11-03", "index": "BANKNIFTY", "point": "D0", "tradable": True, "entry_bar": 1, "fill_next_bar": 2,
+        "decided_at": "2026-11-03T09:15:09+05:30", "choice": {"action": 10, "exit": "NEXTOPEN", "dir": 1, "pred_net": 5.0},
+        "contracts": {"option": dict(OPT)}})
+    sp1paper.score(day=W5, log=lambda s: None)
+    rows = sp1paper._rows(root / "outcomes.jsonl")
+    assert len(rows) == 1 and "index_proxy" in rows[0] and not rows[0].get("note")       # it was noted 'not defined', for ever, before
+    assert rows[0]["skipped_days"] == ["2026-11-04"] and rows[0]["exit_day"] == "2026-11-05"
+    assert "Thu 5 Nov" in rows[0]["legs"]["option"]["exit_rule"] and "Wed 4 Nov is no regular session" in rows[0]["legs"]["option"]["exit_rule"]

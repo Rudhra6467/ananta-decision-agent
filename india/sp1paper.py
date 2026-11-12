@@ -830,8 +830,12 @@ def score(day: dt.date | None = None, log=print) -> dict:
         if d not in have or not index[name]["ok"][have.index(d)]:
             log(f"{r['date']} {sym}: the day's bars are not complete yet")
             continue
-        nxt = [x for x in have if x > d and x.weekday() < 5 and x not in specials]          # G-01: the next REGULAR session
-        skipped = [x for x in have if x > d and (x.weekday() >= 5 or x in specials) and (not nxt or x < nxt[0])]
+        # G-01: the next REGULAR session. 12 Nov (the outside check of repair 4, N6): the special-session list holds weekend days only, so
+        # a weekday special session (a weekday Muhurat hour) passed as regular, its outcome stayed 'not defined' and every retry picked it
+        # again: a regular session is also one whose bars are complete (the study's own test, ocstudy.index_arrays 'ok')
+        whole = lambda x: bool(index[name]["ok"][have.index(x)])   # noqa: E731
+        nxt = [x for x in have if x > d and x.weekday() < 5 and x not in specials and whole(x)]
+        skipped = [x for x in have if x > d and (x.weekday() >= 5 or x in specials or not whole(x)) and (not nxt or x < nxt[0])]
         days_all = [prev, d] + nxt[:1]
         st_rows = pd.DataFrame([{"date": prev, "index": sym, "atr14_prev": np.nan},
                                 {"date": d, "index": sym, "atr14_prev": plan["overnight"][sym]["atr14_prev"]}])
@@ -892,6 +896,7 @@ def score(day: dt.date | None = None, log=print) -> dict:
                     out_leg[f"ret_{tag}"] = out_leg[f"net_rs_{tag}"] / (pi * lot) if pi > 0 else None
             legs[leg] = out_leg
         row = {"kind": "outcome", "date": r["date"], "index": sym, "point": r["point"], "action": int(r["choice"]["action"]), "exit": r["choice"]["exit"],
+               "exit_day": day_out.isoformat(),          # 12 Nov (N5, N7): the day it closed, so the account counts it from its own day
                "dir": int(r["choice"]["dir"]), "decision_hash": r["hash"], "scored_at": _ist_now().isoformat(timespec="seconds"),
                "index_proxy": {"entry": float(h["entry"]), "exit_px": float(h["exit_px"]), "exit_min": tx, "stopped": stopped, "next_day": next_day,
                                "gross_bps": float(h["gross_bps"]), "cost_bps": float(h["cost_bps"]), "net_bps": float(h["net_bps"]),

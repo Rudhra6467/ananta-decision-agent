@@ -174,32 +174,86 @@ def value_of(book: dict) -> float:
     return sum(v["qty"] * v["last"] for v in book["positions"].values()) + book["cash_inr"] + book["options_inr"]
 
 
+def _known_day(r: dict) -> str:
+    """The Indian day a scored trade's result became known: the day its row was scored (the scorer runs after each close, so for a trade
+    scored on time it is its exit day; a late row is known the day it is scored)."""
+    return str(r.get("scored_at") or "")[:10] or str(r.get("exit_day") or "")[:10] or str(r.get("date") or "")
+
+
+def _exit_day(r: dict) -> str:
+    """The day a scored trade closed: its own field (written from 12 Nov), else, for an older row scored on time, the day it was scored."""
+    return str(r.get("exit_day") or "")[:10] or ("" if r.get("scored_late") else str(r.get("scored_at") or "")[:10]) or str(r.get("date") or "")
+
+
 def options_line(start_day: str, upto_day: str | None = None) -> dict:
     """The options line's paper result as the account counts it. 12 Nov 2026 (the keen outside audit, G-11; Madhav's yes of 12 Nov 01:52):
     the account counted the options money at the flat amount set aside, so the line's result was in no account figure; it now counts the
     line at its own value, with a sentence. One row per trade (a late score follows its note in the append-only ledger, G-01), realistic
-    fills, and only the trades the line decided after the book's start day (4 of its first 15 came before the book existed) and, when
-    given, up to `upto_day`. An open lot counts at its cost (inside the money set aside) until it is scored."""
+    fills. A trade counts when it closed after the book's start day: an open lot counts at its cost (inside the money set aside) until it is
+    scored, so the lot open at the book's first close (30 Oct, sold at the 2 Nov open) counts whole, and the 4 trades closed before the book
+    existed do not. Up to `upto_day`, a trade counts from the day its result was known, as a row written that day counts it (the outside
+    check of 12 Nov, N5 and N7: a trade counted on its decision day put the next session's open into a row written before it). A trade
+    noted with no result is named in left_out (G-01: every total says it leaves it out)."""
     rows: dict = {}
+    noted: dict = {}
     for r in _jsonl(paths.data_dir() / "paper" / "sp1" / "outcomes.jsonl"):
-        if r.get("kind") == "outcome" and "index_proxy" in r:
-            rows[(str(r.get("date")), str(r.get("index")))] = r
-    nets = [((r.get("legs") or {}).get("option") or {}).get("net_rs_realistic") for (d, _i), r in rows.items()
-            if d > start_day and (upto_day is None or d <= upto_day)]
+        if r.get("kind") == "outcome":
+            k = (str(r.get("date")), str(r.get("index")))
+            if "index_proxy" in r:
+                rows[k] = r
+            else:
+                noted[k] = r
+    nets = [((r.get("legs") or {}).get("option") or {}).get("net_rs_realistic") for r in rows.values()
+            if _exit_day(r) > start_day and (upto_day is None or _known_day(r) <= upto_day)]
     nets = [x for x in nets if isinstance(x, (int, float))]
-    return {"result_inr": round(sum(nets), 2), "trades": len(nets)}
+    left = [{"date": d, "index": i} for (d, i) in sorted(noted) if (d, i) not in rows and d >= start_day and (upto_day is None or d <= upto_day)]
+    return {"result_inr": round(sum(nets), 2), "trades": len(nets), "left_out": left}
 
 
 def options_words(set_aside: float, ol: dict, start_day: str) -> str:
-    """The sentence every account total carries (G-11), short enough for a screen's line (22 words at most); the book's start day is on
-    the same screen. An open lot counts at its cost until it is scored (OPEN_LOT, for the voice)."""
+    """The sentence every account total carries (G-11), short enough for a screen's line (22 words at most). 12 Nov (the outside check
+    of repair 4, N4 and N5): it names its own window (the book's start), since the Options page's own figure counts from the line's start,
+    and it says a trade it leaves out. An open lot counts at its cost until it is scored (OPEN_LOT, for the voice)."""
     res = float(ol.get("result_inr") or 0)
     n = int(ol.get("trades") or 0)
-    return (f"Options are counted at the options line's own value: ₹{set_aside:,.0f} set aside, "
-            f"{'+' if res >= 0 else '−'}₹{abs(res):,.0f} from its {n} trade{'s' if n != 1 else ''} since the book started.")
+    lo = len(ol.get("left_out") or [])
+    try:
+        d = dt.date.fromisoformat(str(start_day)[:10])
+        began = f" ({d.day} {d:%b})"
+    except ValueError:
+        began = ""
+    return (f"Options count at ₹{set_aside:,.0f} set aside and {'+' if res >= 0 else '−'}₹{abs(res):,.0f} from {n} trade{'s' if n != 1 else ''} "
+            f"since the book began{began}" + (f"; {lo} trade{'s' if lo != 1 else ''} left out." if lo else "."))
 
 
 OPEN_LOT = "An open options lot counts at its cost until it is scored at its exit."
+
+# 12 Nov 2026 (audit repair 4; the outside check of 12 Nov, N9): the two cuts the old rules made on 2 Nov stay in the ledger as they
+# happened (it is never rewritten); their marks are written beside it, once, by the code that writes the view, not by a hand step.
+OLD_RULE_MARKS = (
+    {"plan": "mp-2026-11-02", "for_session": "2026-11-02", "symbol": "JIOFIN", "side": "SELL", "qty": 59, "by": "G-07",
+     "mark": "This sale was sized from your real account's 119 shares, not the book's 73: it sold 59 (81%) under halving it. "
+             "Cuts are now sized from the book's own shares."},
+    {"plan": "mp-2026-11-02", "for_session": "2026-11-02", "symbol": "KARURVYSYA", "side": "SELL", "qty": 6, "by": "G-17",
+     "mark": "This sale halved a holding Ananta has no price study on, 'to limit the damage if the slide continues', with no slide "
+             "measured. Such a holding is now not graded and never cut."},
+)
+
+
+def ensure_marks() -> int:
+    """Writes each of OLD_RULE_MARKS once to paper/managed/marks.jsonl (append-only), when its ledger row is there; returns how many it
+    wrote. Run before every view is written, so the view carries them from its first run after go-live."""
+    p = _dir() / "marks.jsonl"
+    have = {(m.get("plan"), m.get("symbol"), m.get("side")) for m in _jsonl(p)}
+    led = {(r.get("plan"), r.get("symbol"), r.get("side"), int(r.get("qty") or 0)) for r in _jsonl(_dir() / "ledger.jsonl") if r.get("filled")}
+    n = 0
+    for m in OLD_RULE_MARKS:
+        if (m["plan"], m["symbol"], m["side"]) in have or (m["plan"], m["symbol"], m["side"], m["qty"]) not in led:
+            continue
+        with p.open("a") as f:
+            f.write(json.dumps({**m, "at": _now()}) + "\n")
+        n += 1
+    return n
 
 
 def _plans() -> list[dict]:
@@ -546,6 +600,7 @@ def run(day: str | None = None, replan: bool = False) -> dict:
     except Exception as e:  # noqa: BLE001
         plan = {"error": f"{type(e).__name__}: {str(e)[:160]}", "for_session": next_session(dt.date.fromisoformat(day)).isoformat()}
     st.write_text(json.dumps(book, indent=1))
+    ensure_marks()                                     # 12 Nov (N9): the two old cuts' marks, once, before the view that shows them
     v = view(book, day, plan, filled, c, opened)
     (_dir() / "view.json").write_text(json.dumps(v, indent=1))
     return v
@@ -572,6 +627,7 @@ def mark_after_close(day: str | None = None) -> dict:
     mark(book, day, df)
     _options_one_amount(book, day)
     st.write_text(json.dumps(book, indent=1))
+    ensure_marks()                                     # 12 Nov (N9)
     v = view(book, day, old.get("plan"), filled, c)
     v["marked_by"] = "the nightly job, at the close (the next plan comes with the evening run)"
     (_dir() / "view.json").write_text(json.dumps(v, indent=1))
@@ -633,7 +689,7 @@ def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, o
     return {"built_at": _now(), "paper": True, "day": day, "opened_today": opened, "kept_old_price": kept, "start_day": book["start_day"], "start_inr": round(start), "value_inr": round(value),
             "return_pct": round(100 * (value / start - 1), 2), "stocks_inr": round(sum(v["qty"] * v["last"] for v in book["positions"].values())), "cash_inr": round(book["cash_inr"]),
             "options_inr": round(book["options_inr"]), "options_result_inr": round(ol["result_inr"]), "options_trades": ol["trades"],
-            "options_value_inr": round(book["options_inr"] + ol["result_inr"]), "options_counted": counted,
+            "options_value_inr": round(book["options_inr"] + ol["result_inr"]), "options_counted": counted, "options_left_out": ol["left_out"],
             "positions": len(book["positions"]), "holdings": own, "marks": _jsonl(_dir() / "marks.jsonl"),
             "replacements": sorted(reps, key=lambda r: -r["value_inr"]), "filled_today": filled,
             "plan": plan, "trades_count": len(book["trades"]), "costs_inr": round(book["costs_inr"], 2), "clock": clock, "chain": chain, "chain_ok": ok, "rules": c["version"], "words": words}

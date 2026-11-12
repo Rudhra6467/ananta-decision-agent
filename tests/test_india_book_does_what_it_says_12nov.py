@@ -76,3 +76,24 @@ def test_the_options_words_take_the_lines_own_count_and_claim_no_cash_they_canno
     assert "most of this money waits as cash" not in o["words"] and "premium" in o["words"]
     rec = next(w for w in allocator.watch(rm, [], {}, "mixed") if w["what"] == "The options line's record")
     assert rec["now"] == "12 sessions"
+
+
+def test_the_two_old_cuts_are_marked_once_by_the_code_beside_the_ledger(tmp_path, monkeypatch):
+    """12 Nov 2026 (the outside check of repair 4, N9): the marks depended on a hand step at go-live; the code that writes the view now
+    writes them, once, append-only, and only beside a ledger row that is there."""
+    monkeypatch.setenv("INDIA_DATA_DIR", str(tmp_path))
+    d = tmp_path / "paper" / "managed"
+    d.mkdir(parents=True)
+    led = [{"plan": "mp-2026-11-02", "for_session": "2026-11-02", "symbol": "JIOFIN", "side": "SELL", "qty": 59, "filled": True},
+           {"plan": "mp-2026-11-02", "for_session": "2026-11-02", "symbol": "TATAPOWER", "side": "SELL", "qty": 30, "filled": True},
+           {"plan": "mp-2026-11-02", "for_session": "2026-11-02", "symbol": "KARURVYSYA", "side": "SELL", "qty": 6, "filled": True}]
+    (d / "ledger.jsonl").write_text("".join(json.dumps(r) + "\n" for r in led))
+    before = (d / "ledger.jsonl").read_text()
+    assert managed.ensure_marks() == 2 and managed.ensure_marks() == 0               # once
+    marks = [json.loads(x) for x in (d / "marks.jsonl").read_text().splitlines()]
+    assert [(x["symbol"], x["by"]) for x in marks] == [("JIOFIN", "G-07"), ("KARURVYSYA", "G-17")]
+    assert "119 shares, not the book's 73" in marks[0]["mark"] and "not graded and never cut" in marks[1]["mark"]
+    assert (d / "ledger.jsonl").read_text() == before                                  # the ledger is never rewritten
+    (d / "marks.jsonl").unlink()
+    (d / "ledger.jsonl").write_text(json.dumps(led[1]) + "\n")
+    assert managed.ensure_marks() == 0 and not (d / "marks.jsonl").exists()             # no row, no mark

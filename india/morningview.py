@@ -189,6 +189,17 @@ def setup(session: str, plan: dict, rm: dict) -> dict:
             "limits": plan.get("limits") or [], "expiry": exp, "events": events, "market_words": m.get("words")}
 
 
+def _options_words(mb: dict) -> str:
+    """The account's options part in the morning view's words (12 Nov 2026, G-11: at the options line's own value). 12 Nov (the outside
+    check of repair 4, N4): when the total leaves a trade out, the words say so, as Madhav decided every total does (G-01)."""
+    if not isinstance(mb.get("options_value_inr"), (int, float)):
+        return f"₹{mb.get('options_inr') or 0:,.0f} set aside for options"
+    lo, nt, res = len(mb.get("options_left_out") or []), int(mb.get("options_trades") or 0), float(mb.get("options_result_inr") or 0)
+    return (f"₹{mb['options_value_inr']:,.0f} in options at the options line's own value (₹{mb.get('options_inr') or 0:,.0f} set aside and "
+            f"{'+' if res >= 0 else '−'}₹{abs(res):,.0f} from {nt} trade{'s' if nt != 1 else ''} since the book began"
+            + (f"; {lo} options trade{'s' if lo != 1 else ''} left out until scored" if lo else "") + ")")
+
+
 def plan_today(session: str, rm: dict) -> dict:
     """What Ananta does today: the picks it buys at the open (decided last night), the options line's state, and what it suggests on the holdings."""
     day = rm.get("data_through")
@@ -228,9 +239,7 @@ def plan_today(session: str, rm: dict) -> dict:
     # in 13 stocks"), and its writer spoke them as the paper account, while Home's paper account is the managed book (Rs 1,64,725, 11
     # stocks). The twin was folded into the managed book on 3 Nov: the paper account here is the managed book's, at the close it is marked at.
     # 12 Nov 2026 (G-11, Madhav's yes of 12 Nov 01:52): the options money at the options line's own value, the sentence beside it
-    opt_words = (f"₹{mb['options_value_inr']:,.0f} in options at the options line's own value (₹{mb.get('options_inr') or 0:,.0f} set aside, "
-                 f"{'+' if (mb.get('options_result_inr') or 0) >= 0 else '−'}₹{abs(mb.get('options_result_inr') or 0):,.0f} since the book started)"
-                 if isinstance(mb.get("options_value_inr"), (int, float)) else f"₹{mb.get('options_inr') or 0:,.0f} set aside for options")
+    opt_words = _options_words(mb)
     account_words = ((f"The paper account (the managed book): ₹{mb['value_inr']:,.0f} at the {_dw(mb.get('day'))} close: "
                       f"₹{mb.get('stocks_inr') or 0:,.0f} in {mb.get('positions')} stocks, {opt_words}, "
                       f"₹{mb.get('cash_inr') or 0:,.0f} cash"

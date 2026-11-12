@@ -142,10 +142,11 @@ def _sync_shared(g: core.Jarvis) -> None:
 
 
 def _sandbox(who: str) -> core.Jarvis:
-    name = _re.sub(r"[^a-z0-9]+", "_", who.split(":", 1)[1].lower()).strip("_")[:40] or "guest"
+    name = _sandbox_name(who.split(":", 1)[1])
     with _JG_LOCK:
         if name not in _JG:
             m = _main()
+            _rename_guest_files_once(m.dir)
             g = core.Jarvis(m.dir, owner_email=m.owner, password_hash=m.pw_hash, secret=m.secret, hands=m._hands, now=m.now,
                             db_file=f"jarvis_guest_{name}.sqlite")
             g.users_db = m.db                                   # accounts live in the owner's database
@@ -154,8 +155,59 @@ def _sandbox(who: str) -> core.Jarvis:
         return _JG[name]
 
 
-def _sandbox_name(email: str) -> str:
+def _legacy_sandbox_name(email: str) -> str:
+    """The name a guest's practice book had until 12 Nov 2026: the email itself, lower case, with every other sign made '_'."""
     return _re.sub(r"[^a-z0-9]+", "_", email.lower()).strip("_")[:40] or "guest"
+
+
+def _fingerprint(legacy: str) -> str:
+    import hashlib
+    return "g" + hashlib.sha256(legacy.encode()).hexdigest()[:16]
+
+
+def _sandbox_name(email: str) -> str:
+    """12 Nov 2026, the keen outside audit (G-58): a guest's practice book was a file named after the guest's email, and the nightly backup
+    (and its weekly copy to the cloud) carried that name. It is now a short fingerprint of the same key: the same guest keeps the same
+    book, and no file name holds an email."""
+    return _fingerprint(_legacy_sandbox_name(email))
+
+
+_GUEST_FILE = _re.compile(r"^jarvis_guest_(?P<name>[a-z0-9_]+)(?P<tail>(?:\.\d+)?\.sqlite(?:-wal|-shm|-journal)?)$")
+_FINGERPRINT = _re.compile(r"^g[0-9a-f]{16}$")
+_GUEST_RENAMED = {"done": False}
+
+
+def rename_legacy_guest_files(folder) -> int:
+    """Every practice book, its journal files and its archived copies still named after an email get the fingerprint name; returns how
+    many files were renamed. Never prints or returns a name. Callers hold _JG_LOCK (no book is open while it runs)."""
+    from pathlib import Path
+
+    n = 0
+    for d in (Path(folder), Path(folder) / "guest_archive"):
+        if not d.is_dir():
+            continue
+        for p in sorted(d.iterdir()):
+            m = _GUEST_FILE.match(p.name)
+            if not m or _FINGERPRINT.match(m["name"]):
+                continue
+            new = d / f"jarvis_guest_{_fingerprint(m['name'])}{m['tail']}"
+            if new.exists():
+                continue
+            p.rename(new)
+            n += 1
+    return n
+
+
+def _rename_guest_files_once(folder) -> None:
+    if _GUEST_RENAMED["done"]:
+        return
+    try:
+        n = rename_legacy_guest_files(folder)
+        if n:
+            print(f"guest practice books: {n} file(s) renamed from an email to a fingerprint name")   # the count only, never a name
+    except OSError:
+        return                                     # tried again at the next guest's sign-in
+    _GUEST_RENAMED["done"] = True
 
 
 def _archive_sandbox(email: str) -> str | None:
@@ -165,6 +217,7 @@ def _archive_sandbox(email: str) -> str | None:
 
     name = _sandbox_name(email)
     with _JG_LOCK:
+        _rename_guest_files_once(_main().dir)
         g = _JG.pop(name, None)
         if g is not None:
             try:
@@ -365,6 +418,17 @@ def _snapshots() -> None:
             _t.sleep(900)
 
     threading.Thread(target=loop, daemon=True).start()
+
+
+@app.on_event("startup")
+def _guest_file_names() -> None:
+    """12 Nov 2026 (G-58): practice books still named after an email get their fingerprint name once, before the snapshots open them."""
+    import os
+
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return
+    with _JG_LOCK:
+        _rename_guest_files_once(_main().dir)
 
 
 @app.on_event("startup")

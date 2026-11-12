@@ -1,50 +1,51 @@
 """Tests never push to a real phone, even when run on the laptop where .env holds the ntfy topic; and they never reach the web
 or touch the live paid-search counters."""
+import importlib.util
 import os
-import socket
+import pwd
+import sys
 import tempfile
 
 import pytest
 
-# 12 Nov 2026, the keen outside audit (G-57: "test isolation is a list of nine past leaks, not a wall"). Two walls, put up before any of
-# Ananta's own modules is imported, so every path a module works out from the home folder lands inside them:
-#
-# 1. The home folder. Tests run with HOME set to an empty folder of their own. Only the two code checkouts are linked in (read as code);
-#    the live data, the run logs, the private folder, the sign-in files, the live database and the .env file are simply not there, so a
-#    test that forgets to point a path at its own folder writes into the wall's folder, never into Madhav's.
-# 2. The network. A test may open a connection only to this machine, and not to the live services' own ports: a phone note, a model
-#    call or a web page from a test fails at once with "tests never reach the network".
-REAL_HOME = os.path.expanduser("~")
+# 12 Nov 2026, the keen outside audit (G-57: "test isolation is a list of nine past leaks, not a wall"). Put up before any of Ananta's
+# own modules is imported:
+# 1. The home folder. Tests run with HOME set to an empty folder of their own; only the two code checkouts are linked in. Every path a
+#    module works out from the home folder lands there. The one module that names the live .env file by its full path is pointed there too.
+# 2. The wall (tests/wall.py, on Python's audit hooks): nothing under Madhav's private places is opened even by its full path, nothing
+#    under his home is written, nothing leaves this machine or reaches the live services, no network or service program is started, and
+#    every Python a test starts puts up the same wall. The first version of the morning (a patched socket class) was got through by the
+#    outside check four ways; this one is what it could not get through. What it refused is printed at the end of the run.
+REAL_HOME = pwd.getpwuid(os.getuid()).pw_dir
 TEST_HOME = tempfile.mkdtemp(prefix="ananta-tests-home-")
 os.makedirs(os.path.join(TEST_HOME, "code"))
 for _repo in ("ananta-agent-research", "ananta-records"):
     if os.path.isdir(os.path.join(REAL_HOME, "code", _repo)):
         os.symlink(os.path.join(REAL_HOME, "code", _repo), os.path.join(TEST_HOME, "code", _repo))
 os.environ["HOME"] = TEST_HOME
+os.environ["ANANTA_AGENT_ENV"] = os.path.join(TEST_HOME, "code", "ananta-decision-agent", ".env")   # jarvis/india/ask.py ENV_FILE
+os.environ["ANANTA_INDIA_DATA"] = os.path.join(TEST_HOME, "ananta_data", "india")
 
-LIVE_PORTS = (8001, 8100, 8110, 8200, 8215, 8300, 8302, 11434)      # the services running on this Mac: a test never talks to them
-_real_connect, _real_connect_ex = socket.socket.connect, socket.socket.connect_ex
-
-
-def _walled(address) -> None:
-    if isinstance(address, (str, bytes)):                            # a unix socket on this machine
-        return
-    host, port = str(address[0]), int(address[1])
-    if host not in ("127.0.0.1", "::1", "localhost") or port in LIVE_PORTS:
-        raise RuntimeError(f"tests never reach the network ({host}:{port})")
-
-
-def _connect(self, address, *a, **k):
-    _walled(address)
-    return _real_connect(self, address, *a, **k)
+_WALL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wall.py")
+_spec = importlib.util.spec_from_file_location("ananta_tests_wall", _WALL_FILE)
+wall = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(wall)
+sys.modules["ananta_tests_wall"] = wall                             # one wall per process: tests read its REFUSED list through this name
+_site = os.path.join(TEST_HOME, ".wall")
+os.makedirs(_site)
+with open(os.path.join(_site, "sitecustomize.py"), "w") as _f:
+    _f.write(wall.SITECUSTOMIZE.format(wall=_WALL_FILE, home=REAL_HOME))
+os.environ["PYTHONPATH"] = _site + (os.pathsep + os.environ["PYTHONPATH"] if os.environ.get("PYTHONPATH") else "")
+wall.install(REAL_HOME)
 
 
-def _connect_ex(self, address, *a, **k):
-    _walled(address)
-    return _real_connect_ex(self, address, *a, **k)
-
-
-socket.socket.connect, socket.socket.connect_ex = _connect, _connect_ex
+def pytest_terminal_summary(terminalreporter):
+    """What the wall refused during the run: a test that reached for a live file, the network or a service shows here, even when its
+    code swallowed the error (the paths are shown only to their first folders)."""
+    if wall.REFUSED:
+        terminalreporter.write_sep("-", f"the tests' wall refused {len(wall.REFUSED)} kind(s) of reach")
+        for line in wall.REFUSED[:80]:
+            terminalreporter.write_line(line)
 
 os.environ["ANANTA_NTFY_TOPIC"] = ""
 os.environ["ANANTA_APPLE_PUSH"] = "0"

@@ -105,6 +105,7 @@ def test_kite_client_is_read_only():
 
 def test_kite_token_expiry(tmp_path, monkeypatch):
     monkeypatch.setattr(kite, "TOKEN_FILE", tmp_path / "t.json")
+    monkeypatch.setattr(kite, "AUTO_ENV", tmp_path / "no_auto_sign_in.env")   # 12 Nov: on the Mac this test could start the real sign-in
     with pytest.raises(kite.NeedLogin, match="no Kite token"):
         kite.token()
     old = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=1)).isoformat(timespec="seconds")

@@ -48,6 +48,9 @@ ALLOWED_REFS = {
     ("jarvis/india/views.py", r"ananta_data/india"): "the India screens read the read model and paper files",
     ("jarvis/india/views.py", r"ananta-records"): "the India screens read the generated registration pages",
     ("tests/test_india_web.py", r"import india\b"): "a test of the India web app",
+    # 12 Nov 2026 (the keen outside audit, G-57; Madhav 12 Nov 01:52: "Yes to all your recommendations"): the tests' wall
+    ("tests/conftest.py", r"ananta-records"): ("the tests' wall gives the tests an empty home folder of their own and links this checkout into it as code, by "
+                                               "name; none of India's data is linked or copied, so a test can read no India data through it"),
     ("tests/test_india_plain.py", r"ananta_data/india"): "a test of the India plain-words screens",
     ("scripts/run_india_exam.py", r"ananta-records"): "the weekly India exam runner imports the records checkout's exam judges and asks the India Ask (25 Oct)",
     ("scripts/commit_records.py", r"ananta-records"): ("the 06:50 daily records job (10 Nov) commits the records checkout's own generated pages, each added by name from its allowlist; it reads no India data and imports nothing from india"),

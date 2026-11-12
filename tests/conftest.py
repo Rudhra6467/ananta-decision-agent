@@ -22,3 +22,18 @@ def _no_live_web(tmp_path, monkeypatch):
 
     monkeypatch.setattr(weblook, "_post", _no_web)
     weblook._MC.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_live_kite_sign_in(tmp_path, monkeypatch):
+    """12 Nov 2026 (the keen outside audit, G-54 and G-57): on the Mac, a test that asked india.kite for a token with none on disk could
+    start the real password sign-in (test_kite_token_expiry did, since 22 Oct), and the phone note read its topic from the .env file
+    whatever the tests' switch said. No test starts a sign-in, writes the live attempt, refusal or note stamps, or reaches the phone."""
+    try:
+        from india import kite
+    except Exception:  # noqa: BLE001  a checkout without the India package
+        return
+    monkeypatch.setattr(kite, "AUTO_ENV", tmp_path / "no_auto_sign_in.env")
+    monkeypatch.setattr(kite, "ATTEMPTS_FILE", tmp_path / "kite_auto_attempts.json")
+    monkeypatch.setattr(kite, "REFUSALS_LOG", tmp_path / "kite_refusals.log")
+    monkeypatch.setattr(kite, "NOTE_STAMP", tmp_path / "kite_note_stamp.json")

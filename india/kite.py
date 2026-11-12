@@ -8,7 +8,12 @@ margin a basket would need and places nothing (used by the sizing v2 margin chec
 india/leakcheck.py (kite_calls) fails if any other POST, PUT or DELETE appears in this file.
 Limits (Kite forum, staff, 2018; the probe confirms): 3 requests a second; per request, minute 30 days, 5minute 90 days,
 15minute 180 days, 60minute 365 days, day 2000 days. The token expires at 6 am IST; a 403 TokenException raises NeedLogin
-and, when the ntfy topic is configured, sends the phone "Kite login needed".
+and, when the ntfy topic is configured, sends the phone "Kite login needed" (at most once in 30 minutes).
+
+12 Nov 2026 (the keen outside audit, G-54). The scheduled job owns the password sign-in. A read here that finds the token dead may ask for
+one only when 30 minutes have passed since the last attempt of any kind and fewer than three such on-demand sign-ins ran in 24 hours
+(on_demand_ok; the sign-in module checks the same again). And a refusal from Kite that is not a sign-in failure (a 4xx or 5xx on a read)
+now leaves one line in ~/ananta_runs/kite_refusals.log, which the self-check reads: before, it left no trace anywhere.
 """
 from __future__ import annotations
 
@@ -32,6 +37,14 @@ class NeedLogin(RuntimeError):
     pass
 
 
+RUNS = Path.home() / "ananta_runs"
+ATTEMPTS_FILE = RUNS / "kite_auto_attempts.json"   # written by the sign-in module (src/india/kite_auth.py in the agent repo): times and kinds only
+ON_DEMAND_PAUSE_S = 1800                           # the same two numbers as the sign-in module's (tests/test_india_kite_ondemand.py reads both files)
+ON_DEMAND_LIMIT = 3
+REFUSALS_LOG = RUNS / "kite_refusals.log"          # one line per refused read: time, status, Kite's error type, the path; never a token or a parameter
+NOTE_STAMP = RUNS / "kite_note_stamp.json"         # when the phone was last told "Kite login needed"
+NOTE_EVERY_S = 1800
+
 AUTO_ENV = paths.private_dir() / "kite_login.env"            # present only when Madhav has set up the automatic sign-in (22 Oct 2026)
 AGENT_REPO = Path(os.path.expanduser("~/code/ananta-agent-research"))
 AGENT_PY = Path(os.path.expanduser("~/ananta_venvs/jarvis/bin/python"))
@@ -47,15 +60,31 @@ def _read_token() -> dict | None:
     return t
 
 
+def on_demand_ok(now: float | None = None) -> bool:
+    """May a read ask for a sign-in now? Not within ON_DEMAND_PAUSE_S of the last attempt of any kind (the scheduled job's included), and
+    not after ON_DEMAND_LIMIT on-demand attempts in 24 hours. Reads the attempts stamp only (times and kinds)."""
+    now = now or time.time()
+    try:
+        rows = [r for r in json.loads(ATTEMPTS_FILE.read_text()) if isinstance(r, dict) and isinstance(r.get("t"), (int, float))]
+    except (OSError, ValueError):
+        return True
+    if rows and now - max(r["t"] for r in rows) < ON_DEMAND_PAUSE_S:
+        return False
+    return sum(1 for r in rows if r.get("kind") == "on_demand" and now - r["t"] < 24 * 3600) < ON_DEMAND_LIMIT
+
+
 def try_auto_login(force: bool = False) -> bool:
     """Ask the agent service's sign-in module (src/india/kite_auth.py auto, in its own process and venv) for a fresh token.
     This module still never sees the password, the two-factor secret or the API secret: they stay in the other process.
-    Returns True when a token is on disk afterwards; False when auto sign-in is off (no kite_login.env) or it failed."""
+    Returns True when a token is on disk afterwards; False when auto sign-in is off (no kite_login.env), it failed, or it is held back
+    (12 Nov: on_demand_ok; no process is started then)."""
     import subprocess
     if not (AUTO_ENV.exists() and AGENT_PY.exists() and (AGENT_REPO / "src" / "india" / "kite_auth.py").exists()):
         return False
+    if not on_demand_ok():
+        return False
     try:
-        args = [str(AGENT_PY), "-m", "src.india.kite_auth", "auto"] + (["--force"] if force else [])
+        args = [str(AGENT_PY), "-m", "src.india.kite_auth", "auto", "--on-demand"] + (["--force"] if force else [])
         subprocess.run(args, cwd=AGENT_REPO, capture_output=True, text=True, timeout=240)
     except (OSError, subprocess.TimeoutExpired):
         return False
@@ -73,8 +102,46 @@ def token() -> dict:
     raise NeedLogin("the Kite token expired at 6 am IST: open http://127.0.0.1:8100/kite/login on the Mac")
 
 
+def _trace(path: str, status: int, kind: str) -> None:
+    """One line for a read Kite refused: when, the status, Kite's error type and the path. No token, no parameter, no message text."""
+    try:
+        REFUSALS_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with REFUSALS_LOG.open("a") as f:
+            f.write(f"{dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds')} {status} {kind or '-'} {path}\n")
+    except OSError:
+        pass
+
+
+def _error_type(r) -> str:
+    try:
+        return str(r.json().get("error_type", ""))[:40].replace(" ", "_")
+    except (ValueError, AttributeError):
+        return ""
+
+
+def _note_due(now: float | None = None) -> bool:
+    """True at most once in NOTE_EVERY_S: every page and question behind a dead token used to send the phone the same note."""
+    now = now or time.time()
+    try:
+        last = float(json.loads(NOTE_STAMP.read_text()).get("t", 0))
+    except (OSError, ValueError, AttributeError):
+        last = 0.0
+    if now - last < NOTE_EVERY_S:
+        return False
+    try:
+        NOTE_STAMP.parent.mkdir(parents=True, exist_ok=True)
+        NOTE_STAMP.write_text(json.dumps({"t": int(now)}))
+    except OSError:
+        pass
+    return True
+
+
 def _ntfy(text: str) -> None:
     """Phone nudge through the same ntfy topic the Jarvis alerts use (read from the agent .env, names only)."""
+    if os.environ.get("ANANTA_NTFY_TOPIC") == "":      # 12 Nov (audit G-57): set and empty means off (the tests' switch); it used to fall
+        return                                         # through to the .env file and reach the real phone
+    if not _note_due():
+        return
     topic = os.getenv("ANANTA_NTFY_TOPIC")
     if not topic:
         env = Path(os.path.expanduser("~/code/ananta-decision-agent/.env"))
@@ -119,7 +186,10 @@ class Kite:
                 continue
             break
         if r is None:
+            _trace(path, 0, "NoAnswer")
             raise RuntimeError(f"Kite did not answer {path} after 5 tries")
+        if r.status_code >= 400 and _error_type(r) != "TokenException":      # a dead token has its own path below (the phone note, NeedLogin)
+            _trace(path, r.status_code, _error_type(r))
         if r.status_code == 403:
             try:
                 err = r.json().get("error_type", "")
@@ -147,6 +217,8 @@ class Kite:
         r = self.s.post(BASE + path, params=params, json=body, timeout=40)
         self._last = time.time()
         self.calls += 1
+        if r.status_code >= 400 and _error_type(r) != "TokenException":
+            _trace(path, r.status_code, _error_type(r))
         if r.status_code == 403:
             raise NeedLogin("Kite token rejected: sign in again")
         r.raise_for_status()

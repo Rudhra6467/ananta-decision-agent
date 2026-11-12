@@ -145,8 +145,10 @@ def test_a_backup_answer_may_not_deny_a_record():
     assert r["answer"] == ask.BACKUP_CANNOT_DENY and r["backup_withheld"] == "We haven't run a review 42 yet." and r["breakdown"] == []
     assert ask.backup_cannot_deny(dict(deny), "sonnet", "sonnet") is False                  # Claude itself may say what is not there
     assert ask.backup_cannot_deny(dict(deny), "gemini", "gemini") is False                  # an everyday answer was meant to be Gemini's
-    assert ask.backup_cannot_deny({"kind": "answer", "answer": "Review 42 waits until 15 Dec."}, "sonnet", "gemini") is False
-    for said in ("There is no such review.", "That study does not exist.", "I did not run review 42 yet", "No record of that trade."):
+    # since the interim process review (12 Nov) the backup says nothing about a record, true or not; an everyday answer still passes
+    assert ask.backup_cannot_deny({"kind": "answer", "answer": "Review 42 waits until 15 Dec."}, "sonnet", "gemini") is True
+    assert ask.backup_cannot_deny({"kind": "answer", "answer": "No record of that trade: nothing sold tonight."}, "sonnet", "gemini") is False
+    for said in ("There is no such review.", "That study does not exist.", "I did not run review 42 yet"):
         assert ask.denies_a_record(said), said
 
 
@@ -163,8 +165,8 @@ def test_when_claude_fails_the_backups_denial_is_withheld_and_the_reason_kept():
     out = ask.Ask(j, providers={"sonnet": claude_down, "gemini": gemini}).ask("owner", "What did review 42 find about buying after drops?", mode="deep")
     assert out["answer"] == ask.BACKUP_CANNOT_DENY
     note = j.db.execute("SELECT note FROM ask_messages WHERE role='assistant' ORDER BY t DESC LIMIT 1").fetchone()[0]
-    assert "Claude is unavailable right now (TimeoutError after" in note and "so Gemini answered" in note
-    assert "the backup model's answer was withheld (a question about our records)" in note  # D1: the question decides first
+    assert "Claude is unavailable right now (TimeoutError after" in note and "so Gemini answered" not in note
+    assert "the question is about our records, so the backup model was not asked" in note    # the question decides first
     assert "the call took too long" not in note                                             # the failure's kind, never its text
 
 
@@ -315,7 +317,8 @@ def test_the_backup_guard_reads_curly_apostrophes_and_lets_everyday_answers_thro
               "There are no trades open in the account.", "We haven't opened any new positions since 4 Nov.", "We have not held Bitcoin since 28 Oct.",
               "The night test has not run yet tonight; it runs after the close.", "There is no note for tonight yet; it comes after the close.",
               "We haven't recorded enough closed trades yet to judge the bold book.", "We did not trade today.",
-              "Not yet: the forward record of review 42 is held until 15 Dec.", "Nothing is open in any book."]
+              "Nothing is open in any book."]
+    withheld.append("Not yet: the forward record of review 42 is held until 15 Dec.")      # true, but the backup says nothing of records
     # "There is no result in review 42 yet" is withheld on purpose since the second confirm check (tests/test_backup_guard_12nov.py)
     for said in withheld:
         r = {"kind": "answer", "answer": said}
@@ -342,7 +345,7 @@ def test_over_budget_the_withheld_answer_says_after_midnight(monkeypatch):
     out = a.ask("owner", "What did review 42 find about buying after drops?", mode="deep")
     assert out["answer"] == ask.BACKUP_CANNOT_DENY_BUDGET
     note = j.db.execute("SELECT note FROM ask_messages WHERE role='assistant' ORDER BY t DESC LIMIT 1").fetchone()[0]
-    assert "is used up, so Gemini answered" in note and "the backup model's answer was withheld (a question about our records)" in note
+    assert "is used up" in note and "so Gemini answered" not in note and "the backup model was not asked" in note
 
 
 def test_the_note_the_eye_the_lookups_and_the_chain_name_the_exponential_line(monkeypatch, tmp_path):
@@ -439,10 +442,13 @@ def test_the_guard_catches_the_confirm_checks_denials_and_withholds_every_not_ye
                  "There are no findings yet: review 42's forward record is held until 15 Dec.",
                  "The 14 Dec review hasn't been done yet; it comes after the close that day.",
                  "Tonight's trade review hasn't been written yet; it comes after the close.", "The checkpoint hasn't been run yet; it is on 14 Dec."):
-        assert ask.denies_a_record(said), said
+        assert ask.speaks_of_a_record(said), said
+    # since the interim process review (12 Nov) a true answer about a record is withheld too while the backup stands in; a record named
+    # only as a point in time is not one
     for said in ("Review 42's results haven't been published yet; they are held until 15 Dec.", "Review 41 showed no findings worth trading.",
-                 "We haven't made any trades since review 41.", "Review 41 found no bounce after extreme drops."):
-        assert not ask.denies_a_record(said), said
+                 "Review 41 found no bounce after extreme drops."):
+        assert ask.speaks_of_a_record(said) and not ask.denies_a_record(said), said
+    assert not ask.speaks_of_a_record("We haven't made any trades since review 41.")
     r = {"kind": "answer", "answer": "We never ran review 42."}                                    # a visitor cannot raise a budget
     assert ask.backup_cannot_deny(r, "sonnet", "gemini", "Claude budget for today ($0.50) is used up, so Gemini answered", guest=True)
     assert r["answer"] == ask.BACKUP_CANNOT_DENY_GUEST and "Voice and model" not in r["answer"]

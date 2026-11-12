@@ -205,7 +205,8 @@ def _options_words(mb: dict) -> str:
     never = bool(left) and all(isinstance(x, dict) and x.get("expiry") and today > str(x["expiry"]) for x in left)
     return (f"₹{mb['options_value_inr']:,.0f} in options at the options line's own value (₹{mb.get('options_inr') or 0:,.0f} set aside and "
             f"{'+' if res >= 0 else '−'}₹{abs(res):,.0f} from {nt} trade{'s' if nt != 1 else ''} since the book began"
-            + (f"; {lo} options trade{'s' if lo != 1 else ''} left out" + (", never scored: its option expired" if never else " until scored") if lo else "")
+            + (f"; {lo} options trade{'s' if lo != 1 else ''} left out"
+               + ((", never scored: its option expired" if lo == 1 else ", never scored: their options expired") if never else " until scored") if lo else "")
             + ")")
 
 

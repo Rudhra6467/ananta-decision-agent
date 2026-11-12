@@ -277,9 +277,10 @@ def sp1(day: str) -> dict:
             left.append({"date": r.get("date"), "index": r.get("index")})
     # 12 Nov (the confirm check of repair 4, C1 and C4): a trade scored with no price for its option is left out too, as the screens count
     # it; and once its option has expired a left-out trade can never be scored, so the words no longer promise a result
-    for r in outs:
+    last = {(r.get("date"), r.get("index")): r for r in outs if "index_proxy" in r}   # the last scored row of each trade counts
+    for r in last.values():
         opt = (r.get("legs") or {}).get("option")
-        if "index_proxy" in r and isinstance(opt, dict) and opt.get("net_rs_realistic") is None and opt.get("note"):
+        if isinstance(opt, dict) and opt.get("net_rs_realistic") is None and opt.get("note"):
             left.append({"date": r.get("date"), "index": r.get("index"), "why": "no option price"})
     exp = {(str(r.get("date")), str(r.get("index"))): str(((r.get("contracts") or {}).get("option") or {}).get("expiry") or "")[:10]
            for r in allr if r.get("kind") == "decision"}                  # every day's decisions, not the newest day's alone
@@ -310,7 +311,7 @@ def sp1(day: str) -> dict:
     if left:
         gone = sum(1 for x in left if x.get("never"))
         words += (f". Not in these figures: {len(left)} trade{'s' if len(left) != 1 else ''} "
-                  + ("never scored, its option expired (" if gone == len(left) else "with no result yet (")
+                  + ((f"never scored, {'its option' if len(left) == 1 else 'their options'} expired (") if gone == len(left) else "with no result yet (")
                   + "; ".join(f"{x['index']} {_dw(x['date'])}" + (f", never scored: its option expired {_dw(x['expiry'])}" if x.get("never") and gone != len(left) else "")
                               for x in left[:3]) + ")")
     return {"status": status, "date": newest, "source": f"{d / 'decisions.jsonl'} and {d / 'book.json'}", "decisions": decisions, "errors": errors[:3],

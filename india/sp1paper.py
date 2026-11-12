@@ -808,18 +808,19 @@ def _no_regular(xs) -> str:
 
 
 def _regular_sessions(im: pd.DataFrame, name: str) -> set:
-    """The days whose minute bars run from the 09:15 open into the last ten minutes, with at least half a session's bars: a regular
-    session, even with minutes missing for a data reason. 12 Nov 2026 (the confirm check of repair 4, C1): the study's own 'whole day' test
-    (360 bars) called a Monday short of 35 minutes 'no regular session', and the trade was scored at Wednesday's open. A Muhurat hour or
-    another short special session reaches neither the 09:15 open nor the close, so it is still no regular session."""
+    """The days that open as a regular session does: their minute bars start at the 09:15 open (or 09:16) and hold the 09:16 bar a
+    next-open exit is taken at, however the day ends or whatever minutes it misses. 12 Nov 2026 (the confirm check of repair 4, C1, and its
+    second confirm check): the study's own 'whole day' test (360 bars) called a Monday short of some minutes 'no regular session' and the
+    trade was scored days later; a day missing its 09:15 bar or its last half hour still was. The Muhurat hour opens in the afternoon or
+    evening, so it is still no regular session; a weekday session that opens at 09:15 and closes early is a real open a trade can close at."""
     if im is None or im.empty or "m" not in im:
         return set()
     g = im[(im["index_name"] == name) & (im["m"] >= 0) & (im["m"] < ocstudy.NMIN)]
     if g.empty:
         return set()
-    s = g.groupby("date")["m"].agg(["min", "max", "count"])
+    first = g.groupby("date")["m"].min()
     at_916 = set(g.loc[g["m"] == 1, "date"])                     # the 09:16 bar a NEXTOPEN exit is taken at is really there
-    return {d for d, x in s.iterrows() if x["min"] == 0 and d in at_916 and x["max"] >= ocstudy.NMIN - 10 and x["count"] >= ocstudy.NMIN // 2}
+    return {d for d, m0 in first.items() if m0 <= 1 and d in at_916}
 
 
 def score(day: dt.date | None = None, log=print) -> dict:
@@ -832,10 +833,16 @@ def score(day: dt.date | None = None, log=print) -> dict:
     day = day or _ist_now().date()
     k = kite.Kite()
     outs = [r for r in _rows(OUTCOMES) if r.get("kind") == "outcome"]
-    done = {(r["date"], r["index"]) for r in outs if "index_proxy" in r}
+    last = {(r["date"], r["index"]): r for r in outs if "index_proxy" in r}            # one row per trade: the last scored one counts
+    # 12 Nov 2026 (the second confirm check of repair 4, D1): a trade scored when Kite had no price for its option at the exit minute was
+    # never tried again; it is tried again, like a noted trade, while its contract trades
+    no_price = {kk: r for kk, r in last.items() if isinstance((r.get("legs") or {}).get("option"), dict)
+                and "net_rs_realistic" not in r["legs"]["option"]}
+    done = {kk for kk in last if kk not in no_price}
     noted = {(r["date"], r["index"]): r for r in outs if "index_proxy" not in r}
+    retry = {**noted, **no_price}
     todo = [r for r in _rows(DECISIONS) if r.get("kind") == "decision" and r.get("choice") and r.get("tradable") and (r["date"], r["index"]) not in done
-            and dt.date.fromisoformat(r["date"]) <= day and ((r["date"], r["index"]) not in noted or _retry_late(r, day))]
+            and dt.date.fromisoformat(r["date"]) <= day and ((r["date"], r["index"]) not in retry or _retry_late(r, day))]
     res = []
     specials = _specials()
     for r in todo:
@@ -854,6 +861,13 @@ def score(day: dt.date | None = None, log=print) -> dict:
         index = ocstudy.index_arrays(im)
         have = index[name]["dates"]
         if d not in have or not index[name]["ok"][have.index(d)]:
+            # 12 Nov 2026 (the second confirm check of repair 4, D2): a trade whose own day stayed short of minutes was tried every evening
+            # for ever and named by no total; after three days it is noted once, so every total names it, and tried again as a noted trade
+            if key not in retry and (day - d).days >= 3:
+                res.append(_append(OUTCOMES, {"kind": "outcome", "date": r["date"], "index": sym, "point": r["point"], "action": r["choice"]["action"],
+                                              "note": "the day's minute bars are not complete on Kite; it is tried again while its contract trades",
+                                              "decision_hash": r["hash"]}))
+                retry[key] = res[-1]
             log(f"{r['date']} {sym}: the day's bars are not complete yet")
             continue
         # G-01: the next REGULAR session. 12 Nov (the outside check of repair 4, N6): the special-session list holds weekend days only, so
@@ -883,8 +897,8 @@ def score(day: dt.date | None = None, log=print) -> dict:
             if r["choice"]["exit"] == "NEXTOPEN" and not nxt:
                 log(f"{r['date']} {sym}: NEXTOPEN, held overnight; scored after the next session")
                 continue
-            if key in noted:
-                log(f"{r['date']} {sym}: still not defined; its note stands (a note is never written twice)")
+            if key in retry:
+                log(f"{r['date']} {sym}: still not defined; its note or first score stands (a note is never written twice)")
                 continue
             res.append(_append(OUTCOMES, {"kind": "outcome", "date": r["date"], "index": sym, "point": r["point"], "action": r["choice"]["action"],
                                           "note": "the study's outcome is not defined for this day (e.g. NEXTOPEN with no usable next session)", "decision_hash": r["hash"]}))
@@ -938,12 +952,14 @@ def score(day: dt.date | None = None, log=print) -> dict:
                                "pred_net_bps": float(r["choice"]["pred_net"])}, "legs": legs}
         if next_day and skipped:
             row["skipped_days"] = [x.isoformat() for x in skipped]
-        if key in noted:
+        if key in retry:
             if (r.get("contracts") or {}).get("option") and "net_rs_realistic" not in legs.get("option", {}):
                 log(f"{r['date']} {sym}: scored again, but the option's candles are not on Kite; it stays left out and is tried again tomorrow")
                 continue
             row["scored_late"] = True
-            row["late_why"] = ((f"Its next open fell on {_days_and(skipped)}, which {'is no regular session' if len(skipped) == 1 else 'are no regular sessions'}, so it was first left "
+            row["late_why"] = (("Kite had no price for its option at the exit when it was first scored, so it was left without a result; it is "
+                                "scored again now" if key in no_price else
+                                f"Its next open fell on {_days_and(skipped)}, which {'is no regular session' if len(skipped) == 1 else 'are no regular sessions'}, so it was first left "
                                 f"without a result; it is scored at the next regular open ({_dw(day_out)})" if next_day and skipped else
                                 "It was first left without a result; it is scored now")
                                + " and included, by Madhav's decision of 12 Nov 2026.")

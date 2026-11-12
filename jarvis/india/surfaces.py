@@ -585,6 +585,7 @@ def money(full: bool = True) -> dict:
     from jarvis.india import compare as _cmp
     sw = _cmp.same_window()
     books_note = "Nothing is read into the gap before session 60."
+    books_exposure = sw.get("exposure_words") if sw.get("ready") else None    # 12 Nov (G-12): how much of each line is in stocks
     clock = {"sessions": bm.get("sessions"), "of": 60, "finish_words": None, "words": f"Session {bm.get('sessions')} of 60" if bm.get("sessions") is not None else None, "since": bm.get("frozen_day")}
     if sw.get("ready"):
         books[0]["ret_pct"], books[1]["ret_pct"], books[2]["ret_pct"] = sw["yours_pct"], sw["managed_pct"], sw["nifty500_pct"]
@@ -599,10 +600,13 @@ def money(full: bool = True) -> dict:
     # books marked at different times; the big number carried no date on Home at all. The day now comes from the book the value comes from.
     asof_day = str((mb.get("day") if own is mb else (acct.get("marks") or {}).get("last_session")) or "")[:10] or None
     return {"ready": True, "paper": True, "value_inr": own.get("value_inr"), "stocks_inr": own.get("stocks_inr"), "options_inr": own.get("options_inr"), "cash_inr": own.get("cash_inr"),
+            # 12 Nov 2026 (the keen audit, G-11; Madhav's yes of 12 Nov 01:52): the account counts the options money at the options line's own
+            # value (the managed book's view works it out, one place), with the sentence that says so
+            "options_value_inr": own.get("options_value_inr"), "options_result_inr": own.get("options_result_inr"), "options_counted": own.get("options_counted"),
             "value_owner": "the managed book" if own is mb else "the account book (the managed book has no value yet)",
             "as_of": f"NSE close {_dw(asof_day)}" if asof_day else None, "as_of_day": asof_day,
             "books": books, "clock": clock,
-            "books_note": books_note,
+            "books_note": books_note, "books_exposure": books_exposure,
             "plan": {"for_session": plan.get("for_session"), "brief": plan_sentence(plan) if not plan.get("error") else plan.get("brief"), "words": plan.get("words"), "cuts": len(plan.get("cuts") or []), "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons")} for b in plan.get("buys") or []],
                      "no_change": plan.get("no_change"), "error": plan.get("error")} if plan else None,
             "managed": {"value_inr": mb.get("value_inr"), "return_pct": mb.get("return_pct"), "clock": (mb.get("clock") or {}).get("words"), "replacements": mb.get("replacements") or []},

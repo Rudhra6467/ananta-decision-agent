@@ -42,7 +42,7 @@ def test_a_trade_scored_late_is_one_trade_marked_scored_late_and_no_longer_left_
     pts = IP.option_points()
     assert pts[-1][1] == round(50000 - 6053.6 + 34500.0)                                 # counted once, at its own date
     did = json.dumps(IP.activity(), ensure_ascii=False)
-    assert "Closed on paper, scored late" in did and "At the next regular open, scored late" in did
+    assert "closed on paper, scored late" in did and "At the next regular open, scored late" in did
 
 
 def test_the_voice_says_the_trade_left_out_and_then_its_late_score(india, monkeypatch):

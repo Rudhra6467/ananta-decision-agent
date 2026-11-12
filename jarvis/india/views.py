@@ -218,7 +218,9 @@ def plain_brief(rm: dict) -> list[str]:
     c = rm.get("call") or {}
     if c.get("call"):
         word = {"BULLISH": "up", "BEARISH": "down", "NEUTRAL": "flat"}.get(str(c["call"]).upper(), str(c["call"]).lower())
-        rec = f"so far {c.get('hits', 0)} of {c.get('scored', 0)} calls were right, against {c.get('null_hits', 0)} for a coin flip."
+        # 12 Nov 2026 (the keen audit, G-23): the coin flip is one seeded draw; chance alone averages half, so that is said beside it
+        rec = (f"so far {c.get('hits', 0)} of {c.get('scored', 0)} calls were right, against {c.get('null_hits', 0)} for a coin flip"
+               f" (chance alone averages {(c.get('scored') or 0) / 2:g}).")
         if c.get("data_through") and str(c["data_through"]) < str(rm.get("data_through") or ""):
             # 25 Oct: the newest call was made on 22 Oct data for the 23 Oct session, and was shown as the call for Monday
             out.append(f"No call yet for the next session (the last one, {word}, was made on {_day_words(c['data_through'])} data); {rec}")
@@ -298,7 +300,8 @@ def _account_sp1(rm: dict) -> dict:
     why = [f"Nifty {m.get('nifty_close'):,.0f} on {_day_words(m.get('data_through'))}: {trend}" if m.get("nifty_close") else "no market reading yet",
            # the call with its record beside it (24 Oct: "bullish" alone read like a forecast to lean on; it was 0 of 3)
            f"Ananta's call for the next session: {str((rm.get('call') or {}).get('call') or 'none').lower()}"
-           + (f" (right {(rm.get('call') or {}).get('hits')} of {(rm.get('call') or {}).get('scored')} so far; a coin flip got {(rm.get('call') or {}).get('null_hits')})"
+           + (f" (right {(rm.get('call') or {}).get('hits')} of {(rm.get('call') or {}).get('scored')} so far; a coin flip got {(rm.get('call') or {}).get('null_hits')}, "
+              f"where chance alone averages {((rm.get('call') or {}).get('scored') or 0) / 2:g})"
               if (rm.get("call") or {}).get("scored") else ""),
            (f"Guardrails: a {g['daily_loss_limit_pct']:.0f}% loss stops the day; {g['pause_drawdown_pct']:.0f}% below the peak pauses new buys"
             if g.get("daily_loss_limit_pct") is not None and g.get("pause_drawdown_pct") is not None else "Guardrails: not in the daily summary yet")]

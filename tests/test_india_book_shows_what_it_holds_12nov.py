@@ -79,5 +79,6 @@ def test_every_options_total_says_the_trade_it_leaves_out(india, monkeypatch):
     kv = next(p for p in page["parts"] if p.get("t") == "kv" and p.get("title") == "By index")
     assert "1 trade left out: Fri 6 Nov Bank Nifty, not scored yet" in hero["since"] and kv["foot"].startswith("1 trade left out")
     assert "one trade left out" in str(IP.account()) and "one trade left out" in str(IP.markets())
+    assert K.problems("account", IP.account()) == [] and K.problems("markets", IP.markets()) == [] and K.problems("options", page) == []
     monkeypatch.setattr(IS, "_sp1_unscored", lambda: [])
     assert "left out" not in str(IP.options_page())                                      # once it is scored, nothing is said

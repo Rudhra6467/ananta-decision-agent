@@ -201,12 +201,13 @@ def _events(full: bool = True) -> list[tuple]:
         if day < since or net is None:
             continue
         name = IDX.get(str(r.get("index")), str(r.get("index")))
-        dirw = "short" if (r.get("dir") or 0) < 0 else "long"
+        what, detail = _option_bought(r)                    # 12 Nov (G-23): a bought put or call, its strike, month and premium
         late = bool(r.get("scored_late"))
         ended = {"ATRSTOP": "Its stop", "ORSTOP": "The range stop", "NEXTOPEN": "At the next open"}.get(str(r.get("exit")), str(r.get("exit") or "—"))
         if late and str(r.get("exit")) == "NEXTOPEN":
             ended = "At the next regular open, scored late"
-        pg = K.page("Options trade", [K.hero(f"Options · {name} {dirw} · {IS._dw(day)}", _rs(round(net)), tone=_tone(net), since="one lot, on paper, after costs"),
+        pg = K.page("Options trade", [K.hero(f"Bought a {what} · {IS._dw(day)}", _rs(round(net)), tone=_tone(net),
+                                             since="one lot, on paper, after costs" + (f"; {detail}" if detail else "")),
                                       K.kv([K.kvrow("Option", str(opt.get("tradingsymbol") or "—")), K.kvrow("In", _rs(opt.get("entry_realistic"))), K.kvrow("Out", _rs(opt.get("exit"))),
                                             K.kvrow("Lot", f"{opt.get('lot'):.0f}" if isinstance(opt.get("lot"), (int, float)) else "—"),
                                             K.kvrow("How it ended", ended),
@@ -214,7 +215,7 @@ def _events(full: bool = True) -> list[tuple]:
                                       K.points([IS._tidy(str(r.get("late_why") or ""))], title="Scored late") if late and r.get("late_why") else None,
                                       K.trust("Paper only. Graded after 20 sessions.")],
                      ask_q=f"Tell me about the options trade on {name} on {IS._dw(day)}: why, how it ended, and what it taught.")
-        out.append((day, 1.5, K.row(f"Options · {name} {dirw}", "Closed on paper" + (", scored late" if late else ""), right=_rs(round(net)), right_tone=_tone(net),
+        out.append((day, 1.5, K.row(f"Options · {what}", "Bought, closed on paper" + (", scored late" if late else ""), right=_rs(round(net)), right_tone=_tone(net),
                                     icon="down" if net < 0 else "up", tag="trade", to=K.to_page(pg))))
     for p in _jsonl(IS.DATA / "paper" / "managed" / "plans.jsonl"):
         day = str(p.get("written_day") or "")[:10]
@@ -333,7 +334,10 @@ def home(full: bool = True) -> dict:
         label = f"Last plan · {IS._dw(fs)}"
         at = _evening_at()
         sub = f"The plan for {IS._dw(upcoming)} is written at {at}." if at else f"The plan for {IS._dw(upcoming)} is not written yet."
-    stocks, opts, cash = m.get("stocks_inr") or 0, m.get("options_inr") or 0, m.get("cash_inr") or 0
+    stocks, cash = m.get("stocks_inr") or 0, m.get("cash_inr") or 0
+    # 12 Nov 2026 (G-11): the options money at the options line's own value, as the total counts it, so the parts make the total
+    at_value = isinstance(m.get("options_value_inr"), (int, float))
+    opts = (m.get("options_value_inr") if at_value else m.get("options_inr")) or 0
     tot = (stocks + opts + cash) or 1
     did = [r for _d, _o, r in _events(full)]
     seen, top = set(), []
@@ -351,7 +355,8 @@ def home(full: bool = True) -> dict:
              K.today(label, line, sub, to=K.place("plan")),
              K.boxes([K.paged(_index_boxes(t)),
                       K.paged([K.box("In stocks", _rs(stocks), bar=[round(stocks / tot, 3), round(opts / tot, 3)], caption=f"{mb.get('positions') or len(m.get('holdings') or [])} stocks", to=K.place("stocks")),
-                               K.box("Options", _rs(opts), bar=[0, round(opts / tot, 3)], caption=_options_caption(t, m), to=K.place("options"))])]),
+                               K.box("Options", _rs(opts), bar=[0, round(opts / tot, 3)], caption="At the line's value" if at_value else _options_caption(t, m),
+                                     to=K.place("options"))])]),
              {"t": "needs", "title": "Needs you", "badge": True, "more": K.place("notices")},
              K.rows("What Ananta did", top, more=K.tab("activity")) if top else None,
              K.notices(home_notices(t, m, clk))]
@@ -390,7 +395,8 @@ def markets(full: bool = True) -> dict:
              K.rows("Your holdings", [holding_row(h) for h in hs[:3]], count=len(hs), more=K.to_page(hp), tags=["all"]) if hs else None,
              K.rows("Your holdings", [holding_row(h) for h in hs], count=len(hs), tags=["holdings"]) if hs else None,
              K.rows("Options", [K.row(ob.get("open_words") and ("No open trade" if not ob.get("open") else f"{len(ob['open'])} open on paper") or "Options",
-                                      (f"{ob.get('sessions')} of 20 sessions on record" + ("; one trade left out" if _left_out() else "")) if ob.get("sessions") is not None else None,
+                                      ((f"{ob.get('sessions')} of 20 sessions; one trade left out" if _left_out() else f"{ob.get('sessions')} of 20 sessions on record")
+                                       if ob.get("sessions") is not None else None),
                                       right=_rs(ob.get("pnl_inr"), sign=True),
                                       right_tone=_tone(ob.get("pnl_inr")), to=K.place("options"))], tags=["all", "options"]) if ob else None]
     return K.surface("markets", "india", parts, title="Markets", search={"hint": "Search a stock", "route": "/coin/"})
@@ -406,6 +412,8 @@ def options_page(full: bool = True) -> dict:
                     since=f"over {ob.get('sessions')} sessions, on paper" + (f"; {left}" if left else "")),
              K.pricechart("OPTIONS", "The options line", kind="line", private=True),
              K.line(str(ob.get("open_words") or "")), K.kv(rows, title="By index", foot=(left[:1].upper() + left[1:] + ".") if left else None),
+             # 12 Nov 2026 (G-11): how the account counts this line, in the account's own sentence (its result since the book started)
+             K.line(str(m.get("options_counted"))) if m.get("options_counted") else None,
              K.rows("Trades on paper", [_trade_row(r) for r in trades[:3]], count=len(trades), more=K.to_page(option_trades_page(trades)) if len(trades) > 3 else None) if trades and full else None,
              K.bars([K.bar("Sessions on record", ob.get("sessions") or 0, 20, right=f"{ob.get('sessions') or 0} of 20", note="It earns a bigger share only after 20")]),
              K.points([IS._tidy(op.get("words"))]) if op.get("words") else None,
@@ -423,7 +431,10 @@ def account(full: bool = True) -> dict:
     pc = (IS._safe(IS.portfolio_chart) or {}).get("chart") or {}
     ml = [x for x in (pc.get("managed") or []) if isinstance(x, (int, float))]
     dates = [d for d, x in zip(pc.get("dates") or [], pc.get("managed") or []) if isinstance(x, (int, float))]
-    stocks, opts, cash = m.get("stocks_inr") or 0, m.get("options_inr") or 0, m.get("cash_inr") or 0
+    stocks, cash = m.get("stocks_inr") or 0, m.get("cash_inr") or 0
+    # 12 Nov 2026 (G-11): the options money at the options line's own value, as the total counts it, so the parts make the total
+    at_value = isinstance(m.get("options_value_inr"), (int, float))
+    opts = (m.get("options_value_inr") if at_value else m.get("options_inr")) or 0
     tot = (stocks + opts + cash) or 1
     hs = sorted(m.get("holdings") or [], key=lambda h: -(h.get("value_inr") or 0))
     own = sorted(mb.get("holdings") or [], key=lambda x: -(x.get("value_inr") or 0))
@@ -436,23 +447,27 @@ def account(full: bool = True) -> dict:
     parts = [K.hero("The managed book · on paper", _rs(value), change=(f"{_rs(value - start, sign=True)} ({_pct(ret)})" if isinstance(value, (int, float)) and isinstance(start, (int, float)) and isinstance(ret, (int, float)) else None),
                     tone=_tone(ret), since=(f"since {IS._dw(mb.get('start_day'))}" + (f", at the {IS._dw(day)} close" if day else "")) if mb.get("start_day") else None),
              K.chart([{"values": ml, "style": "main", "color": "bronze"}], left=IS._dw(dates[0]) if dates else None, right=IS._dw(dates[-1]) if dates else None,
-                     caption="One point a session, at the close.", label="The managed book's value at each close") if len(ml) > 1 else None,
+                     # 12 Nov 2026 (the keen audit, G-23): "One point a session" under 7 points beside "Session 6 of 60"; the first point is the start
+                     caption=(f"The {IS._dw(dates[0])} close it started at, then the {len(ml) - 1} session{'s' if len(ml) != 2 else ''} since, each at its close."
+                              if dates else "One point a session, at the close."), label="The managed book's value at each close") if len(ml) > 1 else None,
              K.split([{"label": f"Stocks · {mb.get('positions') or len(hs)}", "value": _rs(stocks), "share": round(stocks / tot, 3), "shade": "ink"},
-                      {"label": "Options, set aside", "value": _rs(opts), "share": round(opts / tot, 3), "shade": "dim"},
+                      {"label": "Options, at the line's value" if at_value else "Options, set aside", "value": _rs(opts), "share": round(opts / tot, 3), "shade": "dim"},
                       {"label": "Cash", "value": _rs(cash), "share": round(cash / tot, 3), "shade": "faint"}], title="Where it sits"),
+             K.line(str(m.get("options_counted"))) if m.get("options_counted") else None,
              K.kv([K.kvrow(label.get(b.get("id"), b.get("label")), _pct(b.get("ret_pct")) if b.get("ret_pct") is not None else (b.get("words") or "—"), tone=_tone(b.get("ret_pct")), bold=(b.get("id") == "managed"))
                    for b in sorted(books, key=lambda b: order.get(b.get("id"), 9))], title="How it compares",
                   # 11 Nov 2026 (R-027, flag 93): the hero said "since Fri 30 Oct" and this foot "All from the Thu 29 Oct close" for one start
                   foot=((f"All since {IS._dw(mb.get('start_day'))}, the same start as above (counted from the {IS._dw(clock.get('since'))} close). "
                          if mb.get("start_day") and str(clock.get("since") or "") < str(mb.get("start_day")) else f"All from the {IS._dw(clock.get('since'))} close. ")
                         + f"{clock.get('words')}: too early to judge." if clock.get("since") and clock.get("words") else m.get("books_note"))),
+             K.line(str(m.get("books_exposure"))) if m.get("books_exposure") else None,          # 12 Nov 2026 (G-12): not equally in stocks
              # 12 Nov 2026 (audit repair 4, G-06): the book's own positions under its own total; your Zerodha holdings, as you have them, apart
              K.rows("In the managed book", [book_row(x) for x in own[:3]], count=len(own), sub=f"{len(own)} · on paper, at its own sizes",
                     more=K.to_page(book_page(own, mb.get("marks")))) if own else None,
              K.rows("Your Zerodha holdings", [holding_row(h) for h in hs[:3]], count=len(hs), sub=f"{len(hs)} · as you have them, graded", more=K.to_page(holdings_page(hs))) if hs else None,
              K.rows("Bought on paper", [K.row(_name(r.get("symbol")), f"For the {_name(r.get('for_cut'))} cut", right=_rs(r.get("value_inr")), right_sub=_pct(r.get("pnl_pct"), 1),
                                               right_tone=_tone(r.get("pnl_pct"))) for r in reps[:3]], count=len(reps)) if reps else None,
-             K.rows(None, [K.row("Options", "One lot at a time, on paper" + ("; one trade left out" if _left_out() else ""), right=_rs((m.get("options_book") or {}).get("pnl_inr"), sign=True), right_tone=_tone((m.get("options_book") or {}).get("pnl_inr")), to=K.place("options")),
+             K.rows(None, [K.row("Options", "On paper; one trade left out" if _left_out() else "One lot at a time, on paper", right=_rs((m.get("options_book") or {}).get("pnl_inr"), sign=True), right_tone=_tone((m.get("options_book") or {}).get("pnl_inr")), to=K.place("options")),
                            K.row("The next session's plan", "No change" if (m.get("plan") or {}).get("no_change") else "Cuts and buys", to=K.place("plan"))], plain=True)]
     return K.page("Your account", parts, ask_q="Explain my account: the managed book, how it compares, what it holds and what happens next session.",
                   second={"label": "What changes next session?", "ask": "What will you change in my portfolio next session, and why?"})
@@ -759,10 +774,28 @@ def option_trades_page(rows: list[dict]) -> dict:
                   ask_q="Walk me through the options line's trades: what worked, what did not, and why.")
 
 
+def _option_bought(r: dict) -> tuple[str, str]:
+    """('Bank Nifty put', '59,100 Nov, paid ₹23,928'). 12 Nov 2026 (the keen audit, G-23): 'Bank Nifty · short' was a bought put shown with
+    no strike, expiry or premium; the line only buys an option (a call when it goes long, a put when it goes short)."""
+    opt = (r.get("legs") or {}).get("option") or {}
+    sym = str(opt.get("tradingsymbol") or "")
+    kind = "put" if sym.endswith("PE") else "call" if sym.endswith("CE") else ("put" if r.get("dir") == -1 else "call")
+    m = re.match(r"^(?:NIFTY|BANKNIFTY)\d{2}([A-Z]{3})(\d+)(?:CE|PE)$", sym)
+    paid = opt.get("entry_realistic") * opt.get("lot") if isinstance(opt.get("entry_realistic"), (int, float)) and isinstance(opt.get("lot"), (int, float)) else None
+    detail = ", ".join(x for x in ((f"{int(m.group(2)):,} {m.group(1).title()}" if m else ""), (f"paid {_rs(paid)}" if paid else "")) if x)
+    return f"{IDX.get(r.get('index'), r.get('index'))} {kind}", detail
+
+
+def _paid(r: dict) -> str:
+    opt = (r.get("legs") or {}).get("option") or {}
+    ok = isinstance(opt.get("entry_realistic"), (int, float)) and isinstance(opt.get("lot"), (int, float))
+    return f"paid {_rs(opt['entry_realistic'] * opt['lot'])}" if ok else ""
+
+
 def _trade_row(r: dict) -> dict:
     net = ((r.get("legs") or {}).get("option") or {}).get("net_rs_realistic")
-    side = "short" if r.get("dir") == -1 else "long"
-    return K.row(f"{IDX.get(r.get('index'), r.get('index'))} · {side}", IS._dw(r.get("date")) + (" · scored late" if r.get("scored_late") else ""),
+    what, _detail = _option_bought(r)                 # the strike and month are on the trade's own page; a row keeps nine words
+    return K.row(f"Bought a {what}", " · ".join(x for x in (IS._dw(r.get("date")), "scored late" if r.get("scored_late") else "", _paid(r)) if x),
                  right=_rs(net, sign=True) if isinstance(net, (int, float)) else "No result",
                  right_tone=_tone(net) if isinstance(net, (int, float)) else None, icon="bars")
 

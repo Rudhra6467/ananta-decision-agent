@@ -181,7 +181,7 @@ def india_reference(monkeypatch):
 
     from jarvis.india import answerguide, askwords
 
-    monkeypatch.setattr(answerguide, "_holidays", lambda: {dt.date(2026, 11, 10)})          # Diwali-Balipratipada, the one in the tests' dates
+    monkeypatch.setattr(answerguide, "_holidays", lambda: {dt.date(2026, 11, 10), dt.date(2026, 11, 24)})   # NSE's: Diwali-Balipratipada, Guru Nanak's birthday
     monkeypatch.setitem(askwords._NAMES, "t", time.time())
     monkeypatch.setitem(askwords._NAMES, "v", {"TATAPOWER": "Tata Power", "JIOFIN": "Jio Financial", "ETERNAL": "Eternal", "LICI": "LIC of India",
                                                "IEX": "Indian Energy Exchange", "IDEA": "Vodafone Idea"})

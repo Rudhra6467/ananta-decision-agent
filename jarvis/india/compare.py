@@ -9,8 +9,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-DATA = Path.home() / "ananta_data" / "india"
 MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
+
+
+def _data() -> Path:
+    """The India data folder every India screen reads (views.DATA, which follows ANANTA_INDIA_DATA). 12 Nov 2026 (the confirm check of
+    repair 4, C6): this file alone was fixed to the home folder's copy, so a check run on a copy mixed the copy's total with the live
+    comparison."""
+    from jarvis.india import views
+
+    return Path(views.DATA)
 
 
 def _day(d: str) -> str:
@@ -18,8 +26,9 @@ def _day(d: str) -> str:
     return f"{int(dd)} {MONTHS[int(m) - 1]}"
 
 
-def same_window(data: Path = DATA) -> dict:
+def same_window(data: Path | None = None) -> dict:
     """Managed, your holdings as you have them, and the Nifty 500, all from the close before the managed book's first session."""
+    given, data = data is not None, Path(data) if data is not None else _data()
     try:
         v = json.loads((data / "paper" / "account" / "view.json").read_text()).get("benchmark") or {}
         rows = [json.loads(x) for x in (data / "paper" / "account" / "benchmark.jsonl").read_text().splitlines() if x.strip()]
@@ -64,19 +73,32 @@ def same_window(data: Path = DATA) -> dict:
               + (f"; stock for stock, your holdings {exp['yours_stock_for_stock_pct']:+.2f}%." if "yours_stock_for_stock_pct" in exp else "."))
     # 12 Nov 2026 (the outside check of repair 4, N2): from G-11 the managed book's figure carries the options line's paper result, while
     # your holdings keep their options money flat; said beside it, with the book like for like (its options money flat too)
+    # 12 Nov 2026 (the confirm check of repair 4, C3): the comparison's managed figure holds the options line's result, so it says what it
+    # leaves out, as every total does (G-01), counted as the totals count it
+    try:
+        from jarvis.india import surfaces as _sf
+
+        lo = len(_sf._sp1_unscored(data) if given else _sf._sp1_unscored())
+    except Exception:  # noqa: BLE001
+        lo = 0
+    left_words = f"{lo} options trade{'s' if lo != 1 else ''} left out" if lo else ""
     ow, like = "", None
     opt = last.get("managed_options_inr")
     if isinstance(opt, (int, float)) and opt and last.get("managed_inr"):
         start_v = float(last["managed_inr"]) / (1 + managed / 100)
         pts = 100 * float(opt) / start_v
         like = managed - pts
-        ow = (f"The book counts the options line's result ({'+' if opt >= 0 else '−'}₹{abs(opt):,.0f}, about {pts:.1f} points); "
-              f"with its options flat, as yours are, it is {like:+.2f}%.")             # a screen's line: 22 words at most
+        sign = f"{'+' if opt >= 0 else '−'}₹{abs(opt):,.0f}"
+        ow = (f"The book counts the options line's result ({sign}, about {pts:.1f} points); with options flat, like yours, {like:+.2f}%; "
+              f"{left_words}." if left_words else
+              f"The book counts the options line's result ({sign}, about {pts:.1f} points); with its options flat, as yours are, it is {like:+.2f}%.")
     return {"ready": True, "since": str(start), "since_words": _day(start), "through": last["day"], "through_words": _day(last["day"]),
             "managed_pct": round(managed, 2), "yours_pct": round(yours, 2), "nifty500_pct": round(n500, 2),
             "managed_minus_yours_pts": round(managed - yours, 2), "sessions": s, "exposure": exp, "exposure_words": ew,
             "managed_options_inr": opt if isinstance(opt, (int, float)) else None,
-            "managed_like_for_like_pct": round(like, 2) if like is not None else None, "options_words": ow,
+            "managed_like_for_like_pct": round(like, 2) if like is not None else None, "options_words": ow,      # a screen's line: 22 words at most
+            "left_out": lo, "left_out_words": left_words,
             "words": (f"From the {_day(start)} close (the managed book's start) to {_day(last['day'])}: the managed book {managed:+.2f}%, "
-                      f"your holdings as you have them {yours:+.2f}%, the Nifty 500 {n500:+.2f}% (price index). " + (ow + " " if ow else "")
+                      f"your holdings as you have them {yours:+.2f}%, the Nifty 500 {n500:+.2f}% (price index). "
+                      + (ow + " " if ow else (f"{left_words}. " if left_words else ""))
                       + (ew + " " if ew else "") + f"Session {s} of 60; nothing is read into the gap before session 60.")}

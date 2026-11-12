@@ -776,7 +776,8 @@ def _books_benchmark() -> dict:
     if not sw.get("ready"):
         return {"words": sw.get("words"), "day": v.get("day")}
     return {**sw, "how": ("compare the managed book only with these same-window numbers; never put its return beside the holdings' return "
-                          "since 22 Oct, which starts on a different day"),
+                          "since 22 Oct, which starts on a different day; the managed figure holds the options line's result (options_words), "
+                          "and when left_out_words is given, say it with the managed figure (12 Nov, G-01)"),
             "holdings_since_22_oct_pct": v.get("frozen_ret_pct"), "nifty500_since_22_oct_pct": v.get("nifty500_ret_pct")}
 
 

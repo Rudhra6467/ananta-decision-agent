@@ -349,7 +349,9 @@ def _holdings_points(hs: list[dict], bench: dict) -> list[str]:
     sw = _cmp.same_window()                                   # 5 Nov: one window for all three (jarvis/india/compare.py)
     if sw.get("ready"):
         like = sw.get("managed_like_for_like_pct")              # 12 Nov (N2): the options line's result is in the managed figure
-        pts.append(_tidy(f"Since {sw['since_words']}: managed {sw['managed_pct']:+.2f}%" + (f" ({like:+.2f}% with its options flat, as yours)" if like is not None else "")
+        lw = sw.get("left_out_words")                           # 12 Nov (the confirm check, C3): and the trade it leaves out
+        pts.append(_tidy(f"Since {sw['since_words']}: managed {sw['managed_pct']:+.2f}%"
+                         + (f" ({like:+.2f}% with its options flat, as yours" + (f"; {lw})" if lw else ")") if like is not None else (f" ({lw})" if lw else ""))
                          + f" · your holdings {sw['yours_pct']:+.2f}% · Nifty 500 {sw['nifty500_pct']:+.2f}%"))
     elif bench.get("frozen_ret_pct") is not None and bench.get("nifty500_ret_pct") is not None:
         pts.append(_tidy(f"Since {_dw(bench.get('frozen_day')).split(' ', 1)[-1]}: your holdings {bench['frozen_ret_pct']:+.2f}% · Nifty 500 {bench['nifty500_ret_pct']:+.2f}%"))
@@ -649,20 +651,21 @@ def _sp1_clock(clocks: list[dict]) -> None:
                      for k, v in (b.get("by_index") or {}).items()]
             c["so_far"] = f"Over {b['sessions']} sessions, scored to {_dw(str(b.get('updated'))[:10])} with realistic fills: " + "; ".join(parts) + "."
             un = _sp1_unscored()
-            if un:
-                c["so_far"] += (f" Not in these figures: {len(un)} trade{'s' if len(un) != 1 else ''} with no result yet ("
-                                + "; ".join(f"{_dw(r.get('date'))}, { {'NIFTY': 'Nifty', 'BANKNIFTY': 'Bank Nifty'}.get(r.get('index'), r.get('index')) }" for r in un[:3])
+            if un:                                       # C4: in the same words as every total, never "no result yet" after the expiry
+                exp = _sp1_expiries()
+                c["so_far"] += (f" Not in these figures: {len(un)} trade{'s' if len(un) != 1 else ''} ("
+                                + "; ".join(_sp1_left_one(r, exp) for r in un[:3])
                                 + "). A trade whose next open falls on a day that is no regular session is scored at the next regular open and "
                                   "marked scored late (Madhav's decision of 12 Nov).")
 
 
-def _sp1_outcomes() -> list[dict]:
+def _sp1_outcomes(data: Path | None = None) -> list[dict]:
     """The options line's outcomes, one row per trade (date and index), in the ledger's order: the scored row when there is one, else the
     note. 12 Nov 2026 (the keen audit, G-01; Madhav's yes of 12 Nov 01:52): a trade the scorer first noted 'not defined' is scored late,
     and the ledger is append-only, so its note stays and the scored row follows it; no reader may list or count the trade twice."""
     out: dict = {}
     try:
-        for line in (DATA / "paper" / "sp1" / "outcomes.jsonl").read_text().splitlines():
+        for line in (Path(data or DATA) / "paper" / "sp1" / "outcomes.jsonl").read_text().splitlines():
             if not line.strip():
                 continue
             r = json.loads(line)
@@ -676,12 +679,12 @@ def _sp1_outcomes() -> list[dict]:
     return list(out.values())
 
 
-def _sp1_unscored() -> list[dict]:
+def _sp1_unscored(data: Path | None = None) -> list[dict]:
     """The options line's trades with no result in its totals: a note and no score, or a score whose option had no price. Madhav decided on
     9 Nov that the 6 Nov Bank Nifty trade stays unscored and shown; on 12 Nov (G-01) that it is scored late at the next regular open and
     included, and until then every total says it leaves the trade out."""
     out = []
-    for r in _sp1_outcomes():
+    for r in _sp1_outcomes(data):
         opt = (r.get("legs") or {}).get("option")
         if (r.get("note") and not r.get("index_proxy")) or (isinstance(opt, dict) and opt.get("net_rs_realistic") is None and opt.get("note")):
             out.append(r)
@@ -711,14 +714,21 @@ def sp1_left_out_words() -> str:
     un = _sp1_unscored()
     if not un:
         return ""
-    exp, today = _sp1_expiries(), dt.datetime.now(IST).date().isoformat()
-    name = {"NIFTY": "Nifty", "BANKNIFTY": "Bank Nifty"}
+    exp = _sp1_expiries()
+    return f"{len(un)} trade{'s' if len(un) != 1 else ''} left out: " + "; ".join(_sp1_left_one(r, exp) for r in un[:3])
 
-    def one(r: dict) -> str:
-        e = exp.get((str(r.get("date")), str(r.get("index"))))
-        what = f"{_dw(r.get('date'))} {name.get(r.get('index'), r.get('index'))}"
-        return f"{what}, never scored (its option expired {_dw(e)})" if e and today > e else f"{what}, not scored yet"
-    return f"{len(un)} trade{'s' if len(un) != 1 else ''} left out: " + "; ".join(one(r) for r in un[:3])
+
+def _today_ist() -> str:
+    return dt.datetime.now(IST).date().isoformat()
+
+
+def _sp1_left_one(r: dict, exp: dict) -> str:
+    """'Fri 6 Nov Bank Nifty, not scored yet', or '..., never scored (its option expired Mon 23 Nov)' once its option has expired (Kite
+    serves no candles for an expired contract). 12 Nov (the confirm check of repair 4, C4): one set of words for every sentence that names
+    a left-out trade, so none still promises a score after the expiry."""
+    e = exp.get((str(r.get("date")), str(r.get("index"))))
+    what = f"{_dw(r.get('date'))} {({'NIFTY': 'Nifty', 'BANKNIFTY': 'Bank Nifty'}).get(r.get('index'), r.get('index'))}"
+    return f"{what}, never scored (its option expired {_dw(e)})" if e and _today_ist() > e else f"{what}, not scored yet"
 
 
 def proof(full: bool = True) -> dict:
@@ -831,9 +841,19 @@ def portfolio_chart(data: Path | None = None) -> dict:
     # 8 Nov (the outside audit, "two accounts on paper"): one owner for "my account on paper" is the managed book (the Map's change 3, 3 Nov);
     # the twin is folded into it and is not drawn as a second "you". The lines: the managed book, the same holdings left alone, the Nifty 500.
     m0 = next((r.get("day") for r in rows if r.get("managed_inr")), None)
+    # 12 Nov 2026 (the confirm check of repair 4, C2): from G-11 the managed figure holds the options line's paper result (about 12.9 of
+    # its +15.87 points on 12 Nov) and leaves a trade out; the chart's words said neither. Said as How it compares says it (compare.py).
+    from jarvis.india import compare as _cmp
+    sw = _safe(_cmp.same_window, data) or {}
+    lw = sw.get("left_out_words") if sw.get("ready") else ""
+    if sw.get("ready") and sw.get("managed_options_inr") and sw.get("managed_like_for_like_pct") is not None:
+        ow = (f"Of that, about {sw['managed_pct'] - sw['managed_like_for_like_pct']:.1f} points are the options line's paper result; with its "
+              f"options flat, like the untouched holdings, {sw['managed_like_for_like_pct']:+.2f}%" + (f"; {lw}" if lw else "") + ". ")
+    else:
+        ow = f"{lw}. " if lw else ""
     words = (f"Drawn from {_dw(dates[0])} to {_dw(dates[-1])}. "
              + (f"Your account on paper, the managed book, {_inr(last.get('managed_inr') or 0)}: {pct('managed_ret_pct'):+.2f}% since it started on {_dw(m0)} "
-                f"({last.get('managed_sessions') or 0} sessions). " if last.get("managed_inr") else "The managed book has not started. ")
+                f"({last.get('managed_sessions') or 0} sessions). " + ow if last.get("managed_inr") else "The managed book has not started. ")
              + "From the snapshot" + (f" of {_dw(since)} ({_inr(start)})" if since and start else "") + ": "
              + f"the same holdings left untouched {_inr(last.get('frozen_inr') or 0)} ({pct('frozen_ret_pct'):+.2f}%)"
              + (f"; the Nifty 500 {pct('nifty500_ret_pct'):+.2f}% on its own path." if last.get("nifty500_ret_pct") is not None else "."))

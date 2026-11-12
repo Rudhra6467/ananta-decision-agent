@@ -202,11 +202,15 @@ def _options_words(mb: dict) -> str:
     lo, nt, res = len(left), int(mb.get("options_trades") or 0), float(mb.get("options_result_inr") or 0)
     # 12 Nov (the confirm check of repair 4, C4): "until scored" promised a score that an expired option can never have
     today = _today_ist()
-    never = bool(left) and all(isinstance(x, dict) and x.get("expiry") and today > str(x["expiry"]) for x in left)
+    gone = sum(1 for x in left if isinstance(x, dict) and x.get("expiry") and today > str(x["expiry"]))
+    # 12 Nov (the third confirm check of repair 4, E5): with one option expired and one still trading, "2 left out until scored" promised
+    # the expired one a score; each is said for what it is
+    tail = ((", never scored: its option expired" if lo == 1 else ", never scored: their options expired") if gone == lo else
+            " until scored" if not gone else
+            f": {lo - gone} until scored, {gone} never scored, {'its option' if gone == 1 else 'their options'} expired")
     return (f"₹{mb['options_value_inr']:,.0f} in options at the options line's own value (₹{mb.get('options_inr') or 0:,.0f} set aside and "
             f"{'+' if res >= 0 else '−'}₹{abs(res):,.0f} from {nt} trade{'s' if nt != 1 else ''} since the book began"
-            + (f"; {lo} options trade{'s' if lo != 1 else ''} left out"
-               + ((", never scored: its option expired" if lo == 1 else ", never scored: their options expired") if never else " until scored") if lo else "")
+            + (f"; {lo} options trade{'s' if lo != 1 else ''} left out" + tail if lo else "")
             + ")")
 
 

@@ -780,10 +780,18 @@ def _leg_price(a: dict, day: dt.date, bar: int, kind: str) -> float | None:
     return float(v) if v == v else None
 
 
-def _retry_late(r: dict, day: dt.date) -> bool:
-    """A trade noted 'not defined' is tried again only while it can still be scored: its exit is the next open and its option contract still
-    trades (Kite serves no candles for an expired contract), so a note is never tried again for ever."""
-    if (r.get("choice") or {}).get("exit") != "NEXTOPEN":
+SHORT_DAY_NOTE = "the day's minute bars are not complete on Kite; it is tried again while its contract trades"
+
+
+def _retry_late(r: dict, day: dt.date, first: dict | None = None) -> bool:
+    """A trade left without a result is tried again only while it can still be scored: its option contract still trades (Kite serves no
+    candles for an expired contract), so it is never tried again for ever. A trade noted 'not defined' is tried again only if its exit is the
+    next open (the next regular session comes later). 12 Nov 2026 (the third confirm check of repair 4, E1): a trade first scored with no
+    price for its option, or noted because its own day's bars were short, is tried again whatever its exit; a trade closed by its stop or
+    its time exit (ATRSTOP, ORSTOP) was never tried again, while its note and every sentence naming it promised a score."""
+    first = first or {}
+    any_exit = "index_proxy" in first or str(first.get("note") or "") == SHORT_DAY_NOTE
+    if not any_exit and (r.get("choice") or {}).get("exit") != "NEXTOPEN":
         return False
     exp = str(((r.get("contracts") or {}).get("option") or {}).get("expiry") or "")[:10]
     try:
@@ -842,7 +850,7 @@ def score(day: dt.date | None = None, log=print) -> dict:
     noted = {(r["date"], r["index"]): r for r in outs if "index_proxy" not in r}
     retry = {**noted, **no_price}
     todo = [r for r in _rows(DECISIONS) if r.get("kind") == "decision" and r.get("choice") and r.get("tradable") and (r["date"], r["index"]) not in done
-            and dt.date.fromisoformat(r["date"]) <= day and ((r["date"], r["index"]) not in retry or _retry_late(r, day))]
+            and dt.date.fromisoformat(r["date"]) <= day and ((r["date"], r["index"]) not in retry or _retry_late(r, day, retry[(r["date"], r["index"])]))]
     res = []
     specials = _specials()
     for r in todo:
@@ -865,8 +873,7 @@ def score(day: dt.date | None = None, log=print) -> dict:
             # for ever and named by no total; after three days it is noted once, so every total names it, and tried again as a noted trade
             if key not in retry and (day - d).days >= 3:
                 res.append(_append(OUTCOMES, {"kind": "outcome", "date": r["date"], "index": sym, "point": r["point"], "action": r["choice"]["action"],
-                                              "note": "the day's minute bars are not complete on Kite; it is tried again while its contract trades",
-                                              "decision_hash": r["hash"]}))
+                                              "note": SHORT_DAY_NOTE, "decision_hash": r["hash"]}))
                 retry[key] = res[-1]
             log(f"{r['date']} {sym}: the day's bars are not complete yet")
             continue
@@ -959,6 +966,8 @@ def score(day: dt.date | None = None, log=print) -> dict:
             row["scored_late"] = True
             row["late_why"] = (("Kite had no price for its option at the exit when it was first scored, so it was left without a result; it is "
                                 "scored again now" if key in no_price else
+                                "Its own day's minute bars were not complete on Kite when it was first scored, so it was left without a "
+                                "result; it is scored now" if str(retry[key].get("note") or "") == SHORT_DAY_NOTE else
                                 f"Its next open fell on {_days_and(skipped)}, which {'is no regular session' if len(skipped) == 1 else 'are no regular sessions'}, so it was first left "
                                 f"without a result; it is scored at the next regular open ({_dw(day_out)})" if next_day and skipped else
                                 "It was first left without a result; it is scored now")
@@ -975,6 +984,10 @@ def write_book() -> dict:
     score follows its note in the append-only ledger (G-01), and a trade is never counted twice."""
     dec = [r for r in _rows(DECISIONS) if r.get("kind") == "decision"]
     outc = list({(r["date"], r["index"]): r for r in _rows(OUTCOMES) if r.get("kind") == "outcome" and "index_proxy" in r}.values())
+    # 12 Nov 2026 (the third confirm check of repair 4, E3): a trade scored with no price for its option counted among the trades while
+    # every total said it was "not in these figures" (13 trades and 1 left out read as 14); until it is scored late it is in no figure here
+    outc = [r for r in outc if not (isinstance((r.get("legs") or {}).get("option"), dict) and r["legs"]["option"].get("net_rs_realistic") is None
+                                    and r["legs"]["option"].get("note"))]
     days = sorted({r["date"] for r in dec if r.get("tradable") or r.get("choice") is None})
     out = {"updated": _ist_now().isoformat(timespec="seconds"), "sessions": len(days), "by_index": {}}
     for sym in sp1.IDX:

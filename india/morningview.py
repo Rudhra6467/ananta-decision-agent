@@ -254,7 +254,10 @@ def plan_today(session: str, rm: dict) -> dict:
     # stocks). The twin was folded into the managed book on 3 Nov: the paper account here is the managed book's, at the close it is marked at.
     # 12 Nov 2026 (G-11, Madhav's yes of 12 Nov 01:52): the options money at the options line's own value, the sentence beside it
     opt_words = _options_words(mb)
-    account_words = ((f"The paper account (the managed book): ₹{mb['value_inr']:,.0f} at the {_dw(mb.get('day'))} close: "
+    # 13 Nov (the outside read of repair 4's replay): a holding left at an older price is said here too, as Home and Account say it
+    old = len(mb.get("kept_old_price") or {})
+    account_words = ((f"The paper account (the managed book): ₹{mb['value_inr']:,.0f} at the {_dw(mb.get('day'))} close"
+                      + (f" ({old} holding{'s' if old != 1 else ''} at an older price)" if old else "") + ": "
                       f"₹{mb.get('stocks_inr') or 0:,.0f} in {mb.get('positions')} stocks, {opt_words}, "
                       f"₹{mb.get('cash_inr') or 0:,.0f} cash"
                       + (f"; {mb['return_pct']:+.2f}% since {_dw(mb.get('start_day'))}." if isinstance(mb.get("return_pct"), (int, float)) else "."))

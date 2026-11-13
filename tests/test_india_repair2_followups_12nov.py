@@ -30,7 +30,11 @@ def test_a_holding_with_no_bar_that_day_is_named_not_kept_at_its_old_price_in_si
     m.mark_after_close()
     v = json.loads((world / "paper" / "managed" / "view.json").read_text())
     assert v["kept_old_price"] == {gone: DAY}
-    assert f"1 holding had no close on {NXT} and stay at an older price ({gone}, last marked {DAY})" in v["words"]
+    assert f"1 holding had no close on {NXT} and stays at an older price ({gone}, last marked {DAY})" in v["words"]
+    # 13 Nov: repair 2's sentence and repair 4's options sentence met in one view by a hand merge; both stand, once each, in that order
+    assert v["words"].count("older price") == 1 and v["words"].count(v["options_counted"]) == 1
+    assert v["words"].index("older price") < v["words"].index(v["options_counted"])
+    assert "options_value_inr" in v and "holdings" in v
     st = json.loads((world / "paper" / "managed" / "state.json").read_text())
     assert all(p.get("last_on") == NXT for s, p in st["positions"].items() if s != gone)
 

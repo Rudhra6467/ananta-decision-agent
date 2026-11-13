@@ -25,6 +25,16 @@ def test_the_morning_views_paper_account_is_the_managed_book(tmp_path, monkeypat
     assert w.startswith("The paper account (the managed book): ₹164,725 at the 9 Nov close")
     assert "11 stocks" in w and "+2.63% since 30 Oct" in w
     assert "167,641" not in w and "13 stocks" not in w and "trades so far" not in w
+    assert "older price" not in w
+
+
+def test_a_holding_left_at_an_older_price_is_said_in_the_morning_account_sentence(tmp_path, monkeypatch):
+    monkeypatch.setenv("INDIA_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr(kite, "_read_token", lambda: None)
+    _files(tmp_path, {"value_inr": 164725, "stocks_inr": 87111, "options_inr": 50000, "cash_inr": 27614, "positions": 11, "day": "2026-11-09",
+                      "start_day": "2026-10-30", "return_pct": 2.63, "plan": {}, "kept_old_price": {"AAA": "2026-11-06"}})
+    w = mv.plan_today("2026-11-11", {"data_through": "2026-11-09"})["account_words"]
+    assert w.startswith("The paper account (the managed book): ₹164,725 at the 9 Nov close (1 holding at an older price): ")
 
 
 def test_with_no_managed_value_it_says_so_and_never_borrows_the_twins_words(tmp_path, monkeypatch):

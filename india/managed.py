@@ -701,8 +701,9 @@ def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, o
         words += "Today it " + "; ".join(f"{'bought' if t['side'] == 'BUY' else 'sold'} {t.get('qty')} {t['symbol']} at ₹{t.get('price'):,.2f}" if t.get("filled") else f"skipped {t['symbol']} ({t['skipped']})" for t in filled) + ". "
     kept = book.get("kept_old_price") or {}
     if kept:                                                          # 12 Nov evening (N7): never an old price without a word
-        words += (f"{len(kept)} holding{'s' if len(kept) != 1 else ''} had no close on {day} and stay at an older price ("
-                  + ", ".join(f"{s}, last marked {d}" if d else f"{s}, from before {day}" for s, d in sorted(kept.items())) + "). ")
+        # 13 Nov (the outside read of repair 4's replay): "stays" for one, and "; " between two (a comma already sits inside each)
+        words += (f"{len(kept)} holding{'s' if len(kept) != 1 else ''} had no close on {day} and stay{'s' if len(kept) == 1 else ''} at an older price ("
+                  + "; ".join(f"{s}, last marked {d}" if d else f"{s}, from before {day}" for s, d in sorted(kept.items())) + "). ")
     counted = options_words(book["options_inr"], ol, book["start_day"])
     words += counted + " " + OPEN_LOT + " "
     if plan and not plan.get("error"):

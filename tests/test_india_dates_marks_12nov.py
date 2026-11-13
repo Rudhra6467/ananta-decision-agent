@@ -182,10 +182,14 @@ def test_markets_gauge_box_says_its_own_day_when_it_is_not_the_nifty_close(india
     t["tiles"][0]["vix"] = {"value": "17.56", "when": "Mon 9 Nov · last price", "change_pct": -0.4, "source": "Zerodha's last price"}
     monkeypatch.setattr(IS, "today", lambda full=True: json.loads(json.dumps(t)))
     box = _box(IP.markets(), "Fear gauge")
-    assert box["caption"] == "VIX · last price" and len(box["caption"]) <= 17     # Q1 (S2): the phone's box cut a longer one to "India VIX · Thu 12 N…"
+    # Q1 (S2): the phone's box cut a longer caption to "India VIX · Thu 12 N…"; and the screens' plain-words pass lengthens "VIX" to "the
+    # fear gauge" (found at the go-live: "VIX · last price" reached the phone as "the fear gauge · last price"), so it is read as the phone gets it
+    from jarvis.india import plain
+    assert box["caption"] == "Last price" and plain.scrub(dict(box))["caption"] == "Last price"
     note = (t["tiles"][0].get("pages") or [{}])[0].get("sub2")
     t["tiles"][0]["vix"] = {"value": "17.53", "when": note, "change_pct": -0.6}
     assert _box(IP.markets(), "Fear gauge")["caption"] == "India VIX"                 # the same day as the note: as before
+    assert len(plain.scrub(dict(_box(IP.markets(), "Fear gauge")))["caption"]) <= 17   # "the fear gauge" on the phone: it fits
 
 
 def test_a_holding_of_as_you_have_them_at_an_older_close_is_said_on_account(india, monkeypatch):

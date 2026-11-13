@@ -339,7 +339,10 @@ def markets(full: bool = True) -> dict:
         # note above says the Nifty's "<day> close"; the box then says so in words short enough for its one line on the phone (the box
         # holds about 118 pt of 13 pt text: "India VIX · Thu 12 Nov · last price" was cut to "India VIX · Thu 12 N…")
         cards.append(K.box("Fear gauge", vx["value"], change=_vix_change(vx),
-                           caption="VIX · last price" if "last price" in str(vx.get("when") or "") else "India VIX", to=K.place("vix")))
+                           # 13 Nov, at the go-live: the screens' plain-words pass (jarvis/india/plain.py) turns "VIX" into "the fear
+                           # gauge", so "VIX · last price" reached the phone as "the fear gauge · last price", too long again; the box
+                           # is already labelled "Fear gauge", so the caption is just "Last price"
+                           caption="Last price" if "last price" in str(vx.get("when") or "") else "India VIX", to=K.place("vix")))
     view = mv.get("view") or []
     trend = next((x for x in view if "uptrend" in x or "downtrend" in x), "")
     up = "uptrend" in trend

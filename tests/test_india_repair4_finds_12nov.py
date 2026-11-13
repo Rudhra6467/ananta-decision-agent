@@ -94,7 +94,7 @@ def test_every_total_with_the_options_result_says_the_trade_it_leaves_out(india,
     home = IP.home()
     box = next(p for p in home["parts"] if p.get("t") == "boxes")["items"][1]["pages"][1]
     hero = next(p for p in home["parts"] if p.get("t") == "hero")
-    assert box["caption"] == "1 options trade left out" and hero["since"].endswith("; 1 options trade left out")
+    assert box["caption"] == "one trade left out" and hero["since"].endswith("; 1 options trade left out")   # 13 Nov: the box's one line
     page = IP.account()
     assert next(p for p in page["parts"] if p.get("t") == "hero")["since"].endswith("; 1 options trade left out")
     assert next(p for p in page["parts"] if p.get("t") == "split")["parts"][1]["label"] == "Options, since the book began"
@@ -144,3 +144,15 @@ def test_a_trade_left_out_after_its_option_expired_says_it_was_never_scored(indi
 def test_markets_names_the_real_holdings_as_account_and_your_stocks_do(india):
     titles = [p.get("title") for p in IP.markets()["parts"] if p.get("t") == "rows"]
     assert "Your Zerodha holdings" in titles and "Your holdings" not in titles
+
+
+# ------------------------------------------------------------------------------------------------ 13 Nov: the merge with live (repair 2)
+def test_an_older_price_and_a_trade_left_out_are_both_said_on_the_big_number(india, monkeypatch):
+    """The outside read of repair 4's merge with live: repair 2 says a holding at an older price beside the big number, repair 4 says the
+    options trade a total leaves out; the merge joined them in one line, and no test held both at once."""
+    _money(monkeypatch)
+    _note(india)
+    monkeypatch.setattr(IS, "_managed", lambda: {"start_inr": 160499, "start_day": "2026-10-30", "positions": 11, "day": "2026-11-10",
+                                                 "kept_old_price": {"IEX": "2026-11-09"}})
+    hero = next(p for p in IP.home()["parts"] if p.get("t") == "hero")
+    assert hero["since"] == "since Fri 30 Oct · 1 at an older price; 1 options trade left out"

@@ -362,7 +362,9 @@ def home(full: bool = True) -> dict:
              K.boxes([K.paged(_index_boxes(t)),
                       K.paged([K.box("In stocks", _rs(stocks), bar=[round(stocks / tot, 3), round(opts / tot, 3)], caption=f"{mb.get('positions') or len(m.get('holdings') or [])} stocks", to=K.place("stocks")),
                                # 12 Nov (N4, N5): it said "At the line's value", a second meaning beside the Options page's own figure
-                               K.box("Options", _rs(opts), bar=[0, round(opts / tot, 3)], caption=(out_words or "Since the book began") if at_value else _options_caption(t, m),
+                               # 13 Nov (the outside read of the merge): "1 options trade left out" is about as wide as this box's one line on a
+                               # phone; the box is labelled Options, so it says what Account's and Markets' options rows say
+                               K.box("Options", _rs(opts), bar=[0, round(opts / tot, 3)], caption=(_left_n() or "Since the book began") if at_value else _options_caption(t, m),
                                      to=K.place("options"))])]),
              {"t": "needs", "title": "Needs you", "badge": True, "more": K.place("notices")},
              K.rows("What Ananta did", top, more=K.tab("activity")) if top else None,

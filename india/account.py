@@ -304,6 +304,7 @@ def benchmark(book: dict, marks: dict) -> dict:
         n500 = {"error": f"{type(e).__name__}: {str(e)[:80]}"}
     row = {"day": day, "at": _now(), "twin_inr": round(twin_val), "frozen_inr": round(frozen_val), "start_inr": round(start),
            "frozen_marked_from_quotebook": {s: d for s, (_c, d) in qb.items()}, "frozen_stale": stale,
+           "frozen_older_close": {s: d for s, (_c, d) in qb.items() if day and d < str(day)[:10]},       # 12 Nov evening (N3)
            "twin_ret_pct": round(100 * (twin_val / start - 1), 2), "frozen_ret_pct": round(100 * (frozen_val / start - 1), 2),
            "nifty500_ret_pct": (n500 or {}).get("ret_pct"), "twin_minus_frozen_pct": round(100 * (twin_val - frozen_val) / start, 2)}
     managed = _load(paths.data_dir() / "paper" / "managed" / "view.json")      # 30 Oct (Madhav's yes): the managed book, the fourth column
@@ -327,6 +328,11 @@ def benchmark(book: dict, marks: dict) -> dict:
         words += f"The managed book (cuts replaced on paper, since {row.get('managed_start_day')}, session {row.get('managed_sessions')} of 60): {row['managed_ret_pct']:+.2f}%. "
     if stale:
         words += (f"{len(stale)} of your holdings had no close on file and stay at their opening price in this line ({', '.join(stale)}). ")
+    # 12 Nov evening (repair 2's outside check, N3): when that night's quote book was not built, an older close was used without a word
+    older = row["frozen_older_close"]
+    if older:
+        words += (f"{len(older)} of your holdings are at an older close in this line ("
+                  + ", ".join(f"{s} at the {d} close" for s, d in sorted(older.items())) + f"; the quote book has no {str(day)[:10]} close for them). ")
     words += "Nothing is read into the gap before 60 sessions; the twin's changes so far are the allocator's sleeve and weak-holding moves."
     return {"status": "ok", **row, "sessions": sessions, "frozen_day": f["day"], "words": words}
 

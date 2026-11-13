@@ -261,10 +261,18 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
 
 
 def mark(book: dict, day: str, df: pd.DataFrame) -> None:
+    """12 Nov 2026 evening (repair 2's outside check, N7): a holding with no bar that day (a suspended stock, say) kept its old price without a
+    word, in the book behind Home's big number. Each holding now carries the day it was last marked (last_on), and the book names the ones
+    left at an older price (kept_old_price: symbol -> that day, or None when it was last marked before last_on was kept); the view says so."""
     today = df[df["date"] == pd.Timestamp(day)].set_index("symbol")["close"]
+    kept = {}
     for sym, p in book["positions"].items():
         if sym in today.index and float(today[sym]) > 0:
             p["last"] = float(today[sym])
+            p["last_on"] = day
+        else:
+            kept[sym] = p.get("last_on")
+    book["kept_old_price"] = kept
     if day not in book["sessions"]:
         book["sessions"].append(day)
 
@@ -568,11 +576,15 @@ def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, o
              f"{len(reps)} replacement{'s' if len(reps) != 1 else ''} held, {sum(1 for t in book['trades'] if t.get('filled'))} fills so far. ")
     if filled:
         words += "Today it " + "; ".join(f"{'bought' if t['side'] == 'BUY' else 'sold'} {t.get('qty')} {t['symbol']} at ₹{t.get('price'):,.2f}" if t.get("filled") else f"skipped {t['symbol']} ({t['skipped']})" for t in filled) + ". "
+    kept = book.get("kept_old_price") or {}
+    if kept:                                                          # 12 Nov evening (N7): never an old price without a word
+        words += (f"{len(kept)} holding{'s' if len(kept) != 1 else ''} had no close on {day} and stay at an older price ("
+                  + ", ".join(f"{s}, last marked {d}" if d else f"{s}, from before {day}" for s, d in sorted(kept.items())) + "). ")
     if plan and not plan.get("error"):
         words += plan["words"]
     elif plan:
         words += f"No plan could be written for {plan.get('for_session')}: {plan['error']}."
-    return {"built_at": _now(), "paper": True, "day": day, "opened_today": opened, "start_day": book["start_day"], "start_inr": round(start), "value_inr": round(value),
+    return {"built_at": _now(), "paper": True, "day": day, "opened_today": opened, "kept_old_price": kept, "start_day": book["start_day"], "start_inr": round(start), "value_inr": round(value),
             "return_pct": round(100 * (value / start - 1), 2), "stocks_inr": round(sum(v["qty"] * v["last"] for v in book["positions"].values())), "cash_inr": round(book["cash_inr"]),
             "options_inr": round(book["options_inr"]), "positions": len(book["positions"]), "replacements": sorted(reps, key=lambda r: -r["value_inr"]), "filled_today": filled,
             "plan": plan, "trades_count": len(book["trades"]), "costs_inr": round(book["costs_inr"], 2), "clock": clock, "chain": chain, "chain_ok": ok, "rules": c["version"], "words": words}

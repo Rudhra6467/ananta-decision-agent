@@ -103,11 +103,16 @@ def _pr_silver():
 
 
 def _managed_mark() -> dict:
+    """12 Nov evening (repair 2's outside check, N2): a failure was swallowed and the step counted as ok, so nobody was told. It still does
+    not fail the data build (the evening run marks the book anyway, and a failed build would drop the night from the evidence counts), but it
+    now writes one line to the job's error file, which the app's run check reads, so the failure shows as the India nightly's problem."""
     try:
         from india import managed
         return managed.mark_after_close()
-    except Exception as e:  # noqa: BLE001  the evening run still marks the book; the data build is not failed by this step
-        return {"status": "error", "why": f"{type(e).__name__}: {str(e)[:160]}"}
+    except Exception as e:  # noqa: BLE001
+        why = f"{type(e).__name__}: {str(e)[:160]}"
+        print(f"india.nightly managed_mark FAILED {why} (the evening run will mark the book instead)", file=sys.stderr, flush=True)
+        return {"status": "error", "why": why}
 
 
 def last_published_day(now_utc: dt.datetime | None = None) -> dt.date:

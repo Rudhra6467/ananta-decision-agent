@@ -97,3 +97,36 @@ def test_the_two_old_cuts_are_marked_once_by_the_code_beside_the_ledger(tmp_path
     (d / "marks.jsonl").unlink()
     (d / "ledger.jsonl").write_text(json.dumps(led[1]) + "\n")
     assert managed.ensure_marks() == 0 and not (d / "marks.jsonl").exists()             # no row, no mark
+
+
+def test_a_cut_is_a_share_of_the_books_own_shares_at_the_fill_whatever_the_open(tmp_path, monkeypatch):
+    """13 Nov 2026 (Madhav, 13:16 Toronto: "Yes to your recommendation"; open-list flag 156): a cut was sized in rupees at the last price
+    the book had and turned back into shares at the next open, so a halving sold more than half when the stock opened lower."""
+    import pandas as pd
+    _view(tmp_path, monkeypatch, [{"symbol": "AAA", "action": "REDUCE", "grade": "D", "value_inr": 100 * 50.0, "suggest_inr": 2500,
+                                   "why": "Weak. Halving it limits the damage."}])
+    (tmp_path / "paper" / "managed").mkdir(parents=True, exist_ok=True)
+    cfg = dict(C, slippage_pct=0.1, max_gap_pct=3, stop_pct=12, min_hold_sessions=5)
+
+    def book():
+        return {"positions": {"AAA": {"qty": 73, "last": 50.0, "avg": 60.0}}, "cut_days": {}, "filled_plans": [], "trades": [], "cash_inr": 0.0,
+                "costs_inr": 0.0}
+    b = book()
+    cut = managed.cut_list(b, "2026-11-03", cfg)[0]
+    assert cut["share"] == 0.5 and cut["inr"] == round(73 * 50.0 * 0.5)
+    df = pd.DataFrame([{"symbol": "AAA", "date": pd.Timestamp("2026-11-04"), "open": 40.0, "close": 41.0}])   # it opens a fifth lower
+    monkeypatch.setattr(managed, "_plans", lambda: [{"id": "P1", "for_session": "2026-11-04", "cuts": [cut], "buys": []}])
+    done = managed.fill(b, "2026-11-04", df, cfg)
+    assert done[0]["filled"] and done[0]["qty"] == 36 and b["positions"]["AAA"]["qty"] == 37     # half of 73, not the 45 (62%) that Rs 1,825 is at 40
+    up = pd.DataFrame([{"symbol": "AAA", "date": pd.Timestamp("2026-11-04"), "open": 60.0, "close": 61.0}])   # and half when it opens higher (30 in rupees)
+    b = book()
+    monkeypatch.setattr(managed, "_plans", lambda: [{"id": "P2", "for_session": "2026-11-04", "cuts": [cut], "buys": []}])
+    assert managed.fill(b, "2026-11-04", up, cfg)[0]["qty"] == 36
+    # a plan written before this day carries no share: it is filled in rupees, as it was written
+    b = book()
+    monkeypatch.setattr(managed, "_plans", lambda: [{"id": "P0", "for_session": "2026-11-04", "cuts": [{k: v for k, v in cut.items() if k != "share"}], "buys": []}])
+    assert managed.fill(b, "2026-11-04", df, cfg)[0]["qty"] == 45
+    # an exit (stop, weak, tidy) is all of it, as before
+    b = book()
+    monkeypatch.setattr(managed, "_plans", lambda: [{"id": "P3", "for_session": "2026-11-04", "cuts": [dict(cut, all=True)], "buys": []}])
+    assert managed.fill(b, "2026-11-04", df, cfg)[0]["qty"] == 73 and "AAA" not in b["positions"]

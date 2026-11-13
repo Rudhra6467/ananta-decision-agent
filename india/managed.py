@@ -321,7 +321,15 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
             done.append(t)
             continue
         price = float(today.loc[sym, "open"]) * (1 - slip)
-        qty = p["qty"] if cut.get("all") else min(p["qty"], max(1, math.floor(float(cut["inr"]) / price)))
+        # 13 Nov 2026 (Madhav's yes, 13:16): a cut is a SHARE of this book's own shares, taken at the fill. Sized in rupees at the last
+        # price the book had, a halving sold more than half when the stock opened lower (sized at 50, opening at 40: about 62%), and a
+        # holding left at an older price made that likelier. A plan written before this day carries no share: it fills in rupees, as written.
+        if cut.get("all"):
+            qty = p["qty"]
+        elif cut.get("share") is not None:
+            qty = min(p["qty"], max(1, math.floor(p["qty"] * float(cut["share"]) + 1e-9)))
+        else:
+            qty = min(p["qty"], max(1, math.floor(float(cut["inr"]) / price)))
         value = qty * price
         k = costs.cost("delivery", "sell", value)
         p["qty"] -= qty
@@ -422,14 +430,16 @@ def cut_list(book: dict, day: str, c: dict) -> list[dict]:
         # this book's own position; a suggestion that does not say the real holding's value gives no share, so no cut.
         mine, real = p["qty"] * p["last"], float(s.get("value_inr") or 0)
         if act == "TIDY":
-            inr = mine
+            inr, share = mine, 1.0
         elif real > 0:
-            inr = mine * min(1.0, float(s.get("suggest_inr") or 0) / real)
+            share = min(1.0, float(s.get("suggest_inr") or 0) / real)
+            inr = mine * share                                            # the plan's estimate in rupees; the fill takes the share (13 Nov)
         else:
             continue
         if inr < 1 or (act != "TIDY" and inr < c["min_cut_inr"]):          # a ₹500 trim is noise, not a decision
             continue
-        out.append({"symbol": sym, "kind": act, "all": act == "TIDY", "inr": round(inr), "grade": s.get("grade"), "why": s.get("why"), "wrong_if": s.get("wrong_if")})
+        out.append({"symbol": sym, "kind": act, "all": act == "TIDY", "inr": round(inr), "share": round(share, 4), "grade": s.get("grade"), "why": s.get("why"),
+                    "wrong_if": s.get("wrong_if")})
     return out
 
 

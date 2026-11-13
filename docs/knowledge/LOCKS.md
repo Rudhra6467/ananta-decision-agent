@@ -19,8 +19,15 @@ A fault in a locked thing is fixed the same day. One question decides how: does 
 - **Yes** (it changes what Ananta buys, sells or sizes): it is fixed now too, on Madhav's one-word yes for that repair. The record is
   split at that day: one record up to the fix, a clean one after.
 
-"No decision changed" is shown by running the stored history through the old and the new code and getting the same trades. Until that
-check is built for a book, a fresh outside agent reads the change.
+Both doors are opened with one tool, `scripts/lock_door.py` (`repair` and `change`; `status` shows every pin), so a pin's history is
+written the same way every time and nobody edits a lock file by hand. A rule Madhav changes after seeing how it did goes through
+the `change` door too: his own yes, and the record split at that day. A door opens only on committed work, and the entry names the
+commit. A lock past its end day is said by `status` and stops nothing: Madhav renews it or it is dropped.
+
+The tool cannot tell whether a change alters a decision. Calling a change a repair is the builder's word, and the guard on that
+word is the one outside check every repair gets: it reads each door entry against the commit it names and says whether any
+decision changes. (A check that replays the stored history through the old and the new code was planned on 13 Nov and dropped
+the same day: Madhav asked for the simplest method that still gives the proof, and two doors with one outside read are that.)
 
 ## Strict locks
 

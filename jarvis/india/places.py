@@ -335,10 +335,11 @@ def markets(full: bool = True) -> dict:
     when = (pages[0].get("sub2") if pages else None) or ""
     vx = _vix(t)                              # 12 Nov (G-05): the same read and the same day as the Nifty boxes, never a number cut from a sentence
     if vx:
-        # 13 Nov (repair 2's confirm check, P2): after the close the gauge's Zerodha number is its last price, while the peek's note above
-        # says the Nifty's "<day> close"; the box then says its own day and kind
+        # 13 Nov (repair 2's confirm checks, P2 and Q1): after the close the gauge's Zerodha number is its last price, while the peek's
+        # note above says the Nifty's "<day> close"; the box then says so in words short enough for its one line on the phone (the box
+        # holds about 118 pt of 13 pt text: "India VIX · Thu 12 Nov · last price" was cut to "India VIX · Thu 12 N…")
         cards.append(K.box("Fear gauge", vx["value"], change=_vix_change(vx),
-                           caption="India VIX" if not vx.get("when") or vx["when"] == when else f"India VIX · {vx['when']}", to=K.place("vix")))
+                           caption="VIX · last price" if "last price" in str(vx.get("when") or "") else "India VIX", to=K.place("vix")))
     view = mv.get("view") or []
     trend = next((x for x in view if "uptrend" in x or "downtrend" in x), "")
     up = "uptrend" in trend

@@ -138,12 +138,12 @@ def test_the_accounts_comparison_and_chart_say_the_close_they_run_to_when_it_lag
     kv = next(p for p in parts if p.get("t") == "kv" and p.get("title") == "How it compares")
     assert "The big number above is at the Tue 10 Nov close; this runs to the Mon 9 Nov close and catches up after the evening run." in kv["foot"]
     ch = next(p for p in parts if p.get("t") == "chart")
-    assert ch["caption"] == "One point a session, at the close. The Tue 10 Nov close joins after the evening run."
+    assert ch["caption"].endswith(" The Tue 10 Nov close joins after the evening run.")      # after its own caption (G-23's, once merged)
     monkeypatch.setattr(IS, "_managed", lambda: {"start_inr": 160499, "start_day": "2026-10-30", "positions": 11, "day": "2026-11-09"})
     parts = IP.account()["parts"]                                                          # after the evening run: no lag, the day is said
     kv = next(p for p in parts if p.get("t") == "kv" and p.get("title") == "How it compares")
     assert kv["foot"].endswith(" To the Mon 9 Nov close.") and "catches up" not in kv["foot"]
-    assert next(p for p in parts if p.get("t") == "chart")["caption"] == "One point a session, at the close."
+    assert "joins after the evening run" not in next(p for p in parts if p.get("t") == "chart")["caption"]
 
 
 def test_a_holding_at_an_older_price_is_said_on_home_and_account(india, monkeypatch):
@@ -182,7 +182,7 @@ def test_markets_gauge_box_says_its_own_day_when_it_is_not_the_nifty_close(india
     t["tiles"][0]["vix"] = {"value": "17.56", "when": "Mon 9 Nov · last price", "change_pct": -0.4, "source": "Zerodha's last price"}
     monkeypatch.setattr(IS, "today", lambda full=True: json.loads(json.dumps(t)))
     box = _box(IP.markets(), "Fear gauge")
-    assert box["caption"] == "India VIX · Mon 9 Nov · last price"
+    assert box["caption"] == "VIX · last price" and len(box["caption"]) <= 17     # Q1 (S2): the phone's box cut a longer one to "India VIX · Thu 12 N…"
     note = (t["tiles"][0].get("pages") or [{}])[0].get("sub2")
     t["tiles"][0]["vix"] = {"value": "17.53", "when": note, "change_pct": -0.6}
     assert _box(IP.markets(), "Fear gauge")["caption"] == "India VIX"                 # the same day as the note: as before

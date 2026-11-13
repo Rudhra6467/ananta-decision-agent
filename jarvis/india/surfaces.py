@@ -128,7 +128,7 @@ def _shared_fetch(clk: dict | None):
 
 
 def _index_tile(rm: dict, clk: dict | None, fetch=None) -> dict:
-    pages = {}
+    pages, vix = {}, None
     if clk:
         try:
             from jarvis.india import livesession
@@ -144,6 +144,24 @@ def _index_tile(rm: dict, clk: dict | None, fetch=None) -> dict:
                     if m.get("last") is not None:
                         mp = 100 * (m["last"] / r["last"] - 1)
                         pages[key]["sub2"] = f"{when} · Muhurat {m['last']:,.0f} ({_signed(mp, 1)}%)"
+            # 12 Nov 2026, the keen outside audit (G-05): the fear gauge had three values for one close (Markets cut Monday's number out of
+            # a sentence and showed it under Wednesday's date; its own page showed the last 5-minute candle; the exchange's close was a
+            # third). It is now read here, in the same Kite read and under the same day as the two index boxes, and every surface uses this.
+            v = rows.get("INDIA VIX") or {}
+            if isinstance(v.get("last"), (int, float)):
+                prev = v.get("prev_close")
+                ch = v.get("change_pct") if isinstance(v.get("change_pct"), (int, float)) else (
+                    100 * (v["last"] / prev - 1) if isinstance(prev, (int, float)) and prev else None)
+                vix = {"value": f"{v['last']:.2f}", "when": when, "change_pct": round(ch, 2) if ch is not None else None}
+                # 12 Nov evening (repair 2's outside check, N4): after the close Zerodha's last price (17.56 for 11 Nov) and the close in
+                # the read model from the exchange's index file (17.53, which the India voice uses) were both shown as "<day> close" on one
+                # evening. Which of the two is the exchange's official close is not settled here, so neither is swapped for the other: the
+                # Zerodha number is named for what it is, its last price, and "close" is kept for the index file's (the closing-bars path).
+                # 13 Nov (repair 2's confirm check, P1): the closing-bars rows (weekends, holidays, after midnight IST before the open,
+                # Zerodha signed out) carry the index file's close; only a Zerodha read is renamed
+                zerodha = "closing bars" not in str(ix.get("kind") or "")
+                if clk["state"] != "open" and zerodha:
+                    vix = dict(vix, when=f"{_dw(clk['latest_session'])} · last price", source="Zerodha's last price")
         except Exception:  # noqa: BLE001
             pass
     newer = (rm.get("market") or {}).get("newer_closes") or {}
@@ -158,7 +176,7 @@ def _index_tile(rm: dict, clk: dict | None, fetch=None) -> dict:
             pages[key] = _index_page(name, close, prev, f"{_dw(day)} close")
         else:
             pages[key] = {"label": name, "value": "—", "sub": "no price on file", "focus": "options"}
-    return {"id": "market", "pages": [pages["NIFTY 50"], pages["NIFTY BANK"]]}
+    return {"id": "market", "pages": [pages["NIFTY 50"], pages["NIFTY BANK"]], "vix": vix}
 
 
 def _option_open(x: dict, clk: dict) -> bool:
@@ -550,7 +568,9 @@ def today(full: bool = True) -> dict:
             "numbers": [{"label": "Nifty · " + str(nifty.get("sub2") or ""), "value": nifty.get("value"), "sub": nifty.get("sub")},
                         # 3 Nov (the Map's change 3): the account's value has one owner, the managed book (the twin is folded into it)
                         ({"label": "Your account", "value": _inr(mb["value_inr"]),
-                          "sub": f"managed book · {mb.get('positions')} stocks, ₹{mb.get('options_inr') or 0:,.0f} options"} if mb.get("value_inr") else
+                          "sub": f"managed book · {mb.get('positions')} stocks, ₹{mb.get('options_inr') or 0:,.0f} options"
+                                 # 12 Nov evening (repair 2's outside check, N7): a holding with no close that day is said, not hidden
+                                 + (f" · {len(mb['kept_old_price'])} at an older price" if mb.get("kept_old_price") else "")} if mb.get("value_inr") else
                          {"label": "Your account", "value": (_inr(acct["value_inr"]) if acct.get("value_inr") else "—"),
                           "sub": f"NSE close · {acct.get('positions') and len(acct['positions'])} stocks, ₹{acct.get('options_inr', 0):,.0f} options" if acct else "no snapshot yet"})],
             "waiting": {"count": waiting.get("count") or 0, "words": waiting.get("words")},
@@ -586,11 +606,20 @@ def money(full: bool = True) -> dict:
         holdings.append({"symbol": x.get("symbol"), "value_inr": x.get("value_inr"), "weight_pct": x.get("weight_pct"), "pnl_pct": x.get("pnl_pct"), "grade": x.get("grade"),
                          "action": (x.get("action") or "").lower(), "suggest_inr": x.get("suggest_inr"), "why": x.get("why"), "wrong_if": x.get("wrong_if")})
     own = mb if mb.get("value_inr") else acct
+    # 12 Nov 2026, the keen outside audit (G-03): the value came from the managed book and its "as of" from the account book's marks, two
+    # books marked at different times; the big number carried no date on Home at all. The day now comes from the book the value comes from.
+    asof_day = str((mb.get("day") if own is mb else (acct.get("marks") or {}).get("last_session")) or "")[:10] or None
     return {"ready": True, "paper": True, "value_inr": own.get("value_inr"), "stocks_inr": own.get("stocks_inr"), "options_inr": own.get("options_inr"), "cash_inr": own.get("cash_inr"),
             "value_owner": "the managed book" if own is mb else "the account book (the managed book has no value yet)",
-            "as_of": f"NSE close {_dw((acct.get('marks') or {}).get('last_session'))}" if acct.get("marks") else None,
+            "as_of": f"NSE close {_dw(asof_day)}" if asof_day else None, "as_of_day": asof_day,
             "books": books, "clock": clock,
             "books_note": books_note,
+            # 12 Nov evening (repair 2's outside check, N1): the comparison and its chart run to the evening run's close, which can be a
+            # session behind the big number (marked in the nightly job); the day they run to is said beside them
+            "books_through": (sw.get("through") if sw.get("ready") else None),
+            # 13 Nov (repair 2's confirm check, P3): a holding of "as you have them" at an older close, or with none, is said beside it
+            "yours_note": "; ".join([f"{s} at the {_dw(d)} close" for s, d in sorted((bm.get("frozen_older_close") or {}).items())]
+                                    + [f"{s} with no close on file" for s in sorted(bm.get("frozen_stale") or [])]) or None,
             "plan": {"for_session": plan.get("for_session"), "brief": plan_sentence(plan) if not plan.get("error") else plan.get("brief"), "words": plan.get("words"), "cuts": len(plan.get("cuts") or []), "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons")} for b in plan.get("buys") or []],
                      "no_change": plan.get("no_change"), "error": plan.get("error")} if plan else None,
             "managed": {"value_inr": mb.get("value_inr"), "return_pct": mb.get("return_pct"), "clock": (mb.get("clock") or {}).get("words"), "replacements": mb.get("replacements") or []},

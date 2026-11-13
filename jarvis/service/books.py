@@ -123,9 +123,9 @@ def _research(j) -> tuple[list[dict], list[dict], list[dict], int]:
     except Exception:  # noqa: BLE001
         pass
     try:                                                   # the $500 NDAX book (Oct 11): the account Stage 1 would use
-        from jarvis.service import ndax_book
+        from jarvis.service import officer
 
-        st = ndax_book.status(j)
+        st = officer.book_status(j)                  # 12 Nov 2026 (audit repair 3, G-35): the brake record as every reader reports it
         if st.get("started"):
             books.append({"name": "The $500 NDAX book", "value": st.get("value_cad"), "start": 500.0, "currency": "CAD",
                           "execution_check": st.get("execution_check"), "started": st.get("started"), "dial_open": st.get("dial_open"),

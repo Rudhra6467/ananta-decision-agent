@@ -105,14 +105,14 @@ At the lock (Oct 15, read from the live service): **16 of 27 pass**; 3 FAIL, 2 P
 
 ## 5. Checkpoints
 
-**Day 30 (about Nov 14, `CHECKPOINT-30`):**
+**Day 30 (`CHECKPOINT-30`, on Sat Nov 14, the day after day 30; the window's days are Toronto dates from day 1 on Oct 15, so day 30 is Fri Nov 13):**
 1. Open the Evidence page and read every count: the ledger questions Q1 (Explorer live against its replay), Q2, Q5, Q6, Q7 and Q8 (what each counts is in section 9), with how many independent market events, market days or rebalances each has so far.
 2. Say whether both dial states have been seen and what the $500 book's execution fidelity is so far (fills inside NDAX's bid and ask; backtest against live).
 3. Read the Acceptance Gate (27 checks) and the graduation scorecard, and list what moved since Oct 15.
 4. Check that every nightly step ran: the 'steps that failed tonight' line in the newest `daily/universe_*.md`, the backups (including the worker's pull), the ledger check and the weekly reviews.
 5. Write a short day-30 note in `docs/repair_shop/` and tell Madhav. Nothing changes by itself; a rule change goes through him.
 
-**Day 60 (about Dec 14, `CHECKPOINT-60`):**
+**Day 60 (`CHECKPOINT-60`, on Mon Dec 14, the day after day 60, Sun Dec 13):**
 1. Run the Acceptance Gate and the graduation scorecard and write the result in `docs/repair_shop/`: what passed, what did not, and why.
 2. Judge Rule A for Madhav: 60 market days of paper operation, both dial states seen, execution fidelity within 3 points of the backtest. If any part is missing the answer is 'not yet', and the window is extended rather than the rule bent.
 3. Read the live zone visits (`ZONES-JUDGE`) and the other questions the due list attaches to day 60.

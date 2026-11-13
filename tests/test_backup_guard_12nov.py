@@ -288,3 +288,31 @@ def test_a_withheld_brief_is_not_saved_and_waits_for_claude():
     assert AB.due_brief() == "morning" and j.db.execute("SELECT COUNT(*) FROM briefings").fetchone()[0] == 0
     b = AB.write_brief("morning", lambda q: {"answer": "Quiet night.", "kind": "answer"}, push=lambda t, x: None)
     assert b["text"] == "Quiet night." and AB.due_brief() is None
+
+
+# ------------------------------------------------------------------ 13 Nov: the fifth confirm check's N1 (S2) and N2 (S3)
+def test_what_claude_did_before_it_failed_is_said_and_never_done_again_by_the_backup():
+    # N2: "Set a watch on SOL.": Claude set one and timed out, Gemini set another, and the answer said "Done";
+    # N1: on a held question the reply ended "Nothing was saved or done." though Claude had set a watch
+    from tests.test_ask_ananta import _jarvis
+    for question in ("Set a watch on SOL.", "Keep an eye on SOL for me."):            # an everyday question, and a held one
+        j, _ = _jarvis()
+        calls = []
+
+        def claude(s, h, u, t, log, **k):
+            log.append({"tool": "watch", "args": {}, "ok": True})
+            raise TimeoutError("the call took too long")
+
+        def gemini(s, h, u, t, log):
+            calls.append(u)
+            log.append({"tool": "watch", "args": {}, "ok": True})
+            return json.dumps({"answer": "Done, I set a watch on SOL.", "kind": "answer", "follow_ups": []}), {"in": 1, "out": 1}
+
+        out = ask.Ask(j, providers={"sonnet": claude, "gemini": gemini}).ask("owner", question, mode="deep")
+        assert calls == [], question                                                   # the backup is not asked, so nothing is done twice
+        assert "Before it failed, the main model set up a watch; that stands, so there is no need to ask for it again." in out["answer"]
+        assert "Nothing was saved or done" not in out["answer"] and "Done, I set a watch" not in out["answer"]
+        note = j.db.execute("SELECT note FROM ask_messages WHERE role='assistant' ORDER BY t DESC, rowid DESC LIMIT 1").fetchone()[0]
+        assert "Claude had already acted before it failed, so the backup model was not asked" in note
+    r = {"kind": "answer", "answer": "x"}                                              # nothing done by anyone: the words as before
+    assert ask.backup_cannot_deny(r, "sonnet", "gemini", question="Should I buy?") and r["answer"].endswith(" Nothing was saved or done.")

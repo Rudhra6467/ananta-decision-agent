@@ -2540,7 +2540,8 @@ DONE_WORDS = {"remember": "saved your note", "log_request": "noted it on the rep
 
 
 def backup_cannot_deny(reply: dict, planned: str, used: str, note: str = "", guest: bool = False, question: str = "",
-                       about_record: bool | None = None, done: list[str] | None = None, context: bool = False) -> bool:
+                       about_record: bool | None = None, done: list[str] | None = None, context: bool = False,
+                       before: list[str] | None = None) -> bool:
     """12 Nov 2026 (the keen outside audit, G-34): two crypto answers on 11 Nov came from the free backup model after Claude could not
     answer; one said "no review 42 exists in our system" five minutes after another answer described review 42. When the backup stands
     in, a reply to a question about a record of the work (Ask.ask then does not ask the backup at all), or a reply of any kind that speaks
@@ -2561,8 +2562,11 @@ def backup_cannot_deny(reply: dict, planned: str, used: str, note: str = "", gue
     reply["backup_withheld_why"] = "not a plainly everyday question" if about else "the reply spoke of our records"
     budget = "budget" in str(note or "").lower()
     reply["answer"] = ((BACKUP_CANNOT_DENY_GUEST if budget and guest else BACKUP_CANNOT_DENY_BUDGET if budget else BACKUP_CANNOT_DENY)
+                       # 13 Nov (N1, N2): what the main model did before it failed stands too, and is said
+                       + (f" Before it failed, the main model {', '.join(before)}; that stands, so there is no need to ask for it again."
+                          if before else "")
                        + (f" While it answered, the backup {', '.join(done)}; that stands, so there is no need to ask for it again." if done
-                          else " Nothing was saved or done." if about else ""))                     # F7
+                          else " Nothing was saved or done." if about and not before else ""))      # F7
     reply["kind"], reply["options"], reply["follow_ups"], reply["assumption"], reply["show"] = "answer", [], [], "", None
     reply["breakdown"], reply["evidence"] = [], []
     return True
@@ -3215,6 +3219,7 @@ class Ask:
         # conversation is about a record, "it" in the backup's reply is the record too
         asked = [m["text"] for m in history if m["role"] == "user"][-3:]
         about_record = not backup_may_answer(text, asked[-2:])          # held: the backup is not asked (12 Nov evening)
+        claude_did: list[str] = []                                       # 13 Nov (N1, N2): what Claude did before it failed, if it did
         about_context = about_record or any(asks_about_a_record(q) for q in asked)
         tries = self._failed_clarifies(thread)
         now = int(self.j.now())
@@ -3419,11 +3424,17 @@ class Ask:
                     # 12 Nov (G-34): why the backup answered was found by no one; the failure's kind is kept (its class and status code,
                     # never its text) and the seconds it took
                     kind = type(exc).__name__ + (f" {exc.status_code}" if isinstance(getattr(exc, "status_code", None), int) else "")
+                    # 13 Nov (the fifth confirm check, N1 and N2): what Claude did before it failed (a watch, a note) was forgotten
+                    # here, so the reply said nothing was done and the backup did it a second time; it is kept, and the backup not asked
+                    claude_did = backup_done(log, None)
+                    about_record = about_record or bool(claude_did)
                     log.clear()
                     L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                     if about_record:                                     # G-34: the backup is not asked about our records
-                        note = (note + "; " if note else "") + (f"{why} ({kind} after {time.time() - t0:.0f} s); the question is not a "
-                                                                "plainly everyday one, so the backup model was not asked")
+                        note = (note + "; " if note else "") + (
+                            f"{why} ({kind} after {time.time() - t0:.0f} s); "
+                            + ("Claude had already acted before it failed" if claude_did else "the question is not a plainly everyday one")
+                            + ", so the backup model was not asked")
                         raw, usage = NO_BACKUP, {"in": 0, "out": 0}
                     else:
                         note = (note + "; " if note else "") + f"{why} ({kind} after {time.time() - t0:.0f} s), so Gemini answered"
@@ -3436,10 +3447,13 @@ class Ask:
                 if not L.created and MODELS[used]["provider"] == "claude" and "gemini" in self.providers:
                     # Claude occasionally ends with thinking only; answer this one with Gemini instead of failing
                     used = "gemini"
+                    claude_did = backup_done(log, None)                  # 13 Nov (N1, N2): as above
+                    about_record = about_record or bool(claude_did)
                     log.clear()
                     L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                     if about_record:                                     # G-34: the backup is not asked about our records
-                        note = (note + "; " if note else "") + "Claude gave no words this time; the question is not a plainly everyday one, so the backup model was not asked"
+                        note = (note + "; " if note else "") + "Claude gave no words this time; " + (
+                            "Claude had already acted before that" if claude_did else "the question is not a plainly everyday one") + ", so the backup model was not asked"
                         raw, usage = NO_BACKUP, {"in": 0, "out": 0}
                     else:
                         note = (note + "; " if note else "") + "Claude gave no words this time, so Gemini answered"
@@ -3475,7 +3489,7 @@ class Ask:
             self.j.db.execute("INSERT INTO ask_misunderstood VALUES (?,?,?,?,?)", (now, thread, text, reply["kind"], used))
         ms = int(1000 * (time.time() - t0))
         if backup_cannot_deny(reply, planned, used, note or "", guest=str(who).startswith("guest:"), question=text, about_record=about_record,
-                              done=backup_done(log, getattr(L, "created", None)), context=about_context) and not about_record:
+                              done=backup_done(log, getattr(L, "created", None)), context=about_context, before=claude_did) and not about_record:
             note = (note + "; " if note else "") + "the backup model's reply spoke of our records, so it was withheld"
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created

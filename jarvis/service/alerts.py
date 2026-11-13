@@ -190,7 +190,7 @@ class Alerts:
              "then what happened in the market and the other books, then what is close to triggering or waits for me, or that nothing does. "
              "Evidence collected and the details go in the points, not the sentences.")
         r = ask_fn(q)
-        if r.get("error"):
+        if r.get("error") or r.get("backup_withheld_why"):    # 12 Nov (F2): a withheld brief is not the day's brief; it waits for Claude
             return None
         r = three_sentences(r)
         bid = "B" + uuid.uuid4().hex[:9]

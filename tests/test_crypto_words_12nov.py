@@ -141,13 +141,13 @@ def test_my_money_is_the_500_account_in_the_prompt_and_the_brief(monkeypatch, tm
 def test_a_backup_answer_may_not_deny_a_record():
     deny = {"kind": "answer", "answer": "We haven't run a review 42 yet.", "breakdown": ["x"], "evidence": ["y"]}
     r = dict(deny)
-    assert ask.backup_cannot_deny(r, "sonnet", "gemini") is True
+    assert ask.backup_cannot_deny(r, "sonnet", "gemini", question="How is my book doing?") is True
     assert r["answer"] == ask.BACKUP_CANNOT_DENY and r["backup_withheld"] == "We haven't run a review 42 yet." and r["breakdown"] == []
     assert ask.backup_cannot_deny(dict(deny), "sonnet", "sonnet") is False                  # Claude itself may say what is not there
     assert ask.backup_cannot_deny(dict(deny), "gemini", "gemini") is False                  # an everyday answer was meant to be Gemini's
     # since the interim process review (12 Nov) the backup says nothing about a record, true or not; an everyday answer still passes
-    assert ask.backup_cannot_deny({"kind": "answer", "answer": "Review 42 waits until 15 Dec."}, "sonnet", "gemini") is True
-    assert ask.backup_cannot_deny({"kind": "answer", "answer": "No record of that trade: nothing sold tonight."}, "sonnet", "gemini") is False
+    assert ask.backup_cannot_deny({"kind": "answer", "answer": "Review 42 waits until 15 Dec."}, "sonnet", "gemini", question="How is my book doing?") is True
+    assert ask.backup_cannot_deny({"kind": "answer", "answer": "No record of that trade: nothing sold tonight."}, "sonnet", "gemini", question="How is my book doing?") is False
     for said in ("There is no such review.", "That study does not exist.", "I did not run review 42 yet"):
         assert ask.denies_a_record(said), said
 
@@ -163,10 +163,10 @@ def test_when_claude_fails_the_backups_denial_is_withheld_and_the_reason_kept():
         return json.dumps({"answer": "We haven't run a review 42 yet.", "kind": "answer", "follow_ups": []}), {"in": 1, "out": 1}
 
     out = ask.Ask(j, providers={"sonnet": claude_down, "gemini": gemini}).ask("owner", "What did review 42 find about buying after drops?", mode="deep")
-    assert out["answer"] == ask.BACKUP_CANNOT_DENY
+    assert out["answer"].startswith(ask.BACKUP_CANNOT_DENY)
     note = j.db.execute("SELECT note FROM ask_messages WHERE role='assistant' ORDER BY t DESC LIMIT 1").fetchone()[0]
     assert "Claude is unavailable right now (TimeoutError after" in note and "so Gemini answered" not in note
-    assert "the question is about our records, so the backup model was not asked" in note    # the question decides first
+    assert "the question is not a plainly everyday one, so the backup model was not asked" in note    # the question decides first
     assert "the call took too long" not in note                                             # the failure's kind, never its text
 
 
@@ -322,13 +322,13 @@ def test_the_backup_guard_reads_curly_apostrophes_and_lets_everyday_answers_thro
     # "There is no result in review 42 yet" is withheld on purpose since the second confirm check (tests/test_backup_guard_12nov.py)
     for said in withheld:
         r = {"kind": "answer", "answer": said}
-        assert ask.backup_cannot_deny(r, "sonnet", "gemini") is True and r["answer"] == ask.BACKUP_CANNOT_DENY, said
+        assert ask.backup_cannot_deny(r, "sonnet", "gemini", question="How is my book doing?") is True and r["answer"] == ask.BACKUP_CANNOT_DENY, said
     for said in passes:
         r = {"kind": "answer", "answer": said}
-        assert ask.backup_cannot_deny(r, "sonnet", "gemini") is False and r["answer"] == said, said
+        assert ask.backup_cannot_deny(r, "sonnet", "gemini", question="How is my book doing?") is False and r["answer"] == said, said
     # the budget path: Claude is out until midnight, so "ask me again in a minute" would not be true
     r = {"kind": "answer", "answer": "We haven't run a review 42 yet."}
-    assert ask.backup_cannot_deny(r, "sonnet", "gemini", "Claude budget for today ($2.00) is used up, so Gemini answered") is True
+    assert ask.backup_cannot_deny(r, "sonnet", "gemini", "Claude budget for today ($2.00) is used up, so Gemini answered", question="How is my book doing?") is True
     assert r["answer"] == ask.BACKUP_CANNOT_DENY_BUDGET and "until midnight Toronto time" in r["answer"] and "in a minute" not in r["answer"]
 
 
@@ -343,7 +343,7 @@ def test_over_budget_the_withheld_answer_says_after_midnight(monkeypatch):
     j.db.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", ("daily_budget_usd", "0"))
     j.db.commit()
     out = a.ask("owner", "What did review 42 find about buying after drops?", mode="deep")
-    assert out["answer"] == ask.BACKUP_CANNOT_DENY_BUDGET
+    assert out["answer"] == ask.BACKUP_CANNOT_DENY_BUDGET + " Nothing was saved or done."
     note = j.db.execute("SELECT note FROM ask_messages WHERE role='assistant' ORDER BY t DESC LIMIT 1").fetchone()[0]
     assert "is used up" in note and "so Gemini answered" not in note and "the backup model was not asked" in note
 
@@ -450,7 +450,7 @@ def test_the_guard_catches_the_confirm_checks_denials_and_withholds_every_not_ye
         assert ask.speaks_of_a_record(said) and not ask.denies_a_record(said), said
     assert not ask.speaks_of_a_record("We haven't made any trades since review 41.")
     r = {"kind": "answer", "answer": "We never ran review 42."}                                    # a visitor cannot raise a budget
-    assert ask.backup_cannot_deny(r, "sonnet", "gemini", "Claude budget for today ($0.50) is used up, so Gemini answered", guest=True)
+    assert ask.backup_cannot_deny(r, "sonnet", "gemini", "Claude budget for today ($0.50) is used up, so Gemini answered", guest=True, question="How is my book doing?")
     assert r["answer"] == ask.BACKUP_CANNOT_DENY_GUEST and "Voice and model" not in r["answer"]
 
 

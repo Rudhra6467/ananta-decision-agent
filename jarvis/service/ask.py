@@ -2383,6 +2383,48 @@ def asks_about_a_record(question: str, previous=()) -> bool:
     return bool(prev) and len(q.split()) <= 8 and bool(_FOLLOW_UP.search(q)) and any(asks_about_a_record(p) for p in prev[-2:])
 
 
+# 3. the everyday rule (12 Nov evening, Madhav's choice): while Claude is out, the backup answers ONLY a question it can plainly see is
+#    everyday: a price or a quote; his positions, holdings, stops, alerts, watches, cash, orders or a book's value; what bought or sold
+#    tonight or today; the dial; tonight's note, plan and night test; a chart or a page; how-to and the tour; which coin moved and why
+#    today; setting a stop, an alert, a watch or a paper order card; what an indicator or a word means; a greeting. Never advice
+#    ("should I", "is it a good time", "why didn't we"), and never a question about a record (rule 1). Everything else is held: the backup
+#    is not asked, nothing is done, and Ananta says when to ask again. A miss now holds an everyday question (a cost), not a false denial.
+_EVERYDAY = [re.compile(p, re.I) for p in (
+    r"\b(?:prices?|quotes?|trading\s+at|how\s+much\s+is|what\s+is\s+[\w$]+\s+at|where\s+is\s+[\w$]+\s+(?:now|today|trading))\b",
+    r"\b(?:my|our|the)\s+(?:open\s+)?(?:positions?|holdings?|stops?|alerts?|watch(?:es)?|cash|balance|orders?|account|portfolio|"
+    r"(?:manual|bold|\$?500)\s+(?:book|account)|book|coins)\b",
+    r"\b(?:did|have|has)\s+(?:we|you|ananta|anything|the\s+[\w$]+\s+(?:book|account))\s+(?:just\s+)?(?:buy|bought|sell|sold|trade|traded|"
+    r"close|closed|open|opened|fill|filled)\b",
+    r"\bwhat\s+did\s+(?:we|you|the\s+[\w$]+\s+(?:book|account))\s+(?:buy|sell)\b|\b(?:any|anything)\s+(?:buys?|sells?|sold|bought|trades?|fills?)\b",
+    r"\bthe\s+dial\b|\bis\s+buying\s+(?:on|allowed|open)\b",
+    r"\b(?:tonight's|today's|the\s+nightly)\s+(?:note|plan|trades?|close)\b|\bnight\s+test\b|\bdaily\s+close\b",
+    r"\b(?:show|open)\s+(?:me\s+)?(?:the|my|a)?\s*[\w$]*\s*(?:chart|graph|page|book|account)\b|\bchart\b",
+    r"\bhow\s+do\s+i\b|\bwhere\s+(?:is|do|can)\s+i\b|\b(?:the\s+)?tour\b|\bwhat\s+does\s+(?:this|the)\s+(?:app|page|screen|button|tab)\b",
+    r"\bwhich\s+coins?\s+(?:moved|rose|fell|is\s+up|is\s+down|moved\s+the\s+most)\b|\bwhy\s+is\s+[\w$]+\s+(?:up|down)\b|"
+    r"\bwhat\s+(?:is\s+the\s+market|happened\s+in\s+the\s+market)\b|\bnews\b",
+    r"\b(?:set|add|move|change|cancel|remove)\s+(?:a|an|the|my)?\s*(?:stop|alert|watch|target|order)\b|\balert\s+me\b|\bremind\s+me\b|"
+    r"\b(?:buy|sell)\s+(?:\$?\d|some|all|half)\b",
+    r"\b(?:explain|what\s+is|what\s+are|what\s+does)\s+(?:the|an|a)?\s*(?:\d+-day|exponential|moving|average|rsi|atr|ema|sma|candle|"
+    r"volume|spread|limit\s+order|market\s+order|stop\s+loss|explorer)\b",
+    r"^(?:hi|hello|hey|good\s+(?:morning|evening|night|afternoon)|thanks|thank\s+you|ok|okay)\b",
+    r"\bweather\b|\bwhat\s+time\b|\bis\s+everything\s+running\b",
+)]
+_ADVICE = re.compile(r"\bshould\s+(?:i|we)\b|\bis\s+it\s+a\s+good\s+(?:time|idea)\b|\bwhat\s+would\s+you\b|\b(?:do|would)\s+you\s+recommend\b|"
+                     r"\bworth\s+buying\b|\bbuy\s+the\s+dip\b|\bwhy\s+(?:did|do|does|didn't|don't|did\s+not|do\s+not)\s+(?:we|you|ananta)\b|"
+                     r"\bwhat\s+do\s+you\s+(?:think|make)\b", re.I)
+# held too: a question that names a record at all, even as a point in time ("why is our book down after review 41?"), and the morning
+# and evening briefs (they sum up the books and the evidence; a brief waits for Claude)
+_NAMES_RECORD = re.compile(r"\b(?:review|flag|item)\s*#?\s*\d+|#\d+|\bH\d{2}\b|\bstud(?:y|ies)\b|\bbacktest|\bfindings?\b|\bhypothes|"
+                           r"\bcheckpoint\b|\baudit\b|\breconstruction\b|\bproof\b|\bbriefing\b|\bwrap-?up\b", re.I)
+
+
+def backup_may_answer(question: str, previous=()) -> bool:
+    """True only for a plainly everyday question (rule 3 above) that is neither advice nor about a record (rule 1), and names none."""
+    q = _long(question)
+    return (not asks_about_a_record(question, previous) and not _ADVICE.search(q) and not _NAMES_RECORD.search(q)
+            and any(p.search(q) for p in _EVERYDAY))
+
+
 def denies_a_record(text: str) -> bool:
     """True when a sentence of the text says a record of the work has not happened (or not yet), or does not exist (rule 2 above). Each
     sentence is read on its own ("review 42 is done. Tonight's note has not run" is two), a question mark and the answer after it as one,
@@ -2467,9 +2509,13 @@ def speaks_of_a_record(text: str, context: bool = False) -> bool:
 def _reply_words(reply: dict) -> str:
     """Every part of a reply a person reads: the answer, its breakdown, evidence (label and value), options, follow-ups and assumption."""
     bits = [str(reply.get("answer") or ""), str(reply.get("assumption") or "")]
-    for k in ("breakdown", "evidence", "options", "follow_ups"):
+    na = reply.get("next_action")
+    if isinstance(na, dict):
+        bits += [str(na.get("label") or ""), str(na.get("say") or ""), str(na.get("ask") or "")]
+    for k in ("breakdown", "evidence", "options", "follow_ups", "show"):
         for x in reply.get(k) or []:
-            bits += ([str(x.get(f) or "") for f in ("label", "value", "text", "title", "summary")] if isinstance(x, dict) else [str(x)])
+            bits += ([str(x.get(f) or "") for f in ("label", "value", "text", "title", "summary", "source")] if isinstance(x, dict)
+                     else [str(x)])
     return "\n".join(b for b in bits if b.strip())
 
 
@@ -2490,7 +2536,7 @@ GEMINI_QUOTA_TOO_GUEST = ("Your Claude allowance for today is used up and Gemini
 
 NO_BACKUP = json.dumps({"kind": "answer", "answer": "", "follow_ups": []})   # what stands in for the backup when it is not asked
 DONE_WORDS = {"remember": "saved your note", "log_request": "noted it on the repair list", "comment_flag": "added your comment to the flag",
-              "choose_fix": "queued the fix you chose", "start_research": "started the reconstruction", "news_check": "ran the news check"}
+              "choose_fix": "queued the fix you chose", "watch": "set up a watch", "change_watch": "changed a watch", "start_research": "started the reconstruction", "news_check": "ran the news check"}
 
 
 def backup_cannot_deny(reply: dict, planned: str, used: str, note: str = "", guest: bool = False, question: str = "",
@@ -2507,15 +2553,17 @@ def backup_cannot_deny(reply: dict, planned: str, used: str, note: str = "", gue
         return False
     if not fell_back:
         return False
-    about = asks_about_a_record(question) if about_record is None else about_record
+    reply["next_action"], reply["follow_ups"] = None, []                       # F1: the backup offers no next step
+    about = (not backup_may_answer(question)) if about_record is None else about_record
     if not (about or speaks_of_a_record(_reply_words(reply), context=context)):
         return False
     reply["backup_withheld"] = reply.get("answer") or None
-    reply["backup_withheld_why"] = "a question about our records" if about else "the reply spoke of our records"
+    reply["backup_withheld_why"] = "not a plainly everyday question" if about else "the reply spoke of our records"
     budget = "budget" in str(note or "").lower()
     reply["answer"] = ((BACKUP_CANNOT_DENY_GUEST if budget and guest else BACKUP_CANNOT_DENY_BUDGET if budget else BACKUP_CANNOT_DENY)
-                       + (f" While it answered, the backup {', '.join(done)}; that stands, so there is no need to ask for it again." if done else ""))
-    reply["kind"], reply["options"], reply["follow_ups"], reply["assumption"] = "answer", [], [], ""
+                       + (f" While it answered, the backup {', '.join(done)}; that stands, so there is no need to ask for it again." if done
+                          else " Nothing was saved or done." if about else ""))                     # F7
+    reply["kind"], reply["options"], reply["follow_ups"], reply["assumption"], reply["show"] = "answer", [], [], "", None
     reply["breakdown"], reply["evidence"] = [], []
     return True
 
@@ -3166,7 +3214,7 @@ class Ask:
         # 12 Nov 2026 (G-34, E1): a question about a record, or a short follow-up to one, is never put to the backup model; when the
         # conversation is about a record, "it" in the backup's reply is the record too
         asked = [m["text"] for m in history if m["role"] == "user"][-3:]
-        about_record = asks_about_a_record(text, asked[-2:])
+        about_record = not backup_may_answer(text, asked[-2:])          # held: the backup is not asked (12 Nov evening)
         about_context = about_record or any(asks_about_a_record(q) for q in asked)
         tries = self._failed_clarifies(thread)
         now = int(self.j.now())
@@ -3341,7 +3389,7 @@ class Ask:
                 if about_record and MODELS[planned]["provider"] == "claude" and MODELS[key]["provider"] != "claude":
                     raw, usage = NO_BACKUP, {"in": 0, "out": 0}              # over budget: the backup is not asked about our records
                     note = ((note or "").replace(", so Gemini answered", "") + "; " if note else "") + \
-                        "the question is about our records, so the backup model was not asked"
+                        "the question is not a plainly everyday one, so the backup model was not asked"
                 else:
                     raw, usage = self.providers[key](system, history, user_msg, L, log, **({"on_text": tap.feed} if tap else {}))
                 if tap:
@@ -3374,8 +3422,8 @@ class Ask:
                     log.clear()
                     L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                     if about_record:                                     # G-34: the backup is not asked about our records
-                        note = (note + "; " if note else "") + (f"{why} ({kind} after {time.time() - t0:.0f} s); the question is about "
-                                                                "our records, so the backup model was not asked")
+                        note = (note + "; " if note else "") + (f"{why} ({kind} after {time.time() - t0:.0f} s); the question is not a "
+                                                                "plainly everyday one, so the backup model was not asked")
                         raw, usage = NO_BACKUP, {"in": 0, "out": 0}
                     else:
                         note = (note + "; " if note else "") + f"{why} ({kind} after {time.time() - t0:.0f} s), so Gemini answered"
@@ -3391,7 +3439,7 @@ class Ask:
                     log.clear()
                     L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                     if about_record:                                     # G-34: the backup is not asked about our records
-                        note = (note + "; " if note else "") + "Claude gave no words this time; the question is about our records, so the backup model was not asked"
+                        note = (note + "; " if note else "") + "Claude gave no words this time; the question is not a plainly everyday one, so the backup model was not asked"
                         raw, usage = NO_BACKUP, {"in": 0, "out": 0}
                     else:
                         note = (note + "; " if note else "") + "Claude gave no words this time, so Gemini answered"

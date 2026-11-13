@@ -98,7 +98,7 @@ def test_a_reply_that_speaks_of_a_record_is_withheld_true_or_not_and_everyday_an
     assert [s for s in EVERYDAY if speaks(s)] == []
     for s in DENIALS[:3] + RECORD_CONTENT[:2]:
         r = {"kind": "answer", "answer": s}
-        assert ask.backup_cannot_deny(r, "sonnet", "gemini") is True and r["backup_withheld"] == s
+        assert ask.backup_cannot_deny(r, "sonnet", "gemini", question="How is my book doing?") is True and r["backup_withheld"] == s
         assert r["answer"] == ask.BACKUP_CANNOT_DENY and r["backup_withheld_why"] == "the reply spoke of our records"
     for s in DENIALS[:3]:                                                                   # only when the backup stood in for Claude
         assert ask.backup_cannot_deny({"kind": "answer", "answer": s}, "sonnet", "sonnet") is False
@@ -153,17 +153,17 @@ def test_a_question_about_a_record_is_never_put_to_the_backup_nor_a_follow_up_to
     # E2 (S3): the backup answered, its card or note stood, and its words were hidden behind "ask me again": asked again, it was done twice
     calls = []
     out, note, j = _ask("What did review 41 find about buying after drops?", "Review 41 found no bounce after extreme drops.", calls=calls)
-    assert out["answer"] == ask.BACKUP_CANNOT_DENY and calls == []
-    assert "the question is about our records, so the backup model was not asked" in note and "the call took too long" not in note
+    assert out["answer"] == ask.BACKUP_CANNOT_DENY + " Nothing was saved or done." and calls == []         # F7: held, so nothing was done
+    assert "the question is not a plainly everyday one, so the backup model was not asked" in note and "the call took too long" not in note
     out, note, j = _ask("Did it run?", "No, it hasn't been run yet.", thread=out["thread"], j=j, calls=calls)   # E1: the follow-up
-    assert out["answer"] == ask.BACKUP_CANNOT_DENY and calls == []
-    out, note, j = _ask("What do you make of Bitcoin this week?", "Bitcoin is below its 50-day exponential average, so the dial is closed.",
+    assert out["answer"].startswith(ask.BACKUP_CANNOT_DENY) and calls == []
+    out, note, j = _ask("Why is Bitcoin down today?", "Bitcoin is below its 50-day exponential average, so the dial is closed.",
                         j=j, calls=calls)
     assert out["answer"].startswith("Bitcoin is below its 50-day") and len(calls) == 1 and "withheld" not in (note or "")
-    out, note, _ = _ask("Should I buy this dip?", "We haven't tested buying after drops, so I can't say.")    # the reply speaks of one
+    out, note, _ = _ask("How is my book doing?", "We haven't tested buying after drops, so I can't say.")    # the reply speaks of one
     assert out["answer"] == ask.BACKUP_CANNOT_DENY and "the backup model's reply spoke of our records, so it was withheld" in note
     out, note, _ = _ask("What did review 41 find?", "x", budget=0)                         # over budget: the note says Gemini was not asked
-    assert out["answer"] == ask.BACKUP_CANNOT_DENY_BUDGET and "so Gemini answered" not in note and "was not asked" in note
+    assert out["answer"].startswith(ask.BACKUP_CANNOT_DENY_BUDGET) and "so Gemini answered" not in note and "was not asked" in note
 
 
 def test_the_whole_reply_is_read_whatever_its_kind():
@@ -171,7 +171,7 @@ def test_the_whole_reply_is_read_whatever_its_kind():
     eleventh = {"kind": "answer", "answer": "Here is where things stand.", "follow_ups": [],
                 "breakdown": ["Reviews stop at #34 (34 completed, 13 passed).", "No review 42 exists in our system."],
                 "evidence": [{"label": "Completed reviews", "value": "34 total (13 passed)", "source": "MARKET_BRIEF.evidence"}]}
-    out, note, _ = _ask("Should I buy this dip?", eleventh)
+    out, note, _ = _ask("How is my book doing?", eleventh)
     assert out["answer"] == ask.BACKUP_CANNOT_DENY and out.get("breakdown") in ([], None) and out.get("evidence") in ([], None)
     for kind in ("clarify", "cannot_do_yet", "not_understood", "out_of_scope"):
         r = {"kind": kind, "answer": "We never ran review 42; which one do you mean?", "options": [{"label": "Review 41"}]}
@@ -181,17 +181,19 @@ def test_the_whole_reply_is_read_whatever_its_kind():
 
 
 def test_what_the_backup_already_did_is_said_so_it_is_not_asked_for_twice():
-    out, note, _ = _ask("Remember that I like ETH under 3,000.", "Saved. Review 41 says to wait for the dial.", done_tool="remember")
-    assert out["answer"].startswith(ask.BACKUP_CANNOT_DENY)
-    assert "While it answered, the backup saved your note; that stands, so there is no need to ask for it again." in out["answer"]
+    # F3 (S3, the fourth confirm): a watch the backup set up was not named, so asking again set it up twice
+    out, note, _ = _ask("Set a watch on ETH under 3,000.", "Done. Review 41 says to wait for the dial.", done_tool="watch")
+    assert out["answer"].startswith(ask.BACKUP_CANNOT_DENY) and "Nothing was saved or done" not in out["answer"]
+    assert "While it answered, the backup set up a watch; that stands, so there is no need to ask for it again." in out["answer"]
+    assert ask.DONE_WORDS["change_watch"] == "changed a watch" and ask.DONE_WORDS["remember"] == "saved your note"
 
 
 def test_a_visitor_is_never_told_to_raise_a_budget():
     # D7 (S5): a visitor whose Claude allowance was used up, and whose Gemini answer then hit Gemini's own limit, was told to raise the
     # daily budget under More › Voice and model, which a visitor cannot do; the owner still is
-    out, _, _ = _ask("What do you make of Bitcoin this week?", RuntimeError("429 quota exceeded"), who="guest:zz-nobody", budget=0)
+    out, _, _ = _ask("Why is Bitcoin down today?", RuntimeError("429 quota exceeded"), who="guest:zz-nobody", budget=0)
     assert "Voice and model" not in out["error"] and "allowance" in out["error"] and "after midnight Toronto time" in out["error"]
-    out, _, _ = _ask("What do you make of Bitcoin this week?", RuntimeError("429 quota exceeded"), budget=0)
+    out, _, _ = _ask("Why is Bitcoin down today?", RuntimeError("429 quota exceeded"), budget=0)
     assert "Raise the daily budget in More › Voice and model" in out["error"]
     r = {"kind": "answer", "answer": "We never ran review 42."}
     assert ask.backup_cannot_deny(r, "sonnet", "gemini", "Claude budget for today ($0.50) is used up, so Gemini answered", guest=True)
@@ -217,3 +219,72 @@ def test_the_manual_book_the_stop_line_and_the_rebuild_hour_are_said_right():
     # D6 (S5): the self-rebuild runs after the daily close, which is 7 pm Toronto in winter
     assert "the nightly self-rebuild (8 pm Toronto" not in ask.SYSTEM
     assert "the nightly self-rebuild (after each daily close, 7 pm Toronto in winter and 8 pm in summer" in ask.SYSTEM
+
+
+# ------------------------------------------------------------------ 12 Nov evening: everyday questions only (Madhav's choice), F1 to F3, F7
+# The fourth confirm check (recheck/pkg5_confirm4.md) still got 19 of 25 pairs past the word lists (E1). The default is now flipped:
+# while Claude is out the backup answers only a plainly everyday question; every other question is held and the backup is not asked.
+BACKUP_MAY = [
+    "How is my book doing?", "Did we buy anything tonight?", "What's the dial?", "What did the night test say?", "What's the price of Bitcoin?",
+    "Why is Bitcoin down today?", "Show me the Bitcoin chart.", "How do I set a stop?", "Set a watch on ETH under 3,000.",
+    "Alert me if SOL drops below 150.", "What are my open positions?", "What's tonight's note?", "Any buys today?",
+    "Explain the 50-day exponential average.", "Good morning", "Which coin moved the most today?", "Move my stop on ZEC to 380.",
+    "Did the bold book sell anything?", "Is buying allowed right now?", "What's my cash balance?"]
+BACKUP_HELD = RECORD_QUESTIONS + [
+    "What do you make of Bitcoin this week?", "Should I buy this dip?", "Remember that I like ETH under 3,000.", "Is it a good time to buy ETH?",
+    "Why didn't we buy ZEC?", "What would you do with SOL?", "Do you recommend buying BTC?", "Is SOL worth buying?",
+    "Does the dial work, by our numbers?", "Show me what review 41 found.", "Has the dial ever been tested?",
+    "What did the night test find about review 42?", "Why is our book down after review 41?", "Show me the proof page.",
+    "Give me my morning briefing in exactly 3 short sentences: first my $500 account",
+    "Give me my evening wrap-up in exactly 3 short sentences: first my $500 account today"]
+
+
+def test_while_claude_is_out_the_backup_answers_only_a_plainly_everyday_question():
+    may = ask.backup_may_answer
+    assert [q for q in BACKUP_MAY if not may(q)] == []
+    assert [q for q in BACKUP_HELD if may(q)] == []
+    assert may("Did it run?", ["What did review 42 find?"]) is False and may("Show me the chart.", ["What did review 42 find?"]) is True
+    r = {"kind": "answer", "answer": "Bitcoin is 2% below its 50-day exponential average."}                 # a plain answer, held question
+    assert ask.backup_cannot_deny(r, "sonnet", "gemini", question="What do you make of Bitcoin this week?") is True
+    assert r["backup_withheld_why"] == "not a plainly everyday question" and r["answer"].endswith(" Nothing was saved or done.")
+    r = {"kind": "answer", "answer": "Bitcoin is 2% below its 50-day exponential average."}
+    assert ask.backup_cannot_deny(r, "sonnet", "gemini", question="Why is Bitcoin down today?") is False and r["answer"].startswith("Bitcoin")
+
+
+def test_a_held_question_is_never_put_to_the_backup_and_says_nothing_was_done():
+    calls = []
+    out, note, _ = _ask("Should I buy this dip?", "Yes, buy now.", calls=calls)
+    assert calls == [] and out["answer"] == ask.BACKUP_CANNOT_DENY + " Nothing was saved or done."                # F7
+    assert "the question is not a plainly everyday one, so the backup model was not asked" in note
+
+
+def test_the_backup_offers_no_next_step():
+    # F1 (S3): the backup's next_action ("Start review 42") stood under a withheld or an everyday answer, one tap from acting on it
+    nxt = {"label": "Start review 42", "ask": "Start review 42 for me", "say": "Shall I start review 42?"}
+    out, _, _ = _ask("How is my book doing?", {"kind": "answer", "answer": "Your book is flat today.", "follow_ups": ["Shall I start it?"],
+                                                "next_action": nxt})
+    assert out["answer"] == "Your book is flat today." and not out.get("next_action") and out.get("follow_ups") == []
+    r = {"kind": "answer", "answer": "Your book is flat today.", "next_action": nxt, "show": {"page": "proof"}}
+    assert ask.backup_cannot_deny(r, "sonnet", "gemini", question="How is my book doing?") is False and r["next_action"] is None
+    r = {"kind": "answer", "answer": "We never ran review 42.", "next_action": nxt, "show": {"page": "proof"}}
+    assert ask.backup_cannot_deny(r, "sonnet", "gemini", question="How is my book doing?") is True
+    assert r["next_action"] is None and r["show"] is None
+    assert ask.backup_cannot_deny({"kind": "answer", "answer": "x", "next_action": nxt}, "sonnet", "sonnet") is False   # Claude's stands
+
+
+def test_a_withheld_brief_is_not_saved_and_waits_for_claude():
+    # F2 (S3): the morning brief came back withheld ("ask again later") and was saved as the day's brief, so it never came again
+    import datetime as dt
+    from zoneinfo import ZoneInfo
+
+    from jarvis.service.alerts import Alerts
+    from tests.test_ask_ananta import _jarvis
+    j, _ = _jarvis()
+    t9 = dt.datetime(2026, 10, 2, 9, 0, tzinfo=ZoneInfo("America/Toronto")).timestamp()
+    AB = Alerts(j.db, lambda: t9)
+    assert AB.due_brief() == "morning"
+    held = {"kind": "answer", "answer": ask.BACKUP_CANNOT_DENY, "backup_withheld_why": "not a plainly everyday question"}
+    assert AB.write_brief("morning", lambda q: held, push=lambda t, x: None) is None
+    assert AB.due_brief() == "morning" and j.db.execute("SELECT COUNT(*) FROM briefings").fetchone()[0] == 0
+    b = AB.write_brief("morning", lambda q: {"answer": "Quiet night.", "kind": "answer"}, push=lambda t, x: None)
+    assert b["text"] == "Quiet night." and AB.due_brief() is None

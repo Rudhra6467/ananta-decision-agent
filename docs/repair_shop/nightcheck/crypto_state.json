@@ -1,35 +1,40 @@
 {
  "account": {
-  "last": "2026-11-12",
+  "last": "2026-11-13",
   "last_ok": true,
-  "streak": 2
+  "streak": 3
  },
  "dial": {
-  "last": "2026-11-12",
+  "last": "2026-11-13",
   "last_ok": true,
-  "streak": 2
+  "streak": 3
  },
  "rules": {
-  "last": "2026-11-12",
+  "last": "2026-11-13",
   "last_ok": true,
-  "streak": 2
+  "streak": 3
  },
  "brief3": {
-  "last": "2026-11-12",
+  "last": "2026-11-13",
   "last_ok": true,
-  "streak": 1,
+  "streak": 2,
   "failed": true,
   "first_failed": "2026-11-11"
  },
  "market_now": {
-  "last": "2026-11-12",
+  "last": "2026-11-13",
   "last_ok": true,
-  "streak": 1,
+  "streak": 2,
   "failed": true,
   "first_failed": "2026-11-11"
  },
  "buy_today": {
   "last": "2026-11-12",
+  "last_ok": true,
+  "streak": 1
+ },
+ "weak_strong": {
+  "last": "2026-11-13",
   "last_ok": true,
   "streak": 1
  }

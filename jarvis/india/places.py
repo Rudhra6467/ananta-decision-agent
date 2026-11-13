@@ -261,6 +261,15 @@ def home_notices(t: dict, m: dict, clk: dict) -> list[dict]:
     return out[:3]
 
 
+def _evening_at() -> str:
+    """When the evening run writes the next session's plan, from the jobs themselves ('8:20 pm Toronto (06:50 IST)'), or ''."""
+    try:
+        from jarvis.india import schedule
+        return schedule.at("com.ananta.india.evening")
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def home(full: bool = True) -> dict:
     t, m = IS.today(full), IS.money(full)
     clk = _clk()
@@ -275,6 +284,17 @@ def home(full: bool = True) -> dict:
     st = clk.get("state")
     label = (f"Next session · {IS._dw(nxt)}" if nxt else f"Before the open · {IS._dw(clk.get('today_india'))}" if st in ("before_open", "pre_open") and clk.get("today_india")
              else "Today · market hours" if st == "open" else "Today")
+    # 12 Nov 2026, the keen outside audit (G-04): from the Indian day's turn (1:30 pm Toronto) to the evening run, Home headed this block
+    # "Before the open · Thu 12 Nov" and filled it with Wednesday's plan ("No change on Wednesday"): the next plan is written only by the
+    # evening run. The block now names the plan's own day; a plan for a session that has passed says so, and when the next one comes.
+    fs = str(plan.get("for_session") or "")[:10]
+    upcoming = str(nxt or (clk.get("today_india") if st in ("before_open", "pre_open", "open") else "") or "")[:10]
+    if fs and upcoming and fs < upcoming:
+        label = f"Last plan · {IS._dw(fs)}"
+        at = _evening_at()
+        # 12 Nov (the outside check of repair 4, N11): "The plan for Fri 13 Nov is written at 8:20 pm Toronto (06:50 IST)." was 14 words,
+        # one over the block's second line for most of the day
+        sub = f"Plan for {IS._dw(upcoming)}: written at {at}." if at else f"The plan for {IS._dw(upcoming)} is not written yet."
     stocks, opts, cash = m.get("stocks_inr") or 0, m.get("options_inr") or 0, m.get("cash_inr") or 0
     tot = (stocks + opts + cash) or 1
     did = [r for _d, _o, r in _events(full)]
@@ -286,8 +306,11 @@ def home(full: bool = True) -> dict:
             top.append({**r, "right": r.get("right") if k == "trade" else None})
         if len(top) == 3:
             break
-    parts = [K.hero("Your paper account", _rs(value), change=(f"{_rs(value - start, sign=True)} ({_pct(ret)})" if isinstance(value, (int, float)) and isinstance(start, (int, float)) and isinstance(ret, (int, float)) else _pct(ret) if ret is not None else None),
-                    tone=_tone(ret), since=f"since {IS._dw(mb.get('start_day'))}" if mb.get("start_day") else None,
+    day = m.get("as_of_day") or mb.get("day")          # 12 Nov (G-03): the close the big number is marked at, from the book it comes from
+    parts = [K.hero(f"Your paper account · {IS._dw(day)} close" if day else "Your paper account", _rs(value), change=(f"{_rs(value - start, sign=True)} ({_pct(ret)})" if isinstance(value, (int, float)) and isinstance(start, (int, float)) and isinstance(ret, (int, float)) else _pct(ret) if ret is not None else None),
+                    tone=_tone(ret), since=(f"since {IS._dw(mb.get('start_day'))}" if mb.get("start_day") else None) if not mb.get("kept_old_price") else
+                    # 12 Nov evening (repair 2's outside check, N7): a holding with no close that day is said beside the big number
+                    (f"since {IS._dw(mb.get('start_day'))} · " if mb.get("start_day") else "") + f"{len(mb['kept_old_price'])} at an older price",
                     status={"ok": bool((t.get("running") or {}).get("ok")), "words": "Running" if (t.get("running") or {}).get("ok") else "Needs a look"}),
              K.today(label, line, sub, to=K.place("plan")),
              K.boxes([K.paged(_index_boxes(t)),
@@ -309,15 +332,17 @@ def markets(full: bool = True) -> dict:
         mm = re.search(r"\(([+−-]?[\d.]+%)\)", str(p.get("sub") or ""))
         cards.append(K.box(p.get("label"), p.get("value"), change=mm.group(1).replace("-", "−") if mm else None, tone=p.get("tone"),
                            to=K.place({"Nifty 50": "nifty", "Bank Nifty": "banknifty"}.get(p.get("label"), "nifty"))))
-    vix = None
-    for c in t.get("cards") or []:
-        for x in c.get("points") or []:
-            v = re.search(r"VIX (\d+(?:\.\d+)?)", str(x))
-            if v and not vix:
-                vix = v.group(1)
-    if vix:
-        cards.append(K.box("Fear gauge", vix, caption="India VIX", to=K.place("vix")))
     when = (pages[0].get("sub2") if pages else None) or ""
+    vx = _vix(t)                              # 12 Nov (G-05): the same read and the same day as the Nifty boxes, never a number cut from a sentence
+    if vx:
+        # 13 Nov (repair 2's confirm checks, P2 and Q1): after the close the gauge's Zerodha number is its last price, while the peek's
+        # note above says the Nifty's "<day> close"; the box then says so in words short enough for its one line on the phone (the box
+        # holds about 118 pt of 13 pt text: "India VIX · Thu 12 Nov · last price" was cut to "India VIX · Thu 12 N…")
+        cards.append(K.box("Fear gauge", vx["value"], change=_vix_change(vx),
+                           # 13 Nov, at the go-live: the screens' plain-words pass (jarvis/india/plain.py) turns "VIX" into "the fear
+                           # gauge", so "VIX · last price" reached the phone as "the fear gauge · last price", too long again; the box
+                           # is already labelled "Fear gauge", so the caption is just "Last price"
+                           caption="Last price" if "last price" in str(vx.get("when") or "") else "India VIX", to=K.place("vix")))
     view = mv.get("view") or []
     trend = next((x for x in view if "uptrend" in x or "downtrend" in x), "")
     up = "uptrend" in trend
@@ -378,10 +403,22 @@ def account(full: bool = True) -> dict:
     books = m.get("books") or []
     order = {"managed": 0, "yours": 1, "index": 2}
     label = {"managed": "The managed book", "yours": "Your holdings, as you have them", "index": "Nifty 500"}
+    day = m.get("as_of_day") or mb.get("day")          # 12 Nov (G-03): the hero says which close it is marked at
+    # 12 Nov evening (repair 2's outside check, N1): from the nightly mark (about 12:45 pm Toronto) to the evening run (8:20 pm) the hero is
+    # at the day's close while the chart and "How it compares" still run to the session before; each says the close it runs to
+    thru = str(m.get("books_through") or "")[:10]
+    lag = (f" The big number above is at the {IS._dw(day)} close; this runs to the {IS._dw(thru)} close and catches up after the evening run."
+           if thru and day and thru < str(day)[:10] else "")
+    chart_lag = bool(dates) and bool(day) and str(dates[-1])[:10] < str(day)[:10]
     parts = [K.hero("The managed book · on paper", _rs(value), change=(f"{_rs(value - start, sign=True)} ({_pct(ret)})" if isinstance(value, (int, float)) and isinstance(start, (int, float)) and isinstance(ret, (int, float)) else None),
-                    tone=_tone(ret), since=f"since {IS._dw(mb.get('start_day'))}" if mb.get("start_day") else None),
+                    tone=_tone(ret), since=(f"since {IS._dw(mb.get('start_day'))}" + (f", at the {IS._dw(day)} close" if day else "")) if mb.get("start_day") else None),
+             # 12 Nov evening (repair 2's outside check, N7): a holding with no close that day stays at an older price, and says so
+             K.line("No close that day, so at an older price: " + ", ".join(
+                 f"{_name(s)} (last marked {IS._dw(d)})" if d else _name(s) for s, d in sorted((mb.get("kept_old_price") or {}).items())) + ".")
+             if mb.get("kept_old_price") else None,
              K.chart([{"values": ml, "style": "main", "color": "bronze"}], left=IS._dw(dates[0]) if dates else None, right=IS._dw(dates[-1]) if dates else None,
-                     caption="One point a session, at the close.", label="The managed book's value at each close") if len(ml) > 1 else None,
+                     caption="One point a session, at the close." + (f" The {IS._dw(day)} close joins after the evening run." if chart_lag else ""),
+                     label="The managed book's value at each close") if len(ml) > 1 else None,
              K.split([{"label": f"Stocks · {mb.get('positions') or len(hs)}", "value": _rs(stocks), "share": round(stocks / tot, 3), "shade": "ink"},
                       {"label": "Options, set aside", "value": _rs(opts), "share": round(opts / tot, 3), "shade": "dim"},
                       {"label": "Cash", "value": _rs(cash), "share": round(cash / tot, 3), "shade": "faint"}], title="Where it sits"),
@@ -390,7 +427,10 @@ def account(full: bool = True) -> dict:
                   # 11 Nov 2026 (R-027, flag 93): the hero said "since Fri 30 Oct" and this foot "All from the Thu 29 Oct close" for one start
                   foot=((f"All since {IS._dw(mb.get('start_day'))}, the same start as above (counted from the {IS._dw(clock.get('since'))} close). "
                          if mb.get("start_day") and str(clock.get("since") or "") < str(mb.get("start_day")) else f"All from the {IS._dw(clock.get('since'))} close. ")
-                        + f"{clock.get('words')}: too early to judge." if clock.get("since") and clock.get("words") else m.get("books_note"))),
+                        + f"{clock.get('words')}: too early to judge." if clock.get("since") and clock.get("words") else (m.get("books_note") or ""))
+                       + (lag or (f" To the {IS._dw(thru)} close." if thru else ""))
+                       # 13 Nov (repair 2's confirm check, P3): a holding of "as you have them" at an older close is said here too
+                       + (f" Your holdings as you have them: {m['yours_note']}." if m.get("yours_note") else "")),
              K.rows("Your holdings", [holding_row(h) for h in hs[:3]], count=len(hs), sub=f"{len(hs)} · graded", more=K.to_page(holdings_page(hs))) if hs else None,
              K.rows("Bought on paper", [K.row(_name(r.get("symbol")), f"For the {_name(r.get('for_cut'))} cut", right=_rs(r.get("value_inr")), right_sub=_pct(r.get("pnl_pct"), 1),
                                               right_tone=_tone(r.get("pnl_pct"))) for r in reps[:3]], count=len(reps)) if reps else None,
@@ -616,13 +656,17 @@ def _num(x) -> str:
     return f"{x:,.2f}" if isinstance(x, (int, float)) else "—"
 
 
-def _vix_now(t: dict) -> str | None:
-    for c in t.get("cards") or []:
-        for x in c.get("points") or []:
-            v = re.search(r"VIX (\d+(?:\.\d+)?)", str(x))
-            if v:
-                return v.group(1)
-    return None
+def _vix(t: dict) -> dict | None:
+    """The fear gauge as every surface shows it (12 Nov 2026, the keen outside audit, G-05): from the same Kite read and under the same day
+    as the Nifty boxes (surfaces._index_tile), or None when that read had no value."""
+    v = ((t.get("tiles") or [{}])[0] or {}).get("vix") or {}
+    return v if v.get("value") else None
+
+
+def _vix_change(v: dict) -> str | None:
+    """The gauge's change on the day, signed, with no good or bad colour: a falling gauge is calmer, not a loss."""
+    c = v.get("change_pct")
+    return (("+" if c > 0 else "−" if c < 0 else "") + f"{abs(c):.1f}%") if isinstance(c, (int, float)) else None
 
 
 def index_page(slug: str, full: bool = True) -> dict:
@@ -632,12 +676,16 @@ def index_page(slug: str, full: bool = True) -> dict:
     tech = _tech().get(key) or {}
     sym = {"NIFTY 50": "NIFTY", "NIFTY BANK": "BANKNIFTY", "INDIA VIX": "VIX"}[key]
     if slug == "vix":
-        c = IS._safe(index_candles, key, "1D", None) or {}
-        last, pct = c.get("last"), c.get("change_pct")
-        hero = K.hero(name, f"{last:.2f}" if isinstance(last, (int, float)) and not c.get("fell_back") else (_vix_now(t) or "—"),
-                      change=_pct(pct) if isinstance(pct, (int, float)) and not c.get("fell_back") else None,
-                      since="on the day" if isinstance(pct, (int, float)) and not c.get("fell_back") else None)   # 11 Nov (board 190): it read
-                      # "-5.63% the swing traders expect over 30 days", the day's change beside what the gauge means
+        vx = _vix(t)
+        if vx:                                    # 12 Nov (G-05): the same value and day as Markets and the Nifty boxes
+            hero = K.hero(name, vx["value"], change=_vix_change(vx), since=vx.get("when"))
+        else:                                     # no Kite read on the tile: the day's candles, or a dash, never a number cut from a sentence
+            c = IS._safe(index_candles, key, "1D", None) or {}
+            last, pct = c.get("last"), c.get("change_pct")
+            ok = isinstance(last, (int, float)) and not c.get("fell_back")
+            hero = K.hero(name, f"{last:.2f}" if ok else "—", change=_pct(pct) if ok and isinstance(pct, (int, float)) else None,
+                          since="on the day" if ok and isinstance(pct, (int, float)) else None)   # 11 Nov (board 190): it read
+                          # "-5.63% the swing traders expect over 30 days", the day's change beside what the gauge means
         pts = ["The fear gauge measures how much traders expect the Nifty to swing over the next 30 days, as a yearly percentage",
                "Higher means traders expect bigger swings; lower means calm",
                {"text": "Ananta reads it before the open: a high reading makes the options line more careful", "icon": "info"}]

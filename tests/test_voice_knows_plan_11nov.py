@@ -75,7 +75,20 @@ def test_a_due_list_date_marked_done_is_in_closed_lately_too(j):
     assert "CHECKPOINT-30" in {x["id"] for x in openlist.short(j, market="crypto", now=NOW + 60)["closed_lately"]}
 
 
-def test_the_crypto_lookup_gives_the_work_items_with_the_dates(j):
+class _Clock:
+    """The open list's clock, held just after NOW. The lookup reads the real clock for 'closed in the last 48 hours', so from 13 Nov 2026,
+    10:00 Toronto (48 hours after NOW) the item this test closes at NOW was no longer 'closed lately'. Only time() is held."""
+
+    def __getattr__(self, name):
+        return getattr(time, name)
+
+    @staticmethod
+    def time():
+        return NOW + 60
+
+
+def test_the_crypto_lookup_gives_the_work_items_with_the_dates(j, monkeypatch):
+    monkeypatch.setattr(openlist, "time", _Clock())
     w = openlist.open_item(j, "The keen outside audit: runs on Madhav's go, report the morning after.", "WORK", market="both")
     done = openlist.open_item(j, "Review 41's open-list item.", "WORK", market="crypto")
     openlist.close(j, done["num"], "Review 41 ran: FAIL.", by="5d6635c")
@@ -110,11 +123,24 @@ def test_the_options_line_review_day_is_the_open_after_the_20th_session(tmp_path
     (rec / "india" / "registrations").mkdir(parents=True)
     (rec / "india" / "registrations" / "sp1r_v1.json").write_text(json.dumps({"questions": ["Is Bank Nifty's margin the cause?"], "why": "x"}))
     (data / "paper" / "sp1").mkdir(parents=True)
-    (data / "paper" / "sp1" / "book.json").write_text(json.dumps({"sessions": 12}))
-    (data / "paper" / "sp1" / "outcomes.jsonl").write_text(json.dumps({"kind": "outcome", "date": "2026-11-09"}) + "\n")
+    # 12 Nov 2026 (the keen outside audit, G-09): this test had the 11 Nov answer written in as right (the 20th on Fri 20 Nov, the review
+    # Mon 23 Nov). The book counted 12 sessions through 11 Nov while the newest result was 9 Nov (11 Nov's trades were still open), and the
+    # code stepped from the result: one session short. By the book's own count and day the 20th is Mon 23 Nov; 24 Nov is an NSE holiday,
+    # so its trades close, and the review reads all 20, on Wed 25 Nov.
+    (data / "paper" / "sp1" / "book.json").write_text(json.dumps({"sessions": 12, "updated": "2026-11-11T17:30:09+05:30"}))
+    (data / "paper" / "sp1" / "decisions.jsonl").write_text("".join(json.dumps({"date": d, "kind": "decision"}) + "\n"
+                                                                   for d in ("2026-11-06", "2026-11-09", "2026-11-11", "2026-11-12")))
+    (data / "paper" / "sp1" / "outcomes.jsonl").write_text("".join(json.dumps({"kind": "outcome", "date": d}) + "\n"
+                                                                  for d in ("2026-11-06", "2026-11-09")))
     monkeypatch.setattr(india_ask, "RECORDS", rec)
     monkeypatch.setattr(india_ask, "DATA", data)
     when = india_ask._options_review()["when"]
-    assert "12 of 20 sessions are scored" in when
-    assert "the 20th is Fri 20 Nov" in when and "close at the next open, Mon 23 Nov" in when
-    assert "that evening" not in when
+    assert "12 of 20 sessions have run (through Wed 11 Nov), 2 of them with a result so far" in when
+    assert "the 20th is Mon 23 Nov" in when and "close at the next open, Wed 25 Nov" in when
+    assert "that evening" not in when and "are scored" not in when
+    r = india_ask.options_review_day()
+    assert (r["through"], r["twentieth"], r["review"]) == ("2026-11-11", "2026-11-23", "2026-11-25")
+    # tonight's scoring counts the 13th session (12 Nov): the same days follow from the new count and its new day
+    (data / "paper" / "sp1" / "book.json").write_text(json.dumps({"sessions": 13, "updated": "2026-11-12T17:30:09+05:30"}))
+    r = india_ask.options_review_day()
+    assert (r["through"], r["twentieth"], r["review"]) == ("2026-11-12", "2026-11-23", "2026-11-25")

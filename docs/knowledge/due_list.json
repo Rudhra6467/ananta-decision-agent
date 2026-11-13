@@ -43,7 +43,7 @@
    "due": "2026-11-14",
    "cadence": "once",
    "owner": "Claude",
-   "plain": "Day 30 of the crypto evidence window: read every evidence count and make sure nothing is stuck."
+   "plain": "After day 30 of the crypto evidence window (Fri 13 Nov; this is Sat 14 Nov, day 31): read every evidence count and make sure nothing is stuck."
   },
   {
    "id": "CHECKPOINT-60",
@@ -52,7 +52,7 @@
    "due": "2026-12-14",
    "cadence": "once",
    "owner": "Claude",
-   "plain": "Day 60: the crypto evidence window ends and Rule A (no real money before it) is judged for you. This is the scorecard's review day."
+   "plain": "After day 60, the last (Sun 13 Dec), on Mon 14 Dec: the crypto evidence window ends and Rule A (no real money before it) is judged for you. This is the scorecard's review day."
   },
   {
    "id": "ZONES-JUDGE",

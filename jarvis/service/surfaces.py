@@ -187,7 +187,8 @@ def _officer_note(j) -> dict | None:
         return None
     n = notes[0]
     text = re.sub(r"^(Good (morning|evening|afternoon),\s*)?[Ss]ir,\s*", "", str(n.get("note") or "")).strip()  # the screen never says sir
-    return {"day": n.get("day"), "text": text[:1].upper() + text[1:] if text else ""}
+    # 12 Nov 2026 (audit repair 3, G-28): named by the Toronto evening it was written on ("evening"); its day key is the UTC day after
+    return {"day": n.get("day"), "evening": n.get("evening") or _dw(n.get("day")), "text": text[:1].upper() + text[1:] if text else ""}
 
 
 def _plan_parts(line: str) -> dict:
@@ -513,7 +514,7 @@ def today(j) -> dict:
         late = [r for r in (_safe(_repairs, j, default=[]) or []) if str(r.get("day") or "") >= str(note["day"])]
         if late and isinstance(b.get("value_cad"), (int, float)):
             pts.insert(0, f"Corrected after this note was written: the account is {_cad(b['value_cad'])} ({_pct(b.get('return_pct'))}), not the figure in the note")
-        cards.append({"kind": "note", "label": f"Ananta's nightly note · {_dw(note['day'])}", "text": _plain(note["text"]), "points": pts})
+        cards.append({"kind": "note", "label": f"Ananta's nightly note · {note.get('evening') or _dw(note['day'])}", "text": _plain(note["text"]), "points": pts})
     day, close_at = _last_close(dial)
     did = _did_points(b, close_at)
     evening = {"label": f"What the $500 book did at the {_dw(day)} close", "text": "; ".join(did), "points": did} if did else None
@@ -560,17 +561,9 @@ def like_for_like(j) -> str:
         held = 100 * (q["bid"] / (first[0] * (1 + B.NDAX_FEE)) - 1)
         words = f"Like for like (Bitcoin bought at the book's first price on NDAX and just held, in Canadian dollars): {_pct(held)}. "
         share = []
-        nf = _safe(_night_fixes, j, default={}) or {}
-        for day, facts in j.db.execute("SELECT day, facts FROM officer_notes ORDER BY day"):
-            try:
-                a = (json.loads(facts or "{}").get("account") or {})
-                if a.get("value_cad"):
-                    fx = nf.get(str(day)[:10]) or {}            # 11 Nov (R-144): the 14 nights without the ETH counted as corrected
-                    value = float(a["value_cad"]) + fx.get("add_cad", 0.0)
-                    cash = float(a.get("cash_cad") or 0) + (0.0 if fx.get("in_coins", True) else fx.get("add_cad", 0.0))
-                    share.append(1 - cash / value)
-            except (ValueError, TypeError):
-                continue
+        for n in (_safe(night_book, j, default={}) or {}).values():   # 11 Nov (R-144): the nights as repaired; 12 Nov (G-37): one reader
+            if n["value_cad"]:
+                share.append(1 - float(n["cash_cad"] or 0) / n["value_cad"])
         if share:
             words += f"The book had about {100 * sum(share) / len(share):.0f}% in coins on an average night. "
     _LFL.update(t=time.time(), words=words)
@@ -862,15 +855,12 @@ def account_chart(j) -> dict:
     empty = {"name": "Your account on paper", "kind": "portfolio", "as_of": None, "chart": {"dates": [], "yours": [], "untouched": [], "nifty500": []},
              "legend": legend, "lines": lines, "words": "The account's record starts with the first nightly note; nothing to draw yet.", "note": note}
     rec: dict[str, float] = {}
-    nf = _safe(_night_fixes, j, default={}) or {}
-    for day, facts in j.db.execute("SELECT day, facts FROM officer_notes ORDER BY day"):
+    nf = _safe(_night_fixes, j, default={}) or {}           # the repaired nights, counted in the words below
+    for day, n in night_book(j).items():                    # the nights as repaired (R-144); 12 Nov (G-37): the one reader of them
         try:
-            v = ((json.loads(facts or "{}") or {}).get("account") or {}).get("value_cad")
-            close_day = (dt.date.fromisoformat(str(day)[:10]) - dt.timedelta(days=1)).isoformat()   # the note of day D follows the close of D-1
-        except (ValueError, AttributeError):
+            rec[(dt.date.fromisoformat(day) - dt.timedelta(days=1)).isoformat()] = n["value_cad"]   # the note of day D follows the close of D-1
+        except ValueError:
             continue
-        if isinstance(v, (int, float)):
-            rec[close_day] = round(float(v) + (nf.get(str(day)[:10]) or {}).get("add_cad", 0.0), 2)
     started = str(b.get("started") or "")[:10]
     if not rec or not re.fullmatch(r"20\d\d-\d\d-\d\d", started):
         return empty
@@ -919,6 +909,32 @@ def _night_fixes(j) -> dict:
     except Exception:  # noqa: BLE001  no table: nothing was corrected
         return {}
     return {str(d): {"add_cad": float(a or 0), "in_coins": bool(c)} for d, a, c in rows}
+
+
+def night_book(j) -> dict:
+    """The $500 book at each night's close as the nightly facts recorded it, with the side table's repair applied: note day ->
+    {"value_cad", "cash_cad" (None when the note has none), "add_cad"}. 12 Nov 2026 (audit repair 3, G-37): 13 of the last 14 nights'
+    facts are C$26-28 low and only the Account chart applied the repair, so the Home box charts and the coin share drew the low nights.
+    Every reader of a night's figures reads them here (tests/test_nightly_note_12nov.py checks that no other code reads them)."""
+    from jarvis.service import officer
+
+    officer._table(j)
+    nf = _safe(_night_fixes, j, default={}) or {}
+    out: dict = {}
+    for day, facts in j.db.execute("SELECT day, facts FROM officer_notes ORDER BY day"):
+        try:
+            a = (json.loads(facts or "{}") or {}).get("account") or {}
+        except (ValueError, TypeError, AttributeError):
+            continue
+        v, c = a.get("value_cad"), a.get("cash_cad")
+        if not isinstance(v, (int, float)) or isinstance(v, bool):
+            continue
+        fx = nf.get(str(day)[:10]) or {}
+        add = float(fx.get("add_cad") or 0.0)
+        cash = (round(float(c) + (0.0 if fx.get("in_coins", True) else add), 2)
+                if isinstance(c, (int, float)) and not isinstance(c, bool) else None)
+        out[str(day)[:10]] = {"value_cad": round(float(v) + add, 2), "cash_cad": cash, "add_cad": add}
+    return out
 
 
 def _repairs(j) -> list[dict]:

@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 DAY = 86400
+HELD_BOOKS = ("BRK", "JARVIS_BOLD", "RANDOM_BOLD")   # held for the forward test to 14 Dec (the audit's rule 9): never summed before 15 Dec
 _CACHE: dict = {"m": None, "v": {}}
 STATES = ("CLOSED", "FRAGILE", "CONFIRMED")
 STATE_WORDS = {"CLOSED": "the dial is closed (Bitcoin under its 50- or 200-day average)",
@@ -249,8 +250,14 @@ def officer_checks(j) -> list[dict]:
             out.append({"id": "idle_cash", "state": "OK", "words": f"cash is {100 * cash / value:.0f}% of the book: buying is off and no rule may trade, so cash is what the "
                                                                    f"rules want (the {100 * cash_target:.0f}% target counts when a rule may trade)"})
         elif idle > 0.10 and days_over > float(oc.get("idle_days", 5)):
-            out.append({"id": "idle_cash", "state": "FAIL", "words": f"cash is {100 * cash / value:.0f}% of the book against a {100 * cash_target:.0f}% target, "
-                                                                     f"for {days_over:.0f} days"})
+            # 12 Nov 2026 (audit repair 3, G-38): "cash is 100% ..., for 12 days" read as "all cash for 12 days" while the book held coins
+            # until 5 Nov; the days are how long cash has been over its target, and an all-cash book says since when
+            from jarvis.service import officer
+
+            since = officer.all_cash_since(j, int(j.now())) if not s.get("pos") else None
+            out.append({"id": "idle_cash", "state": "FAIL", "words": f"cash is {100 * cash / value:.0f}% of the book against a {100 * cash_target:.0f}% target; "
+                                                                     f"cash has been over its target for {days_over:.0f} days"
+                                                                     + (f" (all cash since the evening of {since:%a} {since.day} {since:%b})" if since else "")})
         else:
             out.append({"id": "idle_cash", "state": "OK", "words": f"cash {100 * cash / value:.0f}% of the book (target {100 * cash_target:.0f}%)"})
         core = {c: p for c, p in (s.get("pos") or {}).items() if p.get("sleeve") == "CORE"}
@@ -265,6 +272,12 @@ def officer_checks(j) -> list[dict]:
         rows = j.db.execute("SELECT watch, COUNT(*), SUM(net_usd) FROM evidence_trades WHERE status='CLOSED' AND exit_t >= ? GROUP BY watch", (since,)).fetchall()
         fam: dict[str, list[float]] = {}
         watched: dict[str, list[float]] = {}   # tier C books are watched only, never judged (Universe Rule v2): counted apart (#107, Madhav 26 Oct: yes)
+        # 12 Nov 2026 (the outside check of audit repair 3; the audit's rule 9): breakouts and the bold book with its twin are held for a
+        # forward test to 14 Dec, so until 15 Dec this check neither sums nor judges their money
+        from jarvis.service import officer
+
+        held = int(j.now()) < officer.HELD_UNTIL
+        rows = [r for r in rows if not (held and (r[0].split("-U")[0] if "-U" in r[0] else r[0]) in HELD_BOOKS)]
         for w, n, net in rows:
             if w.endswith("-UC"):
                 b = watched.setdefault(w[:-3], [0, 0.0])

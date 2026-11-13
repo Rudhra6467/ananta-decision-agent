@@ -167,7 +167,7 @@ PARTS: list[dict] = [
     {"id": "evening_review", "name": "Evening review", "job": "15-minute jobs (reviews.evening)", "severity": "low",
      "since": "2026-10-05", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 3 * 3600}, "min_work": 1,
      "proof": {"sql": J, "query": "SELECT t, 1 FROM daily_reviews WHERE t >= :t0"}},
-    {"id": "officer_note", "name": "Officer's note", "job": "com.ananta.jarvis (run_daily)", "severity": "low", "since": "2026-10-14",
+    {"id": "officer_note", "name": "Officer's note", "job": "com.ananta.jarvis (15-minute jobs, after run_daily: officer.write_when_due)", "severity": "low", "since": "2026-10-14",
      "cadence": {"daily": "00:00", "tz": "UTC", "grace": 3 * 3600}, "min_work": 1,
      "proof": {"sql": J, "query": "SELECT t, 1 FROM officer_notes WHERE t >= :t0"}},
     {"id": "news_credit", "name": "News check and credit record for the 10 coins", "job": "15-minute jobs", "severity": "low",

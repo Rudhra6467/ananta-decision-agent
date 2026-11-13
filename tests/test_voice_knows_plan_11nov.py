@@ -75,7 +75,20 @@ def test_a_due_list_date_marked_done_is_in_closed_lately_too(j):
     assert "CHECKPOINT-30" in {x["id"] for x in openlist.short(j, market="crypto", now=NOW + 60)["closed_lately"]}
 
 
-def test_the_crypto_lookup_gives_the_work_items_with_the_dates(j):
+class _Clock:
+    """The open list's clock, held just after NOW. The lookup reads the real clock for 'closed in the last 48 hours', so from 13 Nov 2026,
+    10:00 Toronto (48 hours after NOW) the item this test closes at NOW was no longer 'closed lately'. Only time() is held."""
+
+    def __getattr__(self, name):
+        return getattr(time, name)
+
+    @staticmethod
+    def time():
+        return NOW + 60
+
+
+def test_the_crypto_lookup_gives_the_work_items_with_the_dates(j, monkeypatch):
+    monkeypatch.setattr(openlist, "time", _Clock())
     w = openlist.open_item(j, "The keen outside audit: runs on Madhav's go, report the morning after.", "WORK", market="both")
     done = openlist.open_item(j, "Review 41's open-list item.", "WORK", market="crypto")
     openlist.close(j, done["num"], "Review 41 ran: FAIL.", by="5d6635c")

@@ -1,5 +1,7 @@
 # The crypto lock (2026-10-15)
 
+**Updated 2026-11-13: the repair door.** Madhav, 13 Nov 2026 07:06 Toronto: "Yes to all" (asked: narrowing the two lock files and adding the repair door; dropping the five work freezes; one outside check per repair instead of repeat rounds). The list and the plan: claude/review-2026-11-13-the-locks-and-a-plan.md. From this day a lock protects the decisions under test, not the file they sit in: a fault in a pinned thing that changes no decision (a crash, a wrong record, wrong words) is fixed at once and recorded in the pin's history as a repair; one that changes a decision is fixed now too, on his one-word yes, with the record split at that day. Every pin has an end date. The one page that lists every lock is `docs/knowledge/LOCKS.md` in the agent checkout; the lock file's `repair_door` and `ends` hold the exact words.
+
 On 2026-10-15 Madhav asked to lock the crypto system: "so now lets complete this crypto system and lock it", and that morning, "we will park it for daily reconstruction process and updates reviews, everything else should be completed." From that day the crypto system runs as it is, on paper, and has to prove itself. This page says what runs, what is frozen, what decides success, who may change what, what waits for Madhav and what waits for the end of the window.
 
 The page was checked a second time on Oct 15 evening by an independent review (18 findings, each fixed or stated in section 7). It is checked by `tests/test_crypto_lock.py` (the frozen items), `tests/test_due_list.py` (the dates) and `tests/test_audit_register.py` (the audit). Every audit card has a final status in `docs/research/AUDIT_V2.md` and `docs/knowledge/audit_register.json`.
@@ -103,14 +105,14 @@ At the lock (Oct 15, read from the live service): **16 of 27 pass**; 3 FAIL, 2 P
 
 ## 5. Checkpoints
 
-**Day 30 (about Nov 14, `CHECKPOINT-30`):**
+**Day 30 (`CHECKPOINT-30`, on Sat Nov 14, the day after day 30; the window's days are Toronto dates from day 1 on Oct 15, so day 30 is Fri Nov 13):**
 1. Open the Evidence page and read every count: the ledger questions Q1 (Explorer live against its replay), Q2, Q5, Q6, Q7 and Q8 (what each counts is in section 9), with how many independent market events, market days or rebalances each has so far.
 2. Say whether both dial states have been seen and what the $500 book's execution fidelity is so far (fills inside NDAX's bid and ask; backtest against live).
 3. Read the Acceptance Gate (27 checks) and the graduation scorecard, and list what moved since Oct 15.
 4. Check that every nightly step ran: the 'steps that failed tonight' line in the newest `daily/universe_*.md`, the backups (including the worker's pull), the ledger check and the weekly reviews.
 5. Write a short day-30 note in `docs/repair_shop/` and tell Madhav. Nothing changes by itself; a rule change goes through him.
 
-**Day 60 (about Dec 14, `CHECKPOINT-60`):**
+**Day 60 (`CHECKPOINT-60`, on Mon Dec 14, the day after day 60, Sun Dec 13):**
 1. Run the Acceptance Gate and the graduation scorecard and write the result in `docs/repair_shop/`: what passed, what did not, and why.
 2. Judge Rule A for Madhav: 60 market days of paper operation, both dial states seen, execution fidelity within 3 points of the backtest. If any part is missing the answer is 'not yet', and the window is extended rather than the rule bent.
 3. Read the live zone visits (`ZONES-JUDGE`) and the other questions the due list attaches to day 60.

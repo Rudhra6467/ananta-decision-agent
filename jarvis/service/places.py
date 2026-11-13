@@ -28,6 +28,25 @@ def _name(c) -> str:
 
 
 def _day(t) -> str:
+    """The Toronto day of a moment. 12 Nov 2026 (audit repair 3, G-28): a fill at 00:06 UTC on 6 Nov was 'Fri 6 Nov' on Activity; it was
+    Thursday evening in Toronto, where Madhav lives."""
+    return dt.datetime.fromtimestamp(float(t), S.TOR).strftime("%Y-%m-%d")
+
+
+def _sold_day(cl: dict, fills: list[dict], side: str = "SELL") -> str:
+    """A closed trade's Toronto day (its sale's, or with side BUY its buy's): the fill's own time when the fills have it; else the UTC day
+    of the step, which ran just after the 00:00 UTC close, so the evening before in Toronto."""
+    out = str(cl.get("out" if side == "SELL" else "in") or "")
+    t = next((f["t"] for f in reversed(fills) if f["side"] == side and f["coin"] == cl.get("coin") and _utc_day(f["t"]) == out), None)
+    if t is not None:
+        return _day(t)
+    try:
+        return (dt.date.fromisoformat(out[:10]) - dt.timedelta(days=1)).isoformat()
+    except ValueError:
+        return out
+
+
+def _utc_day(t) -> str:
     return dt.datetime.fromtimestamp(float(t), S.UTC).strftime("%Y-%m-%d")
 
 
@@ -251,34 +270,36 @@ def _sell_why(why) -> str:
 
 def receipt(cl: dict, fills: list[dict]) -> dict:
     coin, name = cl.get("coin"), _name(cl.get("coin"))
-    buys = [f for f in fills if f["coin"] == coin and f["side"] == "BUY" and _day(f["t"]) == cl.get("in")]
-    sells = [f for f in fills if f["coin"] == coin and f["side"] == "SELL" and _day(f["t"]) == cl.get("out")]
+    buys = [f for f in fills if f["coin"] == coin and f["side"] == "BUY" and _utc_day(f["t"]) == cl.get("in")]     # the book's days are UTC
+    sells = [f for f in fills if f["coin"] == coin and f["side"] == "SELL" and _utc_day(f["t"]) == cl.get("out")]
     if cl.get("sleeve"):
         buys = [f for f in buys if str(f.get("sleeve")) == str(cl["sleeve"])] or buys
         sells = [f for f in sells if str(f.get("sleeve")) == str(cl["sleeve"])] or sells
     amt = lambda fs: sum((f.get("qty") or 0) * (f.get("px") or 0) for f in fs)   # noqa: E731
     pnl, pct = cl.get("pnl_cad"), cl.get("pct")
     tone = S._tone(pnl)
+    # 12 Nov 2026 (the outside check of audit repair 3, G-28): the page named the sale by its UTC day while Activity said the Toronto evening
+    bday, sday = _sold_day(cl, fills, "BUY"), _sold_day(cl, fills)
     g1 = []
     if buys:
-        g1.append(K.kvrow("Bought", S._cad(amt(buys)), k_sub=S._dw(cl.get("in")), v_sub=f"at {S._cad(buys[-1]['px'])}"))
+        g1.append(K.kvrow("Bought", S._cad(amt(buys)), k_sub=S._dw(bday), v_sub=f"at {S._cad(buys[-1]['px'])}"))
     else:
-        g1.append(K.kvrow("Bought", S._dw(cl.get("in"))))
+        g1.append(K.kvrow("Bought", S._dw(bday)))
     if sells:
-        g1.append(K.kvrow("Sold", S._cad(amt(sells)), k_sub=S._dw(cl.get("out")), v_sub=f"at {S._cad(sells[-1]['px'])}"))
+        g1.append(K.kvrow("Sold", S._cad(amt(sells)), k_sub=S._dw(sday), v_sub=f"at {S._cad(sells[-1]['px'])}"))
     else:
-        g1.append(K.kvrow("Sold", S._dw(cl.get("out"))))
+        g1.append(K.kvrow("Sold", S._dw(sday)))
     if buys and sells:
         g1.append(K.kvrow("Fees", S._cad(sum((f.get("fee") or 0) for f in buys + sells))))
     g1.append(K.kvrow("Result", S._cad(pnl), tone=tone, bold=True))
     g2 = [K.kvrow("Amount", f"{sum(f.get('qty') or 0 for f in buys):.8f}".rstrip("0").rstrip(".") + f" {coin}") if buys else None,
           K.kvrow("Why bought", _buy_why(buys[-1])) if buys else None,
           K.kvrow("Why sold", _sell_why(cl.get("why")))]
-    parts = [K.hero(f"Sold {name} · {S._dw(cl.get('out'))}", S._cad(pnl), change=(S._pct(pct, 2) if isinstance(pct, (int, float)) else None), tone=tone, since="on paper"),
+    parts = [K.hero(f"Sold {name} · {S._dw(sday)}", S._cad(pnl), change=(S._pct(pct, 2) if isinstance(pct, (int, float)) else None), tone=tone, since="on paper"),
              K.kv(g1), K.kv(g2),
              K.link("Why did the dial close?", K.place("why")) if S._why(cl.get("why")) == "the dial closed" else None,
              K.trust("Paper only, at real NDAX prices.")]
-    return K.page("Trade", parts, ask_q=f"Tell me about the {name} trade the $500 book closed on {S._dw(cl.get('out'))}: why it was bought, why it was sold, and what it taught.")
+    return K.page("Trade", parts, ask_q=f"Tell me about the {name} trade the $500 book closed on {S._dw(sday)}: why it was bought, why it was sold, and what it taught.")
 
 
 def trade_rows(j, c: dict) -> list[tuple]:
@@ -287,7 +308,7 @@ def trade_rows(j, c: dict) -> list[tuple]:
     out = []
     for cl in c["b"].get("closed") or []:
         pnl = cl.get("pnl_cad")
-        out.append((str(cl.get("out")), 2, K.row(f"Sold {_name(cl.get('coin'))}", _sell_why(cl.get("why")), right=S._cad(pnl), right_tone=S._tone(pnl), icon="down",
+        out.append((_sold_day(cl, fills), 2, K.row(f"Sold {_name(cl.get('coin'))}", _sell_why(cl.get("why")), right=S._cad(pnl), right_tone=S._tone(pnl), icon="down",
                                                 tag="trade", to=K.to_page(receipt(cl, fills)))))
     for f in fills:
         if f["side"] == "BUY":
@@ -444,16 +465,17 @@ def note_rows(j, c: dict) -> list[tuple]:
         b = c["b"]
         if i == 0 and isinstance(b.get("value_cad"), (int, float)) and [r for r in late if str(r.get("day") or "") >= str(n.get("day"))]:
             pts.insert(0, f"Corrected after this note was written: the account is {S._cad(b['value_cad'])} ({S._pct(b.get('return_pct'))}), not the figure in the note")
-        pg = K.page("Nightly note", [K.heading(f"Ananta's nightly note · {S._dw(n.get('day'))}"), K.points(pts), K.trust("Written by Ananta after the daily close, from the book's own facts.")],
-                    ask_q=f"Walk me through your nightly note of {S._dw(n.get('day'))}.")
-        out.append((str(n.get("day")), 0, K.row("Nightly note", K.clip(next((x for x in pts if not x.startswith("Corrected")), ""), 7, 44),
+        ev = n.get("evening") or S._dw(n.get("day"))          # 12 Nov (G-28): the Toronto evening it was written on
+        pg = K.page("Nightly note", [K.heading(f"Ananta's nightly note · {ev}"), K.points(pts), K.trust("Written by Ananta after the daily close, from the book's own facts.")],
+                    ask_q=f"Walk me through your nightly note of {ev}.")
+        out.append((_day(n["t"]) if n.get("t") else str(n.get("day")), 0, K.row("Nightly note", K.clip(next((x for x in pts if not x.startswith("Corrected")), ""), 7, 44),
                                                icon="note", tag="note", to=K.to_page(pg))))
     nt = S._safe(nightcheck.latest, default=None)
     if nt and nt.get("asked"):
         card = S._safe(S._night_test, default=None) or {}
         pg = K.page("Night test", [K.heading("Night test · Ananta asked and marked"), K.points(card.get("points") or []), K.trust(str(card.get("foot") or ""))],
                     ask_q="What did last night's test ask you, and what did you get wrong?")
-        out.append((str(nt.get("day")), 0.5, K.row("Night test", f"{nt.get('right')} of {nt.get('asked')} answers right", right=("All right" if not nt.get("wrong") else f"{len(nt['wrong'])} wrong"),
+        out.append((_day(nt["t"]) if nt.get("t") else str(nt.get("day")), 0.5, K.row("Night test", f"{nt.get('right')} of {nt.get('asked')} answers right", right=("All right" if not nt.get("wrong") else f"{len(nt['wrong'])} wrong"),
                                                   right_tone=None if not nt.get("wrong") else "warn", icon="moon", tag="note", to=K.to_page(pg))))
     return out
 
@@ -640,8 +662,9 @@ def account(j) -> dict:
     fills = _fills(j)
     closed = list(b.get("closed") or [])[::-1]
     won = sum(1 for x in closed if (x.get("pnl_cad") or 0) > 0)
-    crow = lambda cl: K.row(_name(cl.get("coin")), f"{S._dm(cl.get('in'))} to {S._dm(cl.get('out'))}", right=S._cad(cl.get("pnl_cad")), right_tone=S._tone(cl.get("pnl_cad")),   # noqa: E731
-                            letter=str(cl.get("coin"))[:1], to=K.to_page(receipt(cl, fills)))
+    # 12 Nov 2026 (the confirm check of audit repair 3, G-28): the list named each trade by its UTC days, the page it opens by Toronto's
+    crow = lambda cl: K.row(_name(cl.get("coin")), f"{S._dm(_sold_day(cl, fills, 'BUY'))} to {S._dm(_sold_day(cl, fills))}",   # noqa: E731
+                            right=S._cad(cl.get("pnl_cad")), right_tone=S._tone(cl.get("pnl_cad")), letter=str(cl.get("coin"))[:1], to=K.to_page(receipt(cl, fills)))
     all_closed = K.page("Closed trades", [K.hero("Closed trades", str(len(closed)), since=f"{won} won, {len(closed) - won} lost"), K.rows(None, [crow(x) for x in closed], plain=True),
                                           K.trust("Paper only, at real NDAX prices.")], ask_q="Walk me through the $500 book's closed trades: what worked, what did not, and why.") if closed else None
     coin_rows = [K.row(_name(p["symbol"]), K.clip(str(p.get("chip") or "held"), 7, 44), right=p.get("value_words"), right_sub=(S._pct(p.get("pnl_pct")) if p.get("pnl_pct") is not None else None),
@@ -808,11 +831,10 @@ def book_points(j, what: str) -> list[tuple[str, float]]:
     c = _ctx(j)
     b = c["b"]
     rec: dict[str, tuple] = {}
-    try:
-        for day, facts in j.db.execute("SELECT day, facts FROM officer_notes ORDER BY day"):
-            a = ((json.loads(facts or "{}") or {}).get("account") or {})
-            if isinstance(a.get("value_cad"), (int, float)) and isinstance(a.get("cash_cad"), (int, float)):
-                rec[(dt.date.fromisoformat(str(day)[:10]) - dt.timedelta(days=1)).isoformat()] = (a["value_cad"], a["cash_cad"])
+    try:  # 12 Nov 2026 (audit repair 3, G-37): the nights as repaired (13 of the last 14 were C$26-28 low), from the account chart's reader
+        for day, n in S.night_book(j).items():
+            if n["cash_cad"] is not None:
+                rec[(dt.date.fromisoformat(day) - dt.timedelta(days=1)).isoformat()] = (n["value_cad"], n["cash_cad"])
     except Exception:  # noqa: BLE001
         pass
     started = str(b.get("started") or "")[:10]

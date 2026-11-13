@@ -653,6 +653,27 @@ def _plain_words(j) -> str:
         return ""
 
 
+def _book_status(j) -> dict:
+    """The $500 book's status as the Ask reads it: the one report every reader uses (officer.book_status). 12 Nov 2026 (audit repair 3,
+    G-35): its brake record marks the two fires of 28 Oct that a false fall caused and counts the fires on real losses only."""
+    from jarvis.service import officer
+
+    return officer.book_status(j)
+
+
+def _window_words(j) -> str:
+    """12 Nov 2026 (audit repair 3, G-27): the evidence window's day for every question, from the one count the screens and the note use;
+    asked on 11 Nov, the Ask said day 27, 'my count from the checkpoint dates'."""
+    try:
+        from jarvis.service import knowledge_build
+
+        w = knowledge_build.window(j)
+        return (f" [evidence window: day {w['day']} of {w['of']}" + (" (it has ended)" if w.get("ended") else "")
+                + f", from {w['started']}; never count it yourself]") if w else ""
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 def _status_block() -> str:
     """Every idea's status card (evidence + permission) for the system prompt."""
     try:
@@ -1375,10 +1396,11 @@ class Lookups:
         return {"sections": reg.get("sections"), "loops": reg.get("loops"), "how_to_add": reg.get("how_to_add"), "watches": ws, "eye": st}
 
     def t_officer_note(self, n: float = 1) -> dict:
-        from jarvis.service import ndax_book, officer
+        from jarvis.service import officer
 
+        st = _book_status(self.j)
         return {"notes": officer.latest(self.j, int(n or 1)), "units": "the account is in CANADIAN dollars (NDAX, CAD); a coin's C$ price is its US$ price times the day's exchange rate (about 1.4)",
-                "account_now": {k: v for k, v in ndax_book.status(self.j).items() if k in ("value_cad", "cash_cad", "return_pct", "positions", "brakes", "dial_open", "last_step")}}
+                "account_now": {k: v for k, v in st.items() if k in ("value_cad", "cash_cad", "return_pct", "positions", "brakes", "dial_open", "last_step")}}
 
     def t_discipline(self, part: str = "all") -> dict:
         from jarvis.service import discipline, reconstruct
@@ -1474,9 +1496,7 @@ class Lookups:
         return r
 
     def t_book500(self) -> dict:
-        from jarvis.service import ndax_book
-
-        return ndax_book.status(self.j)
+        return _book_status(self.j)
 
     def t_trade_reviews(self, days: float = 7) -> dict:
         from jarvis.service import reviews
@@ -2847,7 +2867,8 @@ class Ask:
                 notes.append("[screen context: the screen open right now is " + json.dumps(here, default=str)[:300] + "]")
             if about:
                 notes.append("[the owner pointed at this item (long-press): " + json.dumps(about, default=str)[:400] + "]")
-        user_msg = (f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}] [question type: {route_name}]" + ("\n" + "\n".join(notes) if notes else "")
+        user_msg = (f"[now: {time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(now))}] [question type: {route_name}]" + _window_words(self.j)
+                    + ("\n" + "\n".join(notes) if notes else "")
                     + ("\n" + "\n".join(f"{k} (live):\n" + json.dumps(v, default=str, separators=(",", ":")) for k, v in brief.items()) if brief else "")
                     + f"\n\nQUESTION: {text}")
         log: list = list(pre_log)

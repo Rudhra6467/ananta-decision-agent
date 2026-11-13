@@ -187,16 +187,13 @@ def test_modes_budget_second_opinion_and_cost():
     assert r["provider"] == "haiku" and "Haiku" in r["note"]
     sp = A.spend()
     assert sp["today_usd"] > 0.5 and sp["budget_usd"] == 2.0
-    A.set_setting("o", "daily_budget_usd", "0.5")      # budget used up -> Gemini answers
+    A.set_setting("o", "daily_budget_usd", "0.5")      # budget used up -> no model answers (13 Nov 2026: no backup model)
+    before = len(calls)
     r = A.ask("o", "x", mode="deep")
-    assert r["provider"] == "gemini" and "budget" in r["note"]
-    A.set_setting("o", "over_budget", "stop")
-    try:
-        A.ask("o", "x", mode="deep")
-    except ValueError as e:
-        assert "budget" in str(e)
-    else:
-        raise AssertionError("budget stop not enforced")
+    assert len(calls) == before and "budget" in r["note"] and "no other model was asked" in r["note"]
+    assert r["answer"] == ask.CLAUDE_OUT_BUDGET + " Nothing was saved or done."
+    A.set_setting("o", "over_budget", "stop")          # the old choice is still accepted and changes nothing
+    assert A.ask("o", "x", mode="deep")["answer"] == r["answer"] and len(calls) == before
     A.set_setting("o", "ask_enabled", "off")
     try:
         A.ask("o", "x")
@@ -453,14 +450,17 @@ def test_eval_questions_do_not_use_the_owner_daily_limit():
         ask.DAILY_LIMIT = old
 
 
-def test_wordless_claude_falls_back_to_gemini():
+def test_wordless_claude_gets_the_plain_words_and_no_other_model():
+    # 13 Nov 2026 (Madhav: no backup model): it fell back to Gemini; now no other model is asked and the reply says so
     j, ex = _jarvis()
     import os
     os.environ["ANTHROPIC_API_KEY"] = "test"
+    asked = []
     A = ask.Ask(j, providers={"sonnet": lambda s, h, u, t, log: ("", {"in": 10, "out": 5}),
-                              "gemini": lambda s, h, u, t, log: (json.dumps({"answer": "from gemini"}), {"in": 1, "out": 1})})
+                              "gemini": lambda s, h, u, t, log: (asked.append(u), (json.dumps({"answer": "from gemini"}), {"in": 1, "out": 1}))[1]})
     r = A.ask("o", "why is btc up", mode="deep")
-    assert r["answer"] == "from gemini" and r["provider"] == "gemini" and "Gemini answered" in r["note"]
+    assert asked == [] and r["answer"] == ask.CLAUDE_OUT + " Nothing was saved or done."
+    assert "Claude gave no words this time; there is no backup model, so no other model was asked" in r["note"] and "Gemini answered" not in r["note"]
 
 
 def test_router_and_briefs():

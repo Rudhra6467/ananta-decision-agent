@@ -71,8 +71,7 @@ export function VoiceSettings() {
           </View>
           <Progress value={sp.today_usd} of={sp.budget_usd || 1} color={sp.today_usd >= sp.budget_usd ? C.bad : C.accent} />
           <Segmented value={String(sp.budget_usd)} onChange={(x) => setting("daily_budget_usd", x)} options={["0", "1", "2", "5", "10"].map((x) => ({ key: x, label: `$${x}` }))} />
-          <T small>When today's budget is used up: {sp.settings?.over_budget === "stop" ? "Claude stops until tomorrow." : "Gemini (free) answers instead."}
-            {"  "}<Text style={{ color: C.accent }} onPress={() => setting("over_budget", sp.settings?.over_budget === "stop" ? "gemini" : "stop")}>Change</Text></T>
+          <T small>When today's budget is used up, Ananta stops answering until midnight Toronto time, or until you raise the budget. It has no backup model.</T>
           <Line label="This month" value={`$${sp.month_usd.toFixed(2)}`} />
           <Divider />
           <Pressable onPress={() => router.push("/testlab")} style={{ flexDirection: "row", alignItems: "center", paddingTop: 6 }}>

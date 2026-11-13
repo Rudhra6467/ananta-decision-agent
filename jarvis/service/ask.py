@@ -278,7 +278,7 @@ TOOLS = [
     ("propose_switch", "Prepare flipping a main switch: switch = kill_switch (on stops all new trading in the backend; off lets it trade again) or autopilot (the trend portfolio's mode: on = AUTO applies its changes itself, off = SUGGEST waits for his approval). on = true/false. Creates a card he confirms with Face ID.", _schema({"switch": {"type": "string", "enum": ["kill_switch", "autopilot"]}, "on": {"type": "boolean"}}, ["switch", "on"])),
     ("propose_portfolio_decision", "Prepare approving or rejecting the trend portfolio's suggested changes (the ones waiting in suggest mode): decision approve | reject, ids = 'all' or a list of suggestion ids from the portfolio lookup. Creates a card he confirms with Face ID.", _schema({"decision": {"type": "string", "enum": ["approve", "reject"]}, "ids": {"type": "string", "description": "'all' or comma-separated ids"}}, ["decision"])),
     ("propose_alert_off", "Prepare switching off one of the owner's active alerts: alert = its id from the alerts lookup. Creates a card he confirms.", _schema({"alert": {"type": "string"}}, ["alert"])),
-    ("propose_setting", "Prepare changing an Ananta setting: daily_budget_usd (Claude budget per day, 0-50), over_budget (gemini = free Gemini answers after the budget, stop = no answers), voice_enabled (1/0). Creates a card he confirms with Face ID.", _schema({"key": {"type": "string", "enum": ["daily_budget_usd", "over_budget", "voice_enabled"]}, "value": {"type": "string"}}, ["key", "value"])),
+    ("propose_setting", "Prepare changing an Ananta setting: daily_budget_usd (Claude budget per day, 0-50; when it is used up no model answers until midnight Toronto time), voice_enabled (1/0). Creates a card he confirms with Face ID.", _schema({"key": {"type": "string", "enum": ["daily_budget_usd", "over_budget", "voice_enabled"]}, "value": {"type": "string"}}, ["key", "value"])),
     ("read_doc", "Open one whole document from the knowledge map (for example 'casebook/REBUILD_2026-10-03.md' or 'knowledge/FRAMEWORK.md') when the passages from knowledge are not enough. Optional section = a heading word to return only that part.", _schema({"file": {"type": "string"}, "section": {"type": "string"}}, ["file"])),
     ("chain", "Ananta's decision chain for one coin or all 10 (fail-closed): regime -> trend -> location -> trigger -> invalidation -> risk -> exposure; where each coin stops and why, the stop and size if it got that far, plus relative strength vs BTC, volume and setup family as evidence. Use for 'should we buy X', 'why no trade', 'what is Ananta waiting for', 'which coins are closest'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
     ("changes", "What changed / happened in the last N hours: buys, sells, orders, portfolio moves, warnings, owner actions.", _schema({"hours": {"type": "number"}})),
@@ -1930,10 +1930,9 @@ class Lookups:
     def t_propose_setting(self, key: str, value: str) -> dict:
         if self.guest:
             return {"error": "Practice mode: settings belong to Madhav."}
-        if key not in ("daily_budget_usd", "over_budget", "voice_enabled"):
-            return {"error": "key is daily_budget_usd, over_budget or voice_enabled"}
+        if key not in ("daily_budget_usd", "voice_enabled"):          # 13 Nov: no backup model, so nothing to choose after the budget
+            return {"error": "key is daily_budget_usd or voice_enabled"}
         words = {"daily_budget_usd": f"Set the daily Claude budget to ${float(value):.2f}" if str(value).replace('.', '', 1).isdigit() else None,
-                 "over_budget": f"After the budget: {'free Gemini answers' if value == 'gemini' else 'no answers until midnight'}",
                  "voice_enabled": f"Voice {'on' if str(value) in ('1', 'true', 'on') else 'off'}"}[key]
         if not words:
             return {"error": "the budget must be a number of dollars"}
@@ -2163,412 +2162,46 @@ def route(text: str) -> tuple[str, str]:
     return "gemini", "Auto: Gemini, everyday question"
 
 
-# 12 Nov 2026 (G-34; repair 5's outside check, N2 and N3; its confirm checks, C1, C2, D1 to D3 and E1 to E8; the interim outside review
-# of the process). When the backup model answers in Claude's place it cannot vouch for our records: on 11 Nov it said "no review 42 exists
-# in our system" (in the reply's breakdown) minutes after another answer described review 42. Four word lists in a row tried to tell a
-# false denial of a record from a true finding, and each was beaten from outside, so the rule no longer tries to tell them apart:
-#  1. a QUESTION about a record of the work (a review, a study, research, a backtest, an audit, a checkpoint, findings, evidence, anything
-#     numbered such as "review 42" or "H07", "did we test / has anyone checked / do we have data showing / by our numbers ...") or a short
-#     follow-up to one in the same conversation ("did it run?", "and 41?") is not put to the backup at all: nothing is done, and Ananta
-#     says when to ask again;
-#  2. any other backup reply that SPEAKS of a record of the work at all, true or not, anywhere in it (its answer, breakdown, evidence,
-#     options, follow-ups or assumption), is withheld the same way; a record named only as a point in time ("since review 41") does not
-#     count. What the backup already prepared or did is said, so it is not asked for twice.
-# The backup still answers everything else: prices, positions, trades, the dial, tonight's note and night test, charts, how-to. The word
-# lists below decide what counts as a record of the work and lean toward withholding: a miss now needs an answer that denies our work
-# without naming any of it or any research verb.
-_NUMREC = r"(?:review|study|test|flag|item|finding|checkpoint|experiment|rule|version|package|repair)\s*#?\d+"
-_RECWORDS = (r"reviews?|stud(?:y|ies)|research(?!\s+(?:tier|universe|list|coins?|set))|checkpoints?|"
-             r"records?(?!\s+(?:highs?|lows?|levels?|prices?|volumes?|days?))|registrations?|experiments?|audits?|ledgers?|backtests?")
-_WORDREC = r"(?:" + _RECWORDS + r")(?!\s*#?\d)"                        # in an answer, what a record found is its content
-_QWORDREC = r"(?:" + _RECWORDS + r"|findings?)(?!\s*#?\d)"             # in a question, its findings are the record too
-_REC = r"(?:" + _NUMREC + "|" + _WORDREC + r"|#\d{2,})\b(?!'s)"        # "review 42's results" names a record that is there
-_APOSTROPHES = str.maketrans({"’": "'", "‘": "'", "ʼ": "'", "´": "'", "`": "'"})
-_LONG = [(re.compile(p, re.I), r) for p, r in (
-    (r"\bcan't\b", "cannot"), (r"\bwon't\b", "will not"), (r"\bain't\b", "is not"), (r"n't\b", " not"),
-    (r"'s\s+(not|never)\s+been\b", r" has \1 been"), (r"'s\s+been\b", " has been"), (r"'s\s+never\b", " has never"),
-    (r"'s\s+(?=(?:not|yet|still|no)\b)", " is "), (r"\b(there|that|it|what|nothing|nobody)'s\b", r"\1 is"),
-    (r"'ve\b", " have"), (r"'re\b", " are"), (r"'m\b", " am"), (r"'d\b", " had"), (r"'ll\b", " will"))]
+# 13 Nov 2026 (the keen outside audit, G-34; Madhav, 13 Nov: "A: no backup model"). On 11 Nov the free backup model, standing in for
+# Claude, said "no review 42 exists in our system" minutes after another answer described review 42. Five outside checks then beat every
+# word list that tried to tell which questions and replies the backup could be trusted with. So there is no backup model: when Claude was
+# meant to answer and cannot (it is out, it refused the call, it gave no words, or its budget for the day is used up), the question is
+# put to no other model, nothing is done, and Ananta says so and when to ask again. What Claude itself did before it failed (a watch, a
+# note) stands and is said. An answer the person chose to get from the everyday model is not a fallback and is not touched.
+CLAUDE_OUT = ("I can't answer that right now: the main model isn't available, and I have no backup model. Ask me again in a few "
+              "minutes.")
+CLAUDE_OUT_BUDGET = ("I can't answer that right now: today's Claude budget is used up until midnight Toronto time, and I have no backup "
+                     "model. Ask me again after midnight, or raise the budget under More › Voice and model and ask again.")
+CLAUDE_OUT_GUEST = ("I can't answer that right now: your Claude allowance for today is used up until midnight Toronto time. Ask me "
+                    "again after midnight.")
 
 
-def _long(text: str) -> str:
-    """One space between words, straight apostrophes and no short forms: "haven't" reads "have not" and "there's" reads "there is"."""
-    s = " ".join(str(text or "").translate(_APOSTROPHES).split())
-    for p, r in _LONG:
-        s = p.sub(r, s)
-    return s
-
-
-_NEG = (r"(?:(?:have|has|had|did|do|does|is|are|am|was|were|will|would|could|can|should)\s+not|cannot|never|not\s+yet|"
-        r"(?:have|has|had|is|are|am|was|were)\s+(?:still\s+)?yet\s+to|(?:is|are|am|was|were)\s+still\s+to|remains?\s+to|still\s+not|"
-        r"(?:(?:am|is|are|was|were|have\s+been|has\s+been)\s+)?unable\s+to|failed\s+to)")
-_ADV = r"(?:\s+(?:yet|ever|actually|really|even|still|properly|so\s+far|been\s+able\s+to|managed\s+to|got\s+to))*"
-_BEEN = (r"(?:(?:is|are|was|were)\s+(?:not|never|not\s+yet|still\s+not)|(?:have|has|had)\s+(?:not|never)(?:\s+(?:yet|ever|actually|really))*"
-         r"\s+been|(?:never|not\s+yet|not)(?:\s+(?:yet|ever))*\s+been|(?:have|has|had|is|are|was|were)\s+(?:still\s+)?yet\s+to\s+be|"
-         r"(?:is|are|was|were)\s+still\s+to\s+be|remains?\s+to\s+be|(?:will|would|could|can|should)\s+not\s+be|cannot\s+be)"
-         r"(?:\s+(?:yet|ever|actually|really|even|still|properly|so\s+far))*")
-_ACT = (r"(?:run|ran|start(?:ed)?|begun|begin|began|happen(?:ed)?|take\s+place|took\s+place|taken\s+place|exist(?:ed)?|occur(?:red)?|"
-        r"complete[d]?|finish(?:ed)?|conduct(?:ed)?|carr(?:y|ied)\s+out|(?:get|got|gotten)\s+done)")    # says it never was, in any voice
-_PAS = (r"(?:done|made|written|published|filed|recorded|opened|created|built|performed|logged|undertaken|attempted|tried|tested|"
-        r"studied|researched|reviewed|backtested|measured|checked|examined|investigated|explored|analy[sz]ed|evaluated|registered|"
-        r"produced|prepared|issued|released|generated|compiled|drafted|submitted|launched|commissioned|put\s+together|"
-        r"set\s+up|looked\s+(?:at|into))")                                                    # says so only after "been" or "was"
-_MAKE = (r"(?:run|ran|do|did|done|make|made|have|had|start(?:ed)?|record(?:ed)?|open(?:ed)?|write|wrote|written|publish(?:ed)?|"
-         r"file[d]?|conduct(?:ed)?|hold|held|carr(?:y|ied)\s+out|create[d]?|build|built|perform(?:ed)?|log(?:ged)?|keep|kept|"
-         r"complete[d]?|finish(?:ed)?|begin|began|begun|undert(?:ake|ook|aken)|produce[d]?|prepare[d]?|issue[d]?|release[d]?|"
-         r"generate[d]?|compile[d]?|draft(?:ed)?|submit(?:ted)?|launch(?:ed)?|commission(?:ed)?|put\s+together|"
-         r"(?:get|got|gotten)\s+(?:(?:round|around)\s+)?to)")
-_LOOK = (r"(?:see|saw|seen|seeing|get|got|gotten|getting|find|found|finding|locate[d]?|locating|test(?:ed)?|tr(?:y|ied)|stud(?:y|ied)|"
-         r"research(?:ed)?|review(?:ed)?|"
-         r"backtest(?:ed)?|look(?:ed)?\s+(?:at|into|up)|measure[d]?|pull(?:ed)?\s+up|turn(?:ed)?\s+up|c[oa]me\s+across|spot(?:ted)?|"
-         r"recall(?:ed)?|remember(?:ed)?|know\s+(?:of|about)|access(?:ed)?|read)")        # the record itself is what is not found
-_RSCH = (r"(?:test(?:ed)?|stud(?:y|ied)|research(?:ed)?|review(?:ed)?|backtest(?:ed)?|measure[d]?|look(?:ed)?\s+into|"
-         r"investigate[d]?|examine[d]?|explore[d]?|analy[sz]e[d]?|evaluate[d]?)")
-_BOOKS = r"(?:records?|ledgers?|files?|database|logs?|history|notes|archives?)"
-_PREP = r"(?:in|of|for|from|on|about|at|to|with|by|after|since|before|until|till|during|into|over|across|under|within)"
-_OBJ = r"(?:\s+(?!" + _PREP + r"\b)[\w'-]+){0,3}?\s+"                    # up to three words, never across "in" or "since"
-_ART = r"(?:\s+(?:a|an|any|the|such|that|this|our|your|its|one|single|(?:record|trace|sign|mention|report|copy)\s+of))*\s+"
-_NOPREP = r"(?!" + _PREP + r"\b)[\w'-]+"
-_WHO = r"\b(?:we|i|ananta|you|they|it)\b"
-_AUX = r"(?:\s+(?:have|has|had|am|are|is|was|were))?"
-
-
-def _gap(n: int) -> str:
-    """Up to n words after the record, never across a word that starts what the record found or another clause ("review 42 found that
-    buying did not start an uptrend" says what it found; "review 41 is on Proof and has not changed" is two things)."""
-    return (r"(?:\W+(?!(?:found|finds|find|showed|shows|show|says|said|suggests?|suggested|concluded|concludes|that|whether|because|so|"
-            r"but|and|while|although|though|when|where|which|who|if|than|then)\b)[\w'-]+){0,%d}?\W+" % n)
-
-
-_DENIALS = [re.compile(p, re.I) for p in (
-    # we never ran review 42; Ananta has not done the extreme-drop study; we never got round to review 42; we have yet to run it
-    _WHO + _AUX + r"\s+" + _NEG + _ADV + r"\s+" + _MAKE + r"\b" + _OBJ + _REC,
-    # I cannot find review 42; I have not seen any review 42; we could not locate a review 42 (the record itself, not "an edge in" it)
-    _WHO + _AUX + r"\s+" + _NEG + _ADV + r"\s+" + _LOOK + r"\b" + _ART + _REC,
-    # nobody has run review 42; no one has done it yet
-    r"\b(?:nobody|no\s+one|none\s+of\s+us)(?:\s+(?:has|have|had|ever|is|was|yet))*\s+(?:" + _MAKE + "|" + _LOOK + r")\b" + _OBJ + _REC,
-    # review 42 was never run; has not started; is yet to be run; review 42? that has not happened
-    _REC + _gap(6) + _NEG + _ADV + r"(?:\s+(?:been|be))?\s+" + _ACT + r"\b",
-    # review 42 has not been done; was not written; has never been carried out; the 9 Nov review has not been written
-    _REC + _gap(6) + _BEEN + r"\s+" + _PAS + r"\b",
-    # review 42 is not available because it was never run
-    _REC + _gap(6) + r"(?:because|as|since|so|and|but)\s+(?:it|that|this|they)\s+(?:" + _NEG + _ADV + r"(?:\s+(?:been|be))?\s+" + _ACT +
-    "|" + _BEEN + r"\s+" + _PAS + r")\b",
-    # review 42 could not be found (right after the record, so "in review 41, a bounce was not found" is what it found)
-    _REC + r"(?:\W+(?:it|that|this|which))?\W+" + _BEEN + r"\s+(?:found|located|seen|traced|retrieved)\b",
-    # the extreme-drop study? we never did it; review 42: we have not run it
-    _REC + r"\W+(?:[\w'-]+\W+){0,3}?" + _WHO + _AUX + r"\s+" + _NEG + _ADV + r"\s+(?:" + _MAKE + "|" + _LOOK + r")\s+(?:it|that|this|one|them)\b",
-    # review 42? that has not happened; review 42? no, that has not been run
-    _REC + r"\s*[?:—–-]+\s*(?:(?:no|nope|sadly|unfortunately|sorry|well)\W+)*(?:it|that|this|one)\s+(?:" + _NEG + _ADV +
-    r"(?:\s+(?:been|be))?\s+" + _ACT + "|" + _BEEN + r"\s+" + _PAS + r"|(?:does|did|do)\s+not\s+exist|never\s+existed)\b",
-    # review 42 is still pending
-    _REC + _gap(6) + r"(?:is|are|was|were)\s+(?:still\s+)?(?:pending|outstanding|not\s+started)\b",
-    # review 42 does not exist; does not seem to exist; does not appear in our records; is not on file or on record; is not available;
-    # is not in the ledger; is not something we have done; is not something that exists
-    _REC + _gap(6) + r"(?:(?:does|did|do)\s+not\s+(?:exist|(?:seem|appear)\s+to\s+(?:exist|have\s+been\s+(?:" + _ACT + "|" + _PAS + r"))|"
-    r"(?:appear|show\s+up)\s+(?:(?:in|on)\s+(?:our|the|any|my)\s+" + _BOOKS + r"|anywhere))|(?:seems?|appears?)\s+not\s+to\s+(?:exist|"
-    r"have\s+been)|(?:is|are|was|were)\s+not\s+(?:on\s+file|on\s+record|available|accessible|in\s+(?:our|the|any|my)\s+" + _BOOKS +
-    r"|anywhere)|never\s+existed|(?:is|are|was|were)\s+not\s+(?:something|anything|a\s+thing)\s+(?:(?:that|which)\s+(?:exists?|existed|"
-    r"happened)|(?:that\s+)?(?:we|i|ananta)(?:\s+(?:have|has|had))?\s+(?:ever\s+)?(?:" + _MAKE + "|" + _LOOK + r")))\b",
-    # there is no review 42; there has never been one; there was never a review 42; there is no such thing as review 42
-    r"\bthere\s+(?:(?:is|are|was|were|has\s+been|have\s+been|had\s+been)\s+no|(?:has|have|had)\s+(?:never|not)(?:\s+(?:yet|ever))*\s+been|"
-    r"(?:is|are|was|were)\s+(?:never|not))(?:\s+(?:a|an|any|one|such|single|yet|ever|so\s+far|such\s+thing\s+as|thing\s+(?:as|called)))*"
-    r"\s+(?:" + _NOPREP + r"\s+)?" + _REC,
-    # I have no information about review 42; we have no notes on any review 42
-    r"\b(?:we|i|you|ananta|it|they)(?:\s+(?:have|has|had))?(?:\s+got)?\s+no\s+(?:information|info|data|details?|knowledge|notes?|word|"
-    r"mention|sign)\s+(?:on|about|of|for|regarding|concerning)\s+(?:a\s+|an\s+|the\s+|any\s+)?" + _REC,
-    # I cannot confirm that review 42 exists; we are unable to verify any review 42
-    r"\b(?:cannot|(?:could|can)\s+not|(?:am|is|are|was|were)\s+unable\s+to|(?:am|is|are|was|were)\s+not\s+able\s+to)\s+(?:confirm|verify|"
-    r"vouch\s+for)(?:[ ,]+[\w'-]+){0,4}?[ ,]+" + _REC,
-    # we have no review 42; we ran no review 42; I see no review 42; the system has no review 42; our data shows no review 42
-    r"\b(?:(?:we|i|you|ananta|it|they)(?:\s+(?:have|has|had|am|are|is|was|were|can|could))?(?:\s+(?:got|ran|run|did|done|made|kept|conducted|"
-    r"performed|carried\s+out|found|seen|saw|see|find|hold|held|have|has|had|know\s+of|recorded|logged|filed|wrote|written|published|"
-    r"opened|started))?|(?:records?|ledgers?|files?|database|lists?|logs?|history|system|data|notes|board|archives?)\s+(?:has|have|had|"
-    r"holds?|held|shows?|showed|contains?|contained|lists?|listed|includes?|included|mentions?|mentioned))\s+no\s+(?:such\s+|single\s+)?"
-    r"(?:" + _NOPREP + r"\s+)?" + _REC,
-    # our records do not show a review 42; the ledger does not have any review 42
-    r"\b(?:records?|ledgers?|files?|database|logs?|history|system|data|notes|board|archives?)\s+(?:do|does|did)\s+not\s+(?:show|have|hold|"
-    r"list|contain|include|mention|record|carry)(?:\s+(?:a|an|any|the|such|single))*\s+" + _REC,
-    # no review 42 exists; no study of buying after drops has been done; no review 42 is on file; no review 42 yet
-    r"\bno\s+(?:such\s+|single\s+)?(?:[\w'-]+\s+){0,2}?" + _REC + r"(?:[ ,]+[\w'-]+){0,6}?[ ,]+(?:exists?|existed|(?:has|have|had)\s+"
-    r"(?:ever\s+|yet\s+)?been\s+(?:" + _ACT + "|" + _PAS + r")|(?:was|were|is|are)\s+(?:ever\s+|yet\s+)?(?:" + _ACT + "|" + _PAS +
-    r")|(?:has|have|had)\s+(?:ever\s+|yet\s+)?" + _ACT + r"|(?:is|are|was|were)\s+(?:on\s+file|on\s+record|in\s+(?:our|the|any|my)\s+" +
-    _BOOKS + r")|yet)\b",
-    # no record of review 42; nothing on file; not in our records; nothing about review 42 ("no record of a trade tonight" is a trade)
-    r"\bno\s+records?\s+(?:at\s+all\s+)?(?:of|that|for|on|about|showing)(?:[ ,]+[\w'-]+){0,3}?[ ,]+" + _REC +
-    r"|\b(?:not|nothing)\s+(?:on\s+file|in\s+(?:our|the|any|my)\s+" + _BOOKS + r")\b|\bnothing\s+(?:on|about|for|of|under|regarding|"
-    r"concerning)\s+(?:a\s+|an\s+|the\s+|any\s+)?" + _REC,
-    # I am not aware of review 42; never heard of it; I do not think review 42 exists; I cannot recall a review 42
-    r"\b(?:not\s+aware\s+of|unaware\s+of|never\s+heard\s+(?:of|about)|(?:do|does|did)\s+not\s+(?:know\s+(?:of|about)|think|believe|"
-    r"recall|remember)|no\s+(?:knowledge|sign|trace|mention|copy|memory|recollection)\s+of|cannot\s+(?:recall|remember)|(?:could|can)\s+"
-    r"not\s+(?:recall|remember))(?:[ ,]+[\w'-]+){0,5}?[ ,]+" + _REC,
-    _REC + _gap(4) + r"(?:never\s+heard\s+(?:of|about)|not\s+aware\s+of|unaware\s+of|no\s+(?:knowledge|record|trace|sign|mention)\s+of)"
-    r"\s+(?:it|that|this|one|such|them)\b",
-    # we never tested buying after drops; I have not studied that; nobody has looked into it (research, with or without a record word)
-    r"\b(?:we|i|ananta)(?:\s+(?:have|has|had|am|are|is|was|were))?\s+" + _NEG + _ADV + r"\s+" + _RSCH + r"\b",
-    r"\b(?:nobody|no\s+one|none\s+of\s+us)(?:\s+(?:has|have|had|ever|yet))*\s+" + _RSCH + r"\b",
-    # buying after drops has never been tested (unless it says what a record covered: "were not tested in review 41")
-    r"\b" + _BEEN + r"\s+(?:tested|studied|researched|backtested|investigated|examined|explored|analy[sz]ed|evaluated|looked\s+into)\b"
-    r"(?!(?:[ ,]+[\w'-]+){0,3}?[ ,]+(?:in|by|during|within|for)\s+(?:the\s+|that\s+|this\s+|our\s+|its\s+)?" + _REC + ")",
-)]
-# 1. the question rule
-_PRICE = (r"(?:\$?\d|highs?|lows?|support|resistance|levels?|lines?|averages?|bands?|ema|sma|\d+-day|moving|prices?|tops?|bottoms?|"
-          r"ranges?|zones?|floors?|ceilings?|(?:the\s+|its\s+|their\s+)?(?:high|low|top|bottom))")
-_NOTCHART = (r"(?!\s+(?:the|my|this|that|your|its|today's|tonight's|bitcoin's|btc's|eth's|the\s+coin's)\s+(?:chart|charts|picture|"
-             r"screenshot|image|photo|screen|page|file|candles?|price|move|market))")
-_QNUM = (r"\b(?:review|study|test|experiment|checkpoint|flag|item|finding|package|repair|hypothesis)\s*#?\d+\b|\bH\d{1,3}\b|#\d{2,}\b")
-_AWORD = (r"(?<!trade\s)(?<!market\s)(?<!daily\s)(?<!nightly\s)(?<!quick\s)(?<!weekly\s)(?<!morning\s)(?<!evening\s)reviews?"
-          r"(?!\s+(?:of\s+)?(?:the|today's|tonight's|this\s+week's|my|our|your|this|that)\s+(?:market|trades?|positions?|portfolio|"
-          r"books?|day|week|night|account|holdings?|stops?))|stud(?:y|ies)" + _NOTCHART + r"|research(?!\s+(?:tier|universe|list|coins?|"
-          r"set))|backtest(?:s|ed|ing)?|experiments?|audits?|checkpoints?|hypothes[ie]s|reconstructions?(?!\s+cards?)|"
-          r"(?:pre-?)?registrations?|forward\s+(?:test|record)s?|repair\s+shop|investigations?")
-_QWORD = (_AWORD + r"|evidence|findings?(?!\s+(?:on|in|from)\s+(?:tonight's|today's|this\s+morning's|the)\s+(?:card|note|night\s+test))|"
-          r"(?:our|the)\s+records|(?:our|ananta's)\s+(?:own\s+)?(?:numbers|data|research(?!\s+(?:tier|universe|list|coins?|set))|tests|results|"
-          r"studies|backtests)")
-_TOPIC = (r"(?:bounces?|drops?|dips?|crash(?:es)?|breakouts?|stops?|entr(?:y|ies)|exits?|setups?|signals?|edges?|patterns?|strateg(?:y|ies)|"
-          r"rules?|the\s+dial|trends?|buying|selling|waiting|hypothes[ie]s|funding)")
-_QSUBJ = (r"(?:we|you|ananta|i|anyone|anybody|someone|somebody|(?:the|our|ananta's)\s+(?:[\w'-]+\s+)?(?:team|builders?|researchers?|"
-          r"repair\s+shop|lab|reconstruction|research|audit|reviews?|studies|study))")
-_QVERB = (r"(?:test(?:ed|ing)?(?!\s+(?:the\s+|its\s+|a\s+|an\s+|their\s+)?" + _PRICE + r")|stud(?:y|ied|ying)" + _NOTCHART +
-          r"|research(?:ed|ing)?|backtest(?:ed|ing)?|examin(?:e|ed|ing)|investigat(?:e|ed|ing)|explor(?:e|ed|ing)|evaluat(?:e|ed|ing)|"
-          r"analy[sz](?:e|ed|ing)" + _NOTCHART + r"|measur(?:e|ed|ing)|check(?:ed|ing)?\s+whether|look(?:ed|ing)?\s+into|"
-          r"rul(?:e|ed|ing)\s+out|conclud(?:e|ed|ing)|learn(?:ed|t|ing)?|discover(?:ed|ing)?|prov(?:e|ed|en|ing)|r[au]n\s+the\s+numbers)")
-_ASKS = [re.compile(p, re.I) for p in (
-    _QNUM + r"|\b(?:" + _QWORD + r")\b",
-    # did we test ...; has anyone checked whether ...; did you ever run the numbers on ...; what has the repair shop concluded
-    r"\b(?:did|have|has|had|do|does|was|were|is|are|will|would|could|can)\s+" + _QSUBJ + r"\s+(?:[\w'-]+\s+){0,2}?"
-    r"(?:(?:ever|already|actually|really|yet|previously|once|properly)\s+)?" + _QVERB + r"\b",
-    # did Ananta ever try waiting a day; did we ever compare ...; did we look at buying after drops before; has Ananta looked at it yet
-    r"\b(?:did|have|has|had|do|does)\s+" + _QSUBJ + r"\s+(?:ever|already|previously|once)\s+(?:look(?:ed)?\s+at|check(?:ed)?|"
-    r"tr(?:y|ied)|compar(?:e|ed)|consider(?:ed)?)\b",
-    r"\b(?:did|have|has|had)\s+" + _QSUBJ + r"\s+(?:look(?:ed)?\s+at|tr(?:y|ied)|compar(?:e|ed)|consider(?:ed)?)\b(?:\s+[\w'-]+){1,8}?"
-    r"\s+(?:before|already|yet|previously|properly|closely)\b",
-    r"\b(?:have|has|had)\s+" + _QSUBJ + r"\s+(?:ever\s+|already\s+)?checked\s+(?:whether|if)\b",
-    # has buying after drops been tested; was the breakout idea ever checked; is buying after drops proven to work
-    r"\b(?:has|have|had|was|were|is|are)\s+(?:[\w'-]+\s+){0,6}?been\s+(?:ever\s+|already\s+)?(?:tested|studied|researched|backtested|"
-    r"reviewed|measured|investigated|examined|explored|analy[sz]ed|evaluated|looked\s+(?:into|at)|ruled\s+out)\b",
-    r"\b(?:has|have|had|was|were|is|are)\s+(?:[\w'-]+\s+){0,6}?(?:ever|already)\s+(?:been\s+)?(?:tested|studied|researched|backtested|"
-    r"reviewed|measured|investigated|examined|explored|analy[sz]ed|evaluated|looked\s+(?:into|at)|checked|compared|ruled\s+out)\b",
-    r"\b(?:is|are|was|were|has\s+been|have\s+been)\s+(?:[\w'-]+\s+){0,6}?(?:proven|proved|shown)\s+to\s+(?:work|help|pay|beat|matter)\b",
-    r"\b(?:is|are|was|were|has\s+been|have\s+been)\s+(?:the\s+|our\s+|this\s+|that\s+)?(?:[\w'-]+\s+){0,3}?(?:idea|rule|setup|strategy|"
-    r"signal|filter|dial|hypothesis|pattern|edge)s?\s+(?:ever\s+|really\s+)?(?:proven|proved|tested|supported|confirmed|disproven|rejected)\b",
-    r"\b[\w-]*(?:drops?|dips?|bounces?|breakouts?|crash(?:es)?)\s+(?:work|idea|question|research)\b",
-    r"\b(?:do|does|did)\s+(?:we|ananta)\s+(?:already\s+|really\s+)?know\s+(?:if|whether)\b",
-    r"\b(?:ideas?|hypothes[ie]s|setups?|rules?|strateg(?:y|ies)|signals?)\s+(?:have|has|had|did)\s+(?:we|you|ananta|the\s+team)\s+(?:ever\s+|"
-    r"already\s+)?(?:reject(?:ed)?|drop(?:ped)?|retire[d]?|rul(?:e|ed)\s+out|kept|keep|accept(?:ed)?|test(?:ed)?)\b",
-    # what have we learned about ...; what we know about bounces after extreme drops (not "what do you know about Solana")
-    r"\bwhat\s+(?:have|did|do|does)\s+(?:we|you|ananta)\s+(?:ever\s+)?(?:learn(?:ed|t)?|find|found|conclude[d]?|discover(?:ed)?)\b",
-    r"\bwhat\s+(?:do\s+|did\s+)?we\s+(?:already\s+)?know\s+(?:about|of)\s+(?:[\w'-]+\s+){0,3}?" + _TOPIC,
-    # is there a study ...; do we have any data showing ...; by our numbers
-    r"\b(?:is|are|was|were)\s+there\s+(?:ever\s+)?(?:a|an|any)\s+(?:test|study|review|backtest|experiment|check|evidence|data|proof|"
-    r"numbers)\b",
-    r"\b(?:do|did|have)\s+(?:we|you|ananta)\s+(?:have|got)\s+(?:any\s+)?(?:data|numbers|evidence|proof|results|figures)\s+(?:showing|"
-    r"that|on|for|about)\b",
-    r"\bby\s+our\s+(?:numbers|data|tests|research|records)\b|\baccording\s+to\s+(?:our|the)\s+(?:numbers|data|tests|research|records|"
-    r"reviews?|studies)\b",
-)]
-_REVIEW_VERB = re.compile(r"\b(?:(?:can|could|would|will)\s+you\s+(?:please\s+)?|please\s+)review\b|^review\b(?=\s+(?:my|the|today's|"
-                          r"tonight's|our|this|your)\b)", re.I)                  # "can you review my positions" is a check
-_FOLLOW_UP = re.compile(r"\b(?:it|that|this|they|them|those|these|one)\b|\b\d{2,3}\b|^(?:and|so|but|then|also|what\s+about|how\s+about|"
-                        r"when|why|really)\b", re.I)
-
-
-def asks_about_a_record(question: str, previous=()) -> bool:
-    """True when the question is about a record of the work (rule 1 above), or is a short follow-up (eight words at most, with "it",
-    "that", a number or "and ...") to one of the last two questions of the conversation that was (E1: "did it run?" named no record)."""
-    q = _FRAME.sub(" ", _REVIEW_VERB.sub("check", _long(question)))
-    if any(p.search(q) for p in _ASKS):
-        return True
-    prev = [previous] if isinstance(previous, str) else [p for p in (previous or []) if p]
-    return bool(prev) and len(q.split()) <= 8 and bool(_FOLLOW_UP.search(q)) and any(asks_about_a_record(p) for p in prev[-2:])
-
-
-# 3. the everyday rule (12 Nov evening, Madhav's choice): while Claude is out, the backup answers ONLY a question it can plainly see is
-#    everyday: a price or a quote; his positions, holdings, stops, alerts, watches, cash, orders or a book's value; what bought or sold
-#    tonight or today; the dial; tonight's note, plan and night test; a chart or a page; how-to and the tour; which coin moved and why
-#    today; setting a stop, an alert, a watch or a paper order card; what an indicator or a word means; a greeting. Never advice
-#    ("should I", "is it a good time", "why didn't we"), and never a question about a record (rule 1). Everything else is held: the backup
-#    is not asked, nothing is done, and Ananta says when to ask again. A miss now holds an everyday question (a cost), not a false denial.
-_EVERYDAY = [re.compile(p, re.I) for p in (
-    r"\b(?:prices?|quotes?|trading\s+at|how\s+much\s+is|what\s+is\s+[\w$]+\s+at|where\s+is\s+[\w$]+\s+(?:now|today|trading))\b",
-    r"\b(?:my|our|the)\s+(?:open\s+)?(?:positions?|holdings?|stops?|alerts?|watch(?:es)?|cash|balance|orders?|account|portfolio|"
-    r"(?:manual|bold|\$?500)\s+(?:book|account)|book|coins)\b",
-    r"\b(?:did|have|has)\s+(?:we|you|ananta|anything|the\s+[\w$]+\s+(?:book|account))\s+(?:just\s+)?(?:buy|bought|sell|sold|trade|traded|"
-    r"close|closed|open|opened|fill|filled)\b",
-    r"\bwhat\s+did\s+(?:we|you|the\s+[\w$]+\s+(?:book|account))\s+(?:buy|sell)\b|\b(?:any|anything)\s+(?:buys?|sells?|sold|bought|trades?|fills?)\b",
-    r"\bthe\s+dial\b|\bis\s+buying\s+(?:on|allowed|open)\b",
-    r"\b(?:tonight's|today's|the\s+nightly)\s+(?:note|plan|trades?|close)\b|\bnight\s+test\b|\bdaily\s+close\b",
-    r"\b(?:show|open)\s+(?:me\s+)?(?:the|my|a)?\s*[\w$]*\s*(?:chart|graph|page|book|account)\b|\bchart\b",
-    r"\bhow\s+do\s+i\b|\bwhere\s+(?:is|do|can)\s+i\b|\b(?:the\s+)?tour\b|\bwhat\s+does\s+(?:this|the)\s+(?:app|page|screen|button|tab)\b",
-    r"\bwhich\s+coins?\s+(?:moved|rose|fell|is\s+up|is\s+down|moved\s+the\s+most)\b|\bwhy\s+is\s+[\w$]+\s+(?:up|down)\b|"
-    r"\bwhat\s+(?:is\s+the\s+market|happened\s+in\s+the\s+market)\b|\bnews\b",
-    r"\b(?:set|add|move|change|cancel|remove)\s+(?:a|an|the|my)?\s*(?:stop|alert|watch|target|order)\b|\balert\s+me\b|\bremind\s+me\b|"
-    r"\b(?:buy|sell)\s+(?:\$?\d|some|all|half)\b",
-    r"\b(?:explain|what\s+is|what\s+are|what\s+does)\s+(?:the|an|a)?\s*(?:\d+-day|exponential|moving|average|rsi|atr|ema|sma|candle|"
-    r"volume|spread|limit\s+order|market\s+order|stop\s+loss|explorer)\b",
-    r"^(?:hi|hello|hey|good\s+(?:morning|evening|night|afternoon)|thanks|thank\s+you|ok|okay)\b",
-    r"\bweather\b|\bwhat\s+time\b|\bis\s+everything\s+running\b",
-)]
-_ADVICE = re.compile(r"\bshould\s+(?:i|we)\b|\bis\s+it\s+a\s+good\s+(?:time|idea)\b|\bwhat\s+would\s+you\b|\b(?:do|would)\s+you\s+recommend\b|"
-                     r"\bworth\s+buying\b|\bbuy\s+the\s+dip\b|\bwhy\s+(?:did|do|does|didn't|don't|did\s+not|do\s+not)\s+(?:we|you|ananta)\b|"
-                     r"\bwhat\s+do\s+you\s+(?:think|make)\b", re.I)
-# held too: a question that names a record at all, even as a point in time ("why is our book down after review 41?"), and the morning
-# and evening briefs (they sum up the books and the evidence; a brief waits for Claude)
-_NAMES_RECORD = re.compile(r"\b(?:review|flag|item)\s*#?\s*\d+|#\d+|\bH\d{2}\b|\bstud(?:y|ies)\b|\bbacktest|\bfindings?\b|\bhypothes|"
-                           r"\bcheckpoint\b|\baudit\b|\breconstruction\b|\bproof\b|\bbriefing\b|\bwrap-?up\b", re.I)
-
-
-def backup_may_answer(question: str, previous=()) -> bool:
-    """True only for a plainly everyday question (rule 3 above) that is neither advice nor about a record (rule 1), and names none."""
-    q = _long(question)
-    return (not asks_about_a_record(question, previous) and not _ADVICE.search(q) and not _NAMES_RECORD.search(q)
-            and any(p.search(q) for p in _EVERYDAY))
-
-
-def denies_a_record(text: str) -> bool:
-    """True when a sentence of the text says a record of the work has not happened (or not yet), or does not exist (rule 2 above). Each
-    sentence is read on its own ("review 42 is done. Tonight's note has not run" is two), a question mark and the answer after it as one,
-    and a sentence that starts with "it" or "that" together with the one before ("review 42 is pending; it has not started")."""
-    parts = re.split(r"(?<=[.;!])\s+", _long(text))
-    parts += [a + " " + b for a, b in zip(parts, parts[1:]) if re.match(r"(?:it|that|this|they|which)\b", b, re.I)]
-    return any(p.search(part) for part in parts for p in _DENIALS)
-
-
-# 2. the answer rule: any mention of a record of the work, outside a point in time
-_WORKWHO = (r"(?:we|i|ananta|they|nobody|no\s+one|none\s+of\s+us|(?:the|our|ananta's)\s+(?:[\w'-]+\s+)?(?:team|builders?|researchers?|"
-            r"analysts?|lab|engineers?))")
-_WORKVERB = (r"(?:test(?:ed|ing)?(?!\s+(?:the\s+|its\s+|a\s+|an\s+|their\s+)?" + _PRICE + r")|stud(?:y|ied|ying)" + _NOTCHART +
-             r"|research(?:ed|ing)?|backtest(?:ed|ing)?|examined" + _NOTCHART + r"|investigated|explored|evaluated|analy[sz]ed" +
-             _NOTCHART + r"|measured|looked\s+into|r[au]n\s+(?:the\s+)?numbers|ruled\s+out)")
-_WORKBASE = r"(?:examine|investigate|explore|evaluate|analy[sz]e|measure|look\s+into|backtest|test|study|research)" + _NOTCHART
-_MENTIONS = [re.compile(p, re.I) for p in (
-    _QNUM + r"|\b(?:" + _AWORD + r")\b",
-    # the team is yet to examine it; we still need to look into it (a subject other than "I": "I'll look into it" is everyday)
-    r"\b(?!i\b)" + _WORKWHO + r"(?:\s+(?:here|else|yet|ever|so\s+far|at\s+all))?(?:\s+(?:have|has|had|am|are|is|was|were|will|would|"
-    r"could|can|should|may|might|must))?(?:\s+(?:not|never|already|ever|yet|still|also|only|just|actually|really|first|once|soon))*"
-    r"\s+(?:(?:yet|still|needs?|plan(?:s|ned)?|want(?:s|ed)?|going|waiting|about|ha(?:ve|s)|had)\s+to|(?:got|gotten|get)\s+(?:a?round\s+)?to"
-    r"|planning\s+to|hoping\s+to)\s+" + _WORKBASE + r"\b",
-    r"\bbeen\s+looked\s+at\s+by\s+(?:the|our|ananta's|anyone|anybody|us|ananta)\b|\b(?:has|have|had)\s+(?:not|never)\s+(?:yet\s+|ever\s+)?"
-    r"been\s+looked\s+at\b",
-    r"\b(?:analys[ie]s|backtesting|testing|research|work)\s+(?:on\s+[\w'-]+(?:\s+[\w'-]+){0,3}?\s+)?(?:was|were|is|are|has|have|had)\s+"
-    r"(?:(?:not|never|yet)\s+)+(?:been\s+)?(?:done|run|carried\s+out|finished|completed|written|started|published|made)\b",
-    # we never studied buying after drops; our team has never tested it; Ananta never got around to testing that; we lack the time to
-    r"\b" + _WORKWHO + r"(?:\s+(?:here|else|yet|ever|so\s+far|at\s+all))?(?:\s+(?:have|has|had|am|are|is|was|were|do|does|did|will|"
-    r"would|could|can|should|may|might|must))?(?:\s+(?:not|never|already|ever|yet|still|also|only|just|actually|really|properly|first|once|"
-    r"recently|previously|"
-    r"(?:got|gotten|get|getting)\s+(?:a?round\s+)?to|had\s+(?:the\s+)?(?:chance|time)\s+to|managed\s+to|bothered\s+to|been\s+able\s+to|"
-    r"tried\s+to|needs?\s+to|plan(?:s|ned)?\s+to|want(?:s|ed)?\s+to|going\s+to|yet\s+to|still\s+to|waiting\s+to|ha(?:ve|s)\s+to))*\s+"
-    + _WORKVERB + r"\b",
-    # buying after drops has never been studied; it was never backtested; the idea is untested
-    r"\b(?:has|have|had|is|are|was|were|be|being|been|remains?|stays?)\s+(?:(?:not|never|yet|ever|already|still|properly|fully|so\s+far)"
-    r"\s+)*(?:been\s+)?(?:studied|researched|backtested|investigated|explored|evaluated|looked\s+into|ruled\s+out)\b",
-    r"\b(?:has|have|had)\s+(?:not|never)\s+(?:yet\s+|ever\s+)?been\s+tested\b|\b(?:was|were|is|are)\s+never\s+tested\b",
-    r"\bun(?:tested|studied|researched|examined|explored|proven|investigated|backtested|reviewed)\b|\buncharted\b",
-    # nothing has been done on buying after drops; no work on it yet
-    r"\b(?:nothing|no\s+work|little|not\s+much|no\s+one|nobody)\s+(?:has\s+|have\s+|had\s+|was\s+|were\s+|is\s+)?(?:ever\s+|yet\s+)?"
-    r"(?:been\s+)?(?:done|run|carried\s+out|looked\s+at|looked\s+into|written|worked)\s+(?:on|about|into|with|for|regarding|concerning)\b",
-    r"\bno\s+work\s+(?:on|about|into)\b",
-    # we have yet to put it to the test; there is no data from us on it; the team has not looked at it; we have not done the work
-    r"\bput\s+(?:[\w'-]+\s+){0,5}?to\s+the\s+test\b",
-    r"\b(?:no|any)\s+(?:data|numbers|figures|evidence|results)\s+(?:of\s+our\s+own|from\s+us|from\s+ananta)\b|\b(?:we|ananta|i)\s+"
-    r"(?:have|has|had|hold|keep)\s+no\s+(?:data|numbers|figures|evidence|results)\s+(?:of\s+our\s+own\s+)?(?:on|about|for|of)\b",
-    r"\b(?!i\b)" + _WORKWHO + r"\s+(?:have|has|had|did|do|does)\s+(?:not|never)\s+(?:yet\s+|ever\s+)?(?:look(?:ed)?\s+at|work(?:ed)?\s+on|"
-    r"cover(?:ed)?|address(?:ed)?|touch(?:ed)?)\b",
-    r"\b(?:not|never)\s+(?:yet\s+)?(?:done|did)\s+the\s+work\b|\bthe\s+work\s+(?:has|have|had)\s+(?:not|never)\s+(?:yet\s+)?been\s+done\b",
-    # our research, our tests, the team's studies
-    r"\b(?:our|ananta's|the\s+team's)\s+(?:own\s+)?(?:research|tests|testing|studies|backtests?|findings|experiments?|evidence|records)\b",
-)]
-# in a conversation about a record, "it" and "that one" are the record ("no, it hasn't been run yet"), and so is a bare number
-_CONTEXT = [re.compile(p, re.I) for p in (
-    r"\b(?:it|that|this|that\s+one|this\s+one|the\s+one|they|those)\b(?:\s+(?:has|have|had|is|are|was|were|did|does|do|will|would|could|"
-    r"can))?(?:\s+(?:not|never|yet|still|already|ever|only|just|properly))*(?:\s+(?:been|be))?\s+(?:run|ran|done|did|happen(?:ed|s)?|"
-    r"start(?:ed|s)?|finish(?:ed|es)?|complete[ds]?|publish(?:ed|es)?|written|wrote|out|ready|held|carried\s+out|conducted|tested|"
-    r"studied|exist(?:s|ed)?|real|planned|scheduled|due|pending|cancel(?:l)?ed|dropped|shelved)\b",
-    r"\b(?:run|ran|done|did|do|finish(?:ed)?|start(?:ed)?|publish(?:ed)?|write|wrote|written|complete[d]?)\s+(?:number\s+|no\.\s*|#)?"
-    r"\d{2,3}\b",
-)]
-# "since review 41", "after the audit": a record named only as a point in time
-_FRAME = re.compile(r"\b(?:since|after|before|until|till|following)\s+(?:the\s+|our\s+)?(?:(?:review|study|audit|checkpoint|experiment|"
-                    r"package|repair)\s*#?\d+|the\s+(?:last\s+|latest\s+)?(?:review|audit|study)|(?:last\s+|latest\s+)?(?:review|audit))"
-                    r"(?:\s+(?:was|were)\s+(?:published|written|run|done|out|made|posted))?", re.I)
-
-
-def speaks_of_a_record(text: str, context: bool = False) -> bool:
-    """True when the text says anything about a record of the work (rule 2 above), true or not, or denies one (the list above). Each
-    sentence is read on its own; a record named only as a point in time ("since review 41") does not count. With context (the
-    conversation is about a record), "it" or "that one" with run, done or published counts too, and so does a bare number."""
-    if denies_a_record(text):
-        return True
-    for part in re.split(r"(?<=[.;!?])\s+|\n+", _long(text)):
-        p = _FRAME.sub(" ", part)
-        if any(m.search(p) for m in _MENTIONS) or (context and any(m.search(p) for m in _CONTEXT)):
-            return True
-    return False
-
-
-def _reply_words(reply: dict) -> str:
-    """Every part of a reply a person reads: the answer, its breakdown, evidence (label and value), options, follow-ups and assumption."""
-    bits = [str(reply.get("answer") or ""), str(reply.get("assumption") or "")]
-    na = reply.get("next_action")
-    if isinstance(na, dict):
-        bits += [str(na.get("label") or ""), str(na.get("say") or ""), str(na.get("ask") or "")]
-    for k in ("breakdown", "evidence", "options", "follow_ups", "show"):
-        for x in reply.get(k) or []:
-            bits += ([str(x.get(f) or "") for f in ("label", "value", "text", "title", "summary", "source")] if isinstance(x, dict)
-                     else [str(x)])
-    return "\n".join(b for b in bits if b.strip())
-
-
-BACKUP_CANNOT_DENY = ("I can't check that properly right now: the main model wasn't available, and the backup model can't vouch for what "
-                      "our records hold or don't hold. Ask me again in a minute and I'll look it up.")
-BACKUP_CANNOT_DENY_BUDGET = ("I can't check that properly right now: today's Claude budget is used up until midnight Toronto time, and the "
-                             "backup model can't vouch for what our records hold or don't hold. Ask me again after midnight, or raise the "
-                             "budget under More › Voice and model and ask again.")
-BACKUP_CANNOT_DENY_GUEST = ("I can't check that properly right now: your Claude allowance for today is used up until midnight Toronto time, "
-                            "and the backup model can't vouch for what the records hold or don't hold. Ask me again after midnight; other "
-                            "questions still get an answer.")
-# D7: when the free backup is over its own limit too; a visitor cannot raise a budget (the settings refuse a guest)
-GEMINI_QUOTA_TOO = ("Today's Claude budget is used up and Gemini's free quota is used up too. Raise the daily budget in "
-                    "More › Voice and model, or wait: the budget resets at midnight Toronto time.")
-GEMINI_QUOTA_TOO_GUEST = ("Your Claude allowance for today is used up and Gemini's free quota is used up too. Ask me again after "
-                          "midnight Toronto time, when your allowance starts again.")
-
-
-NO_BACKUP = json.dumps({"kind": "answer", "answer": "", "follow_ups": []})   # what stands in for the backup when it is not asked
+NO_BACKUP = json.dumps({"kind": "answer", "answer": "", "follow_ups": []})   # what stands in for an answer when no model is asked
+NO_USAGE = {"in": 0, "out": 0, "model": "none"}                              # and for its cost: nothing was asked, so no model is named
 DONE_WORDS = {"remember": "saved your note", "log_request": "noted it on the repair list", "comment_flag": "added your comment to the flag",
               "choose_fix": "queued the fix you chose", "watch": "set up a watch", "change_watch": "changed a watch", "start_research": "started the reconstruction", "news_check": "ran the news check"}
 
 
-def backup_cannot_deny(reply: dict, planned: str, used: str, note: str = "", guest: bool = False, question: str = "",
-                       about_record: bool | None = None, done: list[str] | None = None, context: bool = False,
-                       before: list[str] | None = None) -> bool:
-    """12 Nov 2026 (the keen outside audit, G-34): two crypto answers on 11 Nov came from the free backup model after Claude could not
-    answer; one said "no review 42 exists in our system" five minutes after another answer described review 42. When the backup stands
-    in, a reply to a question about a record of the work (Ask.ask then does not ask the backup at all), or a reply of any kind that speaks
-    of a record anywhere in it, is withheld (its answer kept as backup_withheld, with backup_withheld_why) and the person is asked to ask
-    again, at a time that is true (after midnight when the budget is what stood in the way; a visitor cannot raise a budget, so is not
-    told to). What the backup already prepared or did (done) is said, so it is not asked for twice. Returns True when it withheld one."""
+def claude_is_out(reply: dict, planned: str, used: str, note: str = "", guest: bool = False, before: list[str] | None = None) -> bool:
+    """When Claude was meant to answer and did not, the reply is the plain words that say so: no other model answered, no next step is
+    offered, and what Claude did before it failed (before) is said so it is not asked for twice; else "Nothing was saved or done." A
+    visitor is never told to raise a budget. Returns True when it wrote those words (never for an answer Claude gave, or one the person
+    chose to get from the everyday model)."""
     try:
         fell_back = MODELS[planned]["provider"] == "claude" and MODELS[used]["provider"] != "claude"
     except KeyError:
         return False
     if not fell_back:
         return False
-    reply["next_action"], reply["follow_ups"] = None, []                       # F1: the backup offers no next step
-    about = (not backup_may_answer(question)) if about_record is None else about_record
-    if not (about or speaks_of_a_record(_reply_words(reply), context=context)):
-        return False
-    reply["backup_withheld"] = reply.get("answer") or None
-    reply["backup_withheld_why"] = "not a plainly everyday question" if about else "the reply spoke of our records"
     budget = "budget" in str(note or "").lower()
-    reply["answer"] = ((BACKUP_CANNOT_DENY_GUEST if budget and guest else BACKUP_CANNOT_DENY_BUDGET if budget else BACKUP_CANNOT_DENY)
-                       # 13 Nov (N1, N2): what the main model did before it failed stands too, and is said
+    reply["backup_withheld"] = reply.get("answer") or None          # kept for the record; with no model asked there is nothing in it
+    reply["backup_withheld_why"] = "no backup model: " + ("the day's Claude budget is used up" if budget else "the main model was not available")
+    reply["answer"] = ((CLAUDE_OUT_GUEST if budget and guest else CLAUDE_OUT_BUDGET if budget else CLAUDE_OUT)
+                       # 13 Nov (N1, N2): what the main model did before it failed stands, and is said
                        + (f" Before it failed, the main model {', '.join(before)}; that stands, so there is no need to ask for it again."
-                          if before else "")
-                       + (f" While it answered, the backup {', '.join(done)}; that stands, so there is no need to ask for it again." if done
-                          else " Nothing was saved or done." if about and not before else ""))      # F7
+                          if before else " Nothing was saved or done."))
     reply["kind"], reply["options"], reply["follow_ups"], reply["assumption"], reply["show"] = "answer", [], [], "", None
-    reply["breakdown"], reply["evidence"] = [], []
+    reply["breakdown"], reply["evidence"], reply["next_action"] = [], [], None
     return True
 
 
@@ -3210,17 +2843,12 @@ class Ask:
         elif MODELS[key]["provider"] == "claude":
             sp = self.spend()
             if sp["today_usd"] >= sp["budget_usd"]:
-                if self.setting("over_budget") == "stop":
-                    raise ValueError(f"today's Claude budget (${sp['budget_usd']:.2f}) is used up; raise it under More › Voice and model, or use Everyday")
+                # 13 Nov 2026 (no backup model): the old choice here (free Gemini answers, or stop) has nothing left to choose; no model
+                # is asked, and the reply says so in plain words (claude_is_out). The stand-in name below is asked nothing.
                 key = "gemini_voice" if voice and "gemini_voice" in self.providers else "gemini"
-                note = f"Claude budget for today (${sp['budget_usd']:.2f}) is used up, so Gemini answered"
+                note = f"Claude budget for today (${sp['budget_usd']:.2f}) is used up"
         history = self._history(thread)
-        # 12 Nov 2026 (G-34, E1): a question about a record, or a short follow-up to one, is never put to the backup model; when the
-        # conversation is about a record, "it" in the backup's reply is the record too
-        asked = [m["text"] for m in history if m["role"] == "user"][-3:]
-        about_record = not backup_may_answer(text, asked[-2:])          # held: the backup is not asked (12 Nov evening)
         claude_did: list[str] = []                                       # 13 Nov (N1, N2): what Claude did before it failed, if it did
-        about_context = about_record or any(asks_about_a_record(q) for q in asked)
         tries = self._failed_clarifies(thread)
         now = int(self.j.now())
         uid = uuid.uuid4().hex[:12]
@@ -3391,10 +3019,9 @@ class Ask:
                 if speak_live is not None and MODELS[key]["provider"] == "claude":
                     from jarvis.voice.answertap import AnswerTap
                     tap = AnswerTap(lambda x, _L=L: self._live_say(x, who, speak_live, getattr(_L, "created", None)))
-                if about_record and MODELS[planned]["provider"] == "claude" and MODELS[key]["provider"] != "claude":
-                    raw, usage = NO_BACKUP, {"in": 0, "out": 0}              # over budget: the backup is not asked about our records
-                    note = ((note or "").replace(", so Gemini answered", "") + "; " if note else "") + \
-                        "the question is not a plainly everyday one, so the backup model was not asked"
+                if MODELS[planned]["provider"] == "claude" and MODELS[key]["provider"] != "claude":
+                    raw, usage = NO_BACKUP, dict(NO_USAGE)                       # over budget: there is no backup model, so no model is asked
+                    note = (note + "; " if note else "") + "there is no backup model, so no other model was asked"
                 else:
                     raw, usage = self.providers[key](system, history, user_msg, L, log, **({"on_text": tap.feed} if tap else {}))
                 if tap:
@@ -3417,8 +3044,8 @@ class Ask:
                     log.clear()
                     L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
                     raw, usage = self.providers["haiku"](system, history, user_msg, L, log)
-                # Claude refused the call itself (no Anthropic credit left, overloaded, a bad key): free Gemini answers instead of nothing
-                elif MODELS[used]["provider"] == "claude" and "gemini" in self.providers and not L.created:
+                # Claude refused the call itself (no Anthropic credit left, overloaded, a bad key): no other model is asked (13 Nov: no backup model)
+                elif MODELS[used]["provider"] == "claude" and not L.created:
                     why = ("no Anthropic credit left" if "credit balance" in str(exc).lower() else "Claude is unavailable right now")
                     used = "gemini_voice" if voice and "gemini_voice" in self.providers else "gemini"
                     # 12 Nov (G-34): why the backup answered was found by no one; the failure's kind is kept (its class and status code,
@@ -3427,37 +3054,27 @@ class Ask:
                     # 13 Nov (the fifth confirm check, N1 and N2): what Claude did before it failed (a watch, a note) was forgotten
                     # here, so the reply said nothing was done and the backup did it a second time; it is kept, and the backup not asked
                     claude_did = backup_done(log, None)
-                    about_record = about_record or bool(claude_did)
                     log.clear()
                     L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
-                    if about_record:                                     # G-34: the backup is not asked about our records
-                        note = (note + "; " if note else "") + (
-                            f"{why} ({kind} after {time.time() - t0:.0f} s); "
-                            + ("Claude had already acted before it failed" if claude_did else "the question is not a plainly everyday one")
-                            + ", so the backup model was not asked")
-                        raw, usage = NO_BACKUP, {"in": 0, "out": 0}
-                    else:
-                        note = (note + "; " if note else "") + f"{why} ({kind} after {time.time() - t0:.0f} s), so Gemini answered"
-                        raw, usage = self.providers[used](system, history, user_msg, L, log)
+                    note = (note + "; " if note else "") + (
+                        f"{why} ({kind} after {time.time() - t0:.0f} s); "
+                        + ("Claude had already acted before it failed; " if claude_did else "")
+                        + "there is no backup model, so no other model was asked")
+                    raw, usage = NO_BACKUP, dict(NO_USAGE)
                 else:
                     raise exc
             try:
                 reply = parse(raw)
             except RuntimeError:
-                if not L.created and MODELS[used]["provider"] == "claude" and "gemini" in self.providers:
-                    # Claude occasionally ends with thinking only; answer this one with Gemini instead of failing
-                    used = "gemini"
+                if not L.created and MODELS[used]["provider"] == "claude":
+                    # Claude occasionally ends with thinking only: no other model is asked (13 Nov: no backup model)
+                    used = "gemini"                                      # the stand-in name of the answer no model gave
                     claude_did = backup_done(log, None)                  # 13 Nov (N1, N2): as above
-                    about_record = about_record or bool(claude_did)
                     log.clear()
                     L = Lookups(self.j, thread, _ht, str(who).startswith("guest:"), test=source == "eval")
-                    if about_record:                                     # G-34: the backup is not asked about our records
-                        note = (note + "; " if note else "") + "Claude gave no words this time; " + (
-                            "Claude had already acted before that" if claude_did else "the question is not a plainly everyday one") + ", so the backup model was not asked"
-                        raw, usage = NO_BACKUP, {"in": 0, "out": 0}
-                    else:
-                        note = (note + "; " if note else "") + "Claude gave no words this time, so Gemini answered"
-                        raw, usage = self.providers["gemini"](system, history, user_msg, L, log)
+                    note = (note + "; " if note else "") + "Claude gave no words this time; " + (
+                        "Claude had already acted before that; " if claude_did else "") + "there is no backup model, so no other model was asked"
+                    raw, usage = NO_BACKUP, dict(NO_USAGE)
                     reply = parse(raw)
                 elif not L.created:
                     raise
@@ -3467,8 +3084,6 @@ class Ask:
                          "breakdown": []}
         except Exception as exc:  # noqa: BLE001
             ms = int(1000 * (time.time() - t0))
-            if "budget" in (note or "") and "429" in str(exc):          # say the real reason, not just "busy"
-                exc = RuntimeError(GEMINI_QUOTA_TOO_GUEST if str(who).startswith("guest:") else GEMINI_QUOTA_TOO)   # D7: not a guest's to raise
             self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, provider, mode, ms, tools, error) VALUES (?,?,?,?,?,?,?,?,?)",
                               (aid, thread, now + 1, "assistant", used, ("eval:" if source == "eval" else "") + mode_label, ms, json.dumps(log), str(exc)[:500]))
             self.j.db.commit()
@@ -3488,9 +3103,8 @@ class Ask:
         if reply["kind"] in ("clarify", "not_understood") and source != "eval":     # 12 Nov (G-55): a test question is not his
             self.j.db.execute("INSERT INTO ask_misunderstood VALUES (?,?,?,?,?)", (now, thread, text, reply["kind"], used))
         ms = int(1000 * (time.time() - t0))
-        if backup_cannot_deny(reply, planned, used, note or "", guest=str(who).startswith("guest:"), question=text, about_record=about_record,
-                              done=backup_done(log, getattr(L, "created", None)), context=about_context, before=claude_did) and not about_record:
-            note = (note + "; " if note else "") + "the backup model's reply spoke of our records, so it was withheld"
+        nobody = claude_is_out(reply, planned, used, note or "", guest=str(who).startswith("guest:"), before=claude_did)
+        said_by = "none" if nobody else used                               # 13 Nov: an answer no model gave is stored and shown as no model's
         reply["show"] = _clean_show(reply.get("show"))
         reply["actions"] = L.created
         _clean_next(reply)
@@ -3554,10 +3168,10 @@ class Ask:
         timing = {"brief_ms": brief_ms, "model_ms": max(0, ms - brief_ms), "rounds": usage.get("rounds"), "lookups": len(log),
                   "out_tokens": usage.get("out", 0), "in_fresh": usage.get("in", 0), "cache_read": usage.get("cache_read", 0),
                   "cache_write": usage.get("cache_write", 0) + usage.get("cache_write_1h", 0)}
-        meta = {"model_label": MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of,
+        meta = {"model_label": "No model" if nobody else MODELS[used]["label"], "mode": mode_label, "cost_usd": cost, "note": note, "second_of": second_of,
                 "route": route_name, "timing": timing}
         self.j.db.execute("INSERT INTO ask_messages (id, thread, t, role, reply, provider, model, ms, tokens_in, tokens_out, tools, cost_usd, mode, note, route, timing) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                          (aid, thread, now + 1, "assistant", json.dumps({**reply, **meta}), used, model, ms,
+                          (aid, thread, now + 1, "assistant", json.dumps({**reply, **meta}), said_by, model, ms,
                            usage.get("in", 0) + usage.get("cache_read", 0) + usage.get("cache_write", 0) + usage.get("cache_write_1h", 0), usage.get("out", 0), json.dumps(log), cost, ("eval:" if source == "eval" else "") + mode_label, note,
                            route_name, json.dumps(timing)))
         self.j.db.commit()
@@ -3579,7 +3193,7 @@ class Ask:
         from jarvis.service import speech
 
         lang = "te" if te or speech.is_telugu([str(reply.get("answer") or "")]) else "en"
-        return {"id": aid, "thread": thread, "provider": used, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta,
+        return {"id": aid, "thread": thread, "provider": said_by, "model": model, "ms": ms, "lookups": [x["tool"] for x in log], **reply, **meta,
                 "language": lang, "talking_to": _speaker(self.j, thread)}
 
     def _take_next_step(self, thread: str, text: str) -> str:

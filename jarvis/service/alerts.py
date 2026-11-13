@@ -191,7 +191,15 @@ class Alerts:
              "Evidence collected and the details go in the points, not the sentences.")
         r = ask_fn(q)
         if r.get("error") or r.get("backup_withheld_why"):    # 12 Nov (F2): a withheld brief is not the day's brief; it waits for Claude
-            return None
+            # 13 Nov (Madhav: no backup model): due_brief asks again every 15 minutes. From 09:00 for the morning brief and 22:30 for the
+            # evening one (an hour after each is first due) the day gets one plain line instead: the wait is said and the asking stops
+            local = datetime.fromtimestamp(self.now(), _tz())
+            late = local.hour >= 9 if kind == "morning" else (local.hour, local.minute) >= (22, 30)
+            if not (late and r.get("backup_withheld_why")):
+                return None
+            r = {"kind": "answer", "no_brief_why": r["backup_withheld_why"],
+                 "answer": f"No {kind} brief today: the main model was not available when it was due, and Ananta has no backup model. "
+                           "Ask me for a brief when you want one."}
         r = three_sentences(r)
         bid = "B" + uuid.uuid4().hex[:9]
         self.db.execute("INSERT INTO briefings VALUES (?,?,?,?,?,?)", (bid, int(self.now()), kind, day, r.get("answer", ""), json.dumps(r, default=str)))

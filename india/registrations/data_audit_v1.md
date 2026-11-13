@@ -10,25 +10,25 @@ Madhav asked for this before any new research (flag 63): how wide and how good e
 | gold/features | 3,456,514 | 1995-2023 | - |
 | gold/hypothesis_map | 137 | - | - |
 | gold/universe | 6,812,969 | 1995-2023 | - |
-| silver/calendar | 8,384 | 1994-2026 | - |
-| silver/cm_bhavcopy | 9,883,851 | 1994-2023 | 2026-11-09 |
-| silver/corporate_actions | 326,262 | 1994-2026 | - |
-| silver/delivery | 7,664,008 | 2003-2023 | 2026-11-10 |
-| silver/flows | 39,404 | 2000-2023 | 2026-11-09 |
-| silver/fo_bhavcopy | 157,536,583 | 2000-2023 | 2026-11-09 |
+| silver/calendar | 8,385 | 1994-2026 | - |
+| silver/cm_bhavcopy | 9,883,851 | 1994-2023 | 2026-11-11 |
+| silver/corporate_actions | 326,271 | 1994-2026 | - |
+| silver/delivery | 7,664,008 | 2003-2023 | 2026-11-11 |
+| silver/flows | 39,404 | 2000-2023 | 2026-11-11 |
+| silver/fo_bhavcopy | 157,536,583 | 2000-2023 | 2026-11-11 |
 | silver/fo_calendar | 4,489 | - | - |
-| silver/fo_greeks | 3,402,929 | 2001-2023 | 2026-11-09 |
+| silver/fo_greeks | 3,402,929 | 2001-2023 | 2026-11-11 |
 | silver/ipo | 681 | - | - |
 | silver/kite_5m | 83,656,639 | 2015-2023 | 2026-11-06 |
 | silver/kite_day | 1,533,700 | 2003-2023 | 2026-10-16 |
-| silver/kite_index/5minute | 1,029,458 | 2015-2023 | 2026-11-09 |
-| silver/kite_index/day | 230,382 | 2003-2023 | 2026-11-09 |
-| silver/kite_index/minute | 5,146,641 | 2015-2023 | 2026-11-09 |
+| silver/kite_index/5minute | 1,029,458 | 2015-2023 | 2026-11-11 |
+| silver/kite_index/day | 230,382 | 2003-2023 | 2026-11-11 |
+| silver/kite_index/minute | 5,146,641 | 2015-2023 | 2026-11-11 |
 | silver/macro | 85,056 | 1990-2026 | - |
 | silver/pr | 8,746,016 | 2010-2023 | 2026-11-09 |
 | silver/reference | 759 | - | - |
 | silver/security_master | 14,878 | - | - |
-| silver/valuation | 17,486 | 1999-2023 | 2026-11-09 |
+| silver/valuation | 17,486 | 1999-2023 | 2026-11-11 |
 
 ## What the audit found
 
@@ -36,7 +36,7 @@ Madhav asked for this before any new research (flag 63): how wide and how good e
 - **company announcements (old PR files)** (medium): the old PR-zip files thin out: 2022: 22,367 lines, while the timestamped source is complete (2022: 120,937); V02 and HFN1 read the PR files. So: new announcement studies use the timestamped source; V02's and HFN1's 2021-2022 years carry the hole, and re-running them on the timestamped source would be a new registration (Madhav's decision), not a change to the frozen ones.
 - **intraday stock bars (5-minute)** (medium): coverage of the day's 250 most traded rises from 56% in 2015 to 89% in 2023; lowest 2015. So: intraday stock studies before about 2019 see only part of the liquid market; say so or start them in 2019.
 - **the research universe** (medium): in 2023, 1,765 stocks had a liquidity rank, 362 were in the day's 250 most traded and 722 in the 500 most traded at some point (chosen each day, so delisted names are included). The studies that held up use: OC1 the 100 most traded (india/ocstudy.py); IB1 Nifty, Bank Nifty and the 50 most traded (india/lab4.py); GP1 the 250 most traded (india/gaplab.py); V01 the 500 most traded (india/vstudies.py); E04, P01, CL1 the lab features table, the 500 most traded (india/lab.py); T-TWT H10/H12/H18 the teachers' stock panel, the 500 most traded (india/teachers_stock.py); DR1 index options only. So: a finding says nothing about stocks outside its own universe; the narrow ones (OC1, IB1, GP1) are the ones to re-test on the next band of stocks, registered before the run (registrations/w500_v1_draft.md).
-- **survivorship and adjustments** (low): top-250 members that later stopped trading: 7021 stock-years; share by year 0.0%-100.0%; 775 ex-dates in the features table; 0 (0.00%) still jump more than 30% after adjustment; 137 liquid-stock falls over 45% with no action within 3 days; 423 frozen runs (5+ unchanged closes with volume) in liquid stocks across 217 stocks, 4876 runs flagged and skipped by the lab; recent sessions unchanged-close share max 1.4%. So: delisted names are in; a few unexplained jumps remain, and the lab skips frozen prices.
+- **survivorship and adjustments** (low): top-250 members that later stopped trading: 7021 stock-years; share by year 0.0%-100.0%; 775 ex-dates in the features table; 0 (0.00%) still jump more than 30% after adjustment; 137 liquid-stock falls over 45% with no action within 3 days; 423 frozen runs (5+ unchanged closes with volume) in liquid stocks across 217 stocks, 4876 runs flagged and skipped by the lab; recent sessions unchanged-close share max 1.8%. So: delisted names are in; a few unexplained jumps remain, and the lab skips frozen prices.
 - **not on file** (medium): analyst estimates (no 'beat or miss'); GIFT Nifty and live Asian markets; bulk and block deals before 23 Oct 2026; competitor financials beyond the sector map. So: estimates are paid; GIFT Nifty has no free source.
 
 ## Company results, by period year (parsed = revenue and EPS read from the filing)

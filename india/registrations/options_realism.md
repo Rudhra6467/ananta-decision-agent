@@ -50,28 +50,28 @@ Rule: an options result can feed a decision only if it is positive at 2x, and it
 - F05 (O-04 synthetic) loses even with zero spread, so spread realism cannot rescue it; its doubt is the synthetic price itself (flat IV through the afternoon, which if anything flatters a long straddle, since implied volatility usually falls into expiry). R01 on recorded expiry days settles it.
 - Nothing options-related feeds a decision until (a) measured spreads exist (india.spreads, needs a Kite sign-in after 20:30 Toronto) and (b) the expiry-eve settle check below has rows.
 
-## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-11-11, 20665 contract-days, 35 sessions)
+## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-11-12, 21236 contract-days, 36 sessions)
 
 Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule scored) against the volume-weighted price actually traded in the last 30 minutes (Kite minutes from the recorder). Signed gap > 0: settle above what traded (overstates a seller's credit).
 
 | index | expiry eve/day | premium Rs | contract-days | no trade in last 30 min | median signed gap | median abs gap | p90 abs gap |
 |---|---|---|---|---|---|---|---|
-| BANKNIFTY | no | <2 | 3 | 100.0% | +nan% | nan% | nan% |
-| BANKNIFTY | no | 2-5 | 24 | 25.0% | -0.37% | 1.18% | 6.44% |
-| BANKNIFTY | no | 5-20 | 168 | 11.3% | +0.08% | 2.03% | 10.44% |
-| BANKNIFTY | no | 20-50 | 127 | 0.8% | -0.40% | 1.30% | 5.41% |
-| BANKNIFTY | no | 50-150 | 367 | 0.3% | -0.06% | 1.03% | 4.16% |
-| BANKNIFTY | no | 150+ | 7224 | 27.7% | +0.00% | 0.62% | 2.90% |
+| BANKNIFTY | no | <2 | 20 | 80.0% | -80.36% | 80.36% | 88.20% |
+| BANKNIFTY | no | 2-5 | 42 | 16.7% | -0.06% | 1.07% | 7.18% |
+| BANKNIFTY | no | 5-20 | 181 | 11.6% | +0.09% | 2.09% | 9.94% |
+| BANKNIFTY | no | 20-50 | 139 | 0.7% | -0.27% | 1.24% | 5.39% |
+| BANKNIFTY | no | 50-150 | 385 | 0.8% | -0.01% | 1.10% | 4.36% |
+| BANKNIFTY | no | 150+ | 7464 | 27.8% | +0.00% | 0.62% | 2.91% |
 | BANKNIFTY | yes | 5-20 | 13 | 0.0% | +0.22% | 1.09% | 3.04% |
 | BANKNIFTY | yes | 20-50 | 9 | 0.0% | -4.62% | 4.62% | 7.09% |
 | BANKNIFTY | yes | 50-150 | 9 | 0.0% | -4.87% | 4.87% | 6.34% |
 | BANKNIFTY | yes | 150+ | 99 | 1.0% | +5744.74% | 5744.74% | 8843140.74% |
 | NIFTY | no | <2 | 377 | 27.9% | +1.05% | 3.09% | 11.48% |
-| NIFTY | no | 2-5 | 460 | 15.4% | +0.22% | 2.02% | 9.03% |
-| NIFTY | no | 5-20 | 1256 | 7.6% | +0.18% | 1.51% | 6.13% |
-| NIFTY | no | 20-50 | 1162 | 5.2% | +0.07% | 1.22% | 4.65% |
-| NIFTY | no | 50-150 | 2253 | 5.4% | +0.01% | 1.03% | 4.26% |
-| NIFTY | no | 150+ | 6613 | 18.2% | +0.00% | 0.62% | 3.02% |
+| NIFTY | no | 2-5 | 461 | 15.4% | +0.22% | 2.04% | 9.03% |
+| NIFTY | no | 5-20 | 1274 | 7.5% | +0.15% | 1.52% | 6.03% |
+| NIFTY | no | 20-50 | 1186 | 5.1% | +0.09% | 1.25% | 4.67% |
+| NIFTY | no | 50-150 | 2307 | 5.2% | +0.01% | 1.05% | 4.24% |
+| NIFTY | no | 150+ | 6769 | 18.0% | +0.00% | 0.63% | 2.99% |
 | NIFTY | yes | <2 | 29 | 0.0% | +3.16% | 3.36% | 8.53% |
 | NIFTY | yes | 2-5 | 21 | 0.0% | -2.55% | 2.80% | 4.72% |
 | NIFTY | yes | 5-20 | 20 | 0.0% | -6.89% | 8.20% | 13.71% |

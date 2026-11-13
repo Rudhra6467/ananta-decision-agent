@@ -308,7 +308,9 @@ def home(full: bool = True) -> dict:
             break
     day = m.get("as_of_day") or mb.get("day")          # 12 Nov (G-03): the close the big number is marked at, from the book it comes from
     parts = [K.hero(f"Your paper account · {IS._dw(day)} close" if day else "Your paper account", _rs(value), change=(f"{_rs(value - start, sign=True)} ({_pct(ret)})" if isinstance(value, (int, float)) and isinstance(start, (int, float)) and isinstance(ret, (int, float)) else _pct(ret) if ret is not None else None),
-                    tone=_tone(ret), since=f"since {IS._dw(mb.get('start_day'))}" if mb.get("start_day") else None,
+                    tone=_tone(ret), since=(f"since {IS._dw(mb.get('start_day'))}" if mb.get("start_day") else None) if not mb.get("kept_old_price") else
+                    # 12 Nov evening (repair 2's outside check, N7): a holding with no close that day is said beside the big number
+                    (f"since {IS._dw(mb.get('start_day'))} · " if mb.get("start_day") else "") + f"{len(mb['kept_old_price'])} at an older price",
                     status={"ok": bool((t.get("running") or {}).get("ok")), "words": "Running" if (t.get("running") or {}).get("ok") else "Needs a look"}),
              K.today(label, line, sub, to=K.place("plan")),
              K.boxes([K.paged(_index_boxes(t)),
@@ -395,10 +397,21 @@ def account(full: bool = True) -> dict:
     order = {"managed": 0, "yours": 1, "index": 2}
     label = {"managed": "The managed book", "yours": "Your holdings, as you have them", "index": "Nifty 500"}
     day = m.get("as_of_day") or mb.get("day")          # 12 Nov (G-03): the hero says which close it is marked at
+    # 12 Nov evening (repair 2's outside check, N1): from the nightly mark (about 12:45 pm Toronto) to the evening run (8:20 pm) the hero is
+    # at the day's close while the chart and "How it compares" still run to the session before; each says the close it runs to
+    thru = str(m.get("books_through") or "")[:10]
+    lag = (f" The big number above is at the {IS._dw(day)} close; this runs to the {IS._dw(thru)} close and catches up after the evening run."
+           if thru and day and thru < str(day)[:10] else "")
+    chart_lag = bool(dates) and bool(day) and str(dates[-1])[:10] < str(day)[:10]
     parts = [K.hero("The managed book · on paper", _rs(value), change=(f"{_rs(value - start, sign=True)} ({_pct(ret)})" if isinstance(value, (int, float)) and isinstance(start, (int, float)) and isinstance(ret, (int, float)) else None),
                     tone=_tone(ret), since=(f"since {IS._dw(mb.get('start_day'))}" + (f", at the {IS._dw(day)} close" if day else "")) if mb.get("start_day") else None),
+             # 12 Nov evening (repair 2's outside check, N7): a holding with no close that day stays at an older price, and says so
+             K.line("No close that day, so at an older price: " + ", ".join(
+                 f"{_name(s)} (last marked {IS._dw(d)})" if d else _name(s) for s, d in sorted((mb.get("kept_old_price") or {}).items())) + ".")
+             if mb.get("kept_old_price") else None,
              K.chart([{"values": ml, "style": "main", "color": "bronze"}], left=IS._dw(dates[0]) if dates else None, right=IS._dw(dates[-1]) if dates else None,
-                     caption="One point a session, at the close.", label="The managed book's value at each close") if len(ml) > 1 else None,
+                     caption="One point a session, at the close." + (f" The {IS._dw(day)} close joins after the evening run." if chart_lag else ""),
+                     label="The managed book's value at each close") if len(ml) > 1 else None,
              K.split([{"label": f"Stocks · {mb.get('positions') or len(hs)}", "value": _rs(stocks), "share": round(stocks / tot, 3), "shade": "ink"},
                       {"label": "Options, set aside", "value": _rs(opts), "share": round(opts / tot, 3), "shade": "dim"},
                       {"label": "Cash", "value": _rs(cash), "share": round(cash / tot, 3), "shade": "faint"}], title="Where it sits"),
@@ -407,7 +420,8 @@ def account(full: bool = True) -> dict:
                   # 11 Nov 2026 (R-027, flag 93): the hero said "since Fri 30 Oct" and this foot "All from the Thu 29 Oct close" for one start
                   foot=((f"All since {IS._dw(mb.get('start_day'))}, the same start as above (counted from the {IS._dw(clock.get('since'))} close). "
                          if mb.get("start_day") and str(clock.get("since") or "") < str(mb.get("start_day")) else f"All from the {IS._dw(clock.get('since'))} close. ")
-                        + f"{clock.get('words')}: too early to judge." if clock.get("since") and clock.get("words") else m.get("books_note"))),
+                        + f"{clock.get('words')}: too early to judge." if clock.get("since") and clock.get("words") else (m.get("books_note") or ""))
+                       + (lag or (f" To the {IS._dw(thru)} close." if thru else ""))),
              K.rows("Your holdings", [holding_row(h) for h in hs[:3]], count=len(hs), sub=f"{len(hs)} · graded", more=K.to_page(holdings_page(hs))) if hs else None,
              K.rows("Bought on paper", [K.row(_name(r.get("symbol")), f"For the {_name(r.get('for_cut'))} cut", right=_rs(r.get("value_inr")), right_sub=_pct(r.get("pnl_pct"), 1),
                                               right_tone=_tone(r.get("pnl_pct"))) for r in reps[:3]], count=len(reps)) if reps else None,

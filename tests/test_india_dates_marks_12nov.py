@@ -157,3 +157,51 @@ def test_a_holding_at_an_older_price_is_said_on_home_and_account(india, monkeypa
     monkeypatch.setattr(IS, "_managed", lambda: dict(mb, kept_old_price={}))
     assert next(p for p in IP.home()["parts"] if p["t"] == "hero")["since"] == "since Fri 30 Oct"
     assert not any(p.get("t") == "line" and "older price" in str(p) for p in IP.account()["parts"])
+
+
+# ------------------------------------------------------------------------------------------------ 13 Nov: repair 2's confirm check
+_REAL_MONEY = IS.money
+
+
+def test_the_index_files_close_is_never_called_zerodhas_last_price(monkeypatch):
+    """P1 (S2, made by the N4 fix): on the closing-bars path (weekends, holidays, after midnight IST, Zerodha signed out) the VIX row is the
+    index file's close, and it was labelled "Zerodha's last price"."""
+    bars = {"live": False, "kind": "at the close of Thu 12 Nov (from the closing bars on file; Zerodha's live feed is signed out until the morning sign-in)",
+            "rows": {"NIFTY 50": {"last": 25044.65, "prev_close": 24986.40}, "NIFTY BANK": {"last": 59741.25, "prev_close": 58850.65},
+                     "INDIA VIX": {"last": 17.53, "prev_close": None, "change_pct": None}}}
+    monkeypatch.setattr(L, "index_now", lambda clk, fetch=None: json.loads(json.dumps(bars)))
+    for state in ("before_open", "no_session", "closed"):
+        clk = {"state": state, "latest_session": "2026-11-12", "latest_session_words": "Thu 12 Nov"}
+        vx = IS._index_tile({}, clk, None)["vix"]
+        assert vx["value"] == "17.53" and vx["when"] == "Thu 12 Nov close" and "source" not in vx, (state, vx)
+
+
+def test_markets_gauge_box_says_its_own_day_when_it_is_not_the_nifty_close(india, monkeypatch):
+    """P2 (S2): Markets showed Zerodha's after-close VIX under the peek's note, the Nifty's "<day> close"."""
+    t = json.loads(json.dumps(TODAY))
+    t["tiles"][0]["vix"] = {"value": "17.56", "when": "Mon 9 Nov · last price", "change_pct": -0.4, "source": "Zerodha's last price"}
+    monkeypatch.setattr(IS, "today", lambda full=True: json.loads(json.dumps(t)))
+    box = _box(IP.markets(), "Fear gauge")
+    assert box["caption"] == "India VIX · Mon 9 Nov · last price"
+    note = (t["tiles"][0].get("pages") or [{}])[0].get("sub2")
+    t["tiles"][0]["vix"] = {"value": "17.53", "when": note, "change_pct": -0.6}
+    assert _box(IP.markets(), "Fear gauge")["caption"] == "India VIX"                 # the same day as the note: as before
+
+
+def test_a_holding_of_as_you_have_them_at_an_older_close_is_said_on_account(india, monkeypatch):
+    """P3 (S4): the older-close words of N3 reached no screen; Account's 'as you have them' showed a % with no word."""
+    real = IS.money
+
+    def money(full=True):
+        return dict(real(full), yours_note="IEX at the Tue 10 Nov close")
+    monkeypatch.setattr(IS, "money", money)
+    kv = next(p for p in IP.account()["parts"] if p.get("t") == "kv" and p.get("title") == "How it compares")
+    assert kv["foot"].endswith(" Your holdings as you have them: IEX at the Tue 10 Nov close.")
+    from jarvis.india import compare, views
+    monkeypatch.setattr(IS, "money", _REAL_MONEY)                                        # the fixture's own stands in otherwise
+    monkeypatch.setattr(views, "allocation_plan", lambda full=True: {})
+    monkeypatch.setattr(IS, "_account_view", lambda: {"marks": {}, "benchmark": {"frozen_older_close": {"IEX": "2026-11-10"}, "frozen_stale": ["XYZ"]}})
+    monkeypatch.setattr(IS, "_managed", lambda: {"value_inr": 164725, "day": "2026-11-11", "plan": {}, "clock": {}})
+    monkeypatch.setattr(compare, "same_window", lambda: {"ready": False})
+    monkeypatch.setattr(IS, "_options_block", lambda acct: {})
+    assert IS.money()["yours_note"] == "IEX at the Tue 10 Nov close; XYZ with no close on file"

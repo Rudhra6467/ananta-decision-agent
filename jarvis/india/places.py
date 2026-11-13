@@ -332,10 +332,13 @@ def markets(full: bool = True) -> dict:
         mm = re.search(r"\(([+−-]?[\d.]+%)\)", str(p.get("sub") or ""))
         cards.append(K.box(p.get("label"), p.get("value"), change=mm.group(1).replace("-", "−") if mm else None, tone=p.get("tone"),
                            to=K.place({"Nifty 50": "nifty", "Bank Nifty": "banknifty"}.get(p.get("label"), "nifty"))))
+    when = (pages[0].get("sub2") if pages else None) or ""
     vx = _vix(t)                              # 12 Nov (G-05): the same read and the same day as the Nifty boxes, never a number cut from a sentence
     if vx:
-        cards.append(K.box("Fear gauge", vx["value"], change=_vix_change(vx), caption="India VIX", to=K.place("vix")))
-    when = (pages[0].get("sub2") if pages else None) or ""
+        # 13 Nov (repair 2's confirm check, P2): after the close the gauge's Zerodha number is its last price, while the peek's note above
+        # says the Nifty's "<day> close"; the box then says its own day and kind
+        cards.append(K.box("Fear gauge", vx["value"], change=_vix_change(vx),
+                           caption="India VIX" if not vx.get("when") or vx["when"] == when else f"India VIX · {vx['when']}", to=K.place("vix")))
     view = mv.get("view") or []
     trend = next((x for x in view if "uptrend" in x or "downtrend" in x), "")
     up = "uptrend" in trend
@@ -421,7 +424,9 @@ def account(full: bool = True) -> dict:
                   foot=((f"All since {IS._dw(mb.get('start_day'))}, the same start as above (counted from the {IS._dw(clock.get('since'))} close). "
                          if mb.get("start_day") and str(clock.get("since") or "") < str(mb.get("start_day")) else f"All from the {IS._dw(clock.get('since'))} close. ")
                         + f"{clock.get('words')}: too early to judge." if clock.get("since") and clock.get("words") else (m.get("books_note") or ""))
-                       + (lag or (f" To the {IS._dw(thru)} close." if thru else ""))),
+                       + (lag or (f" To the {IS._dw(thru)} close." if thru else ""))
+                       # 13 Nov (repair 2's confirm check, P3): a holding of "as you have them" at an older close is said here too
+                       + (f" Your holdings as you have them: {m['yours_note']}." if m.get("yours_note") else "")),
              K.rows("Your holdings", [holding_row(h) for h in hs[:3]], count=len(hs), sub=f"{len(hs)} · graded", more=K.to_page(holdings_page(hs))) if hs else None,
              K.rows("Bought on paper", [K.row(_name(r.get("symbol")), f"For the {_name(r.get('for_cut'))} cut", right=_rs(r.get("value_inr")), right_sub=_pct(r.get("pnl_pct"), 1),
                                               right_tone=_tone(r.get("pnl_pct"))) for r in reps[:3]], count=len(reps)) if reps else None,

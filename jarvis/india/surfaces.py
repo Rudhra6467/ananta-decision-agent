@@ -157,7 +157,10 @@ def _index_tile(rm: dict, clk: dict | None, fetch=None) -> dict:
                 # the read model from the exchange's index file (17.53, which the India voice uses) were both shown as "<day> close" on one
                 # evening. Which of the two is the exchange's official close is not settled here, so neither is swapped for the other: the
                 # Zerodha number is named for what it is, its last price, and "close" is kept for the index file's (the closing-bars path).
-                if clk["state"] != "open":
+                # 13 Nov (repair 2's confirm check, P1): the closing-bars rows (weekends, holidays, after midnight IST before the open,
+                # Zerodha signed out) carry the index file's close; only a Zerodha read is renamed
+                zerodha = "closing bars" not in str(ix.get("kind") or "")
+                if clk["state"] != "open" and zerodha:
                     vix = dict(vix, when=f"{_dw(clk['latest_session'])} · last price", source="Zerodha's last price")
         except Exception:  # noqa: BLE001
             pass
@@ -614,6 +617,9 @@ def money(full: bool = True) -> dict:
             # 12 Nov evening (repair 2's outside check, N1): the comparison and its chart run to the evening run's close, which can be a
             # session behind the big number (marked in the nightly job); the day they run to is said beside them
             "books_through": (sw.get("through") if sw.get("ready") else None),
+            # 13 Nov (repair 2's confirm check, P3): a holding of "as you have them" at an older close, or with none, is said beside it
+            "yours_note": "; ".join([f"{s} at the {_dw(d)} close" for s, d in sorted((bm.get("frozen_older_close") or {}).items())]
+                                    + [f"{s} with no close on file" for s in sorted(bm.get("frozen_stale") or [])]) or None,
             "plan": {"for_session": plan.get("for_session"), "brief": plan_sentence(plan) if not plan.get("error") else plan.get("brief"), "words": plan.get("words"), "cuts": len(plan.get("cuts") or []), "buys": [{"symbol": b.get("symbol"), "for_cut": b.get("for_cut"), "inr": b.get("inr"), "reasons": b.get("reasons")} for b in plan.get("buys") or []],
                      "no_change": plan.get("no_change"), "error": plan.get("error")} if plan else None,
             "managed": {"value_inr": mb.get("value_inr"), "return_pct": mb.get("return_pct"), "clock": (mb.get("clock") or {}).get("words"), "replacements": mb.get("replacements") or []},

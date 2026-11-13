@@ -15,7 +15,20 @@
   "note": "Locked 3 Nov 2026 on Madhav's yes; every item of pinned_then is now a pin (lock_day_record, g01_exit_book, india_gate, india_exam, read_model_rules)."
  },
  "what": "The India lock. Each pin is a hash of something that must not change on India's paper books during their evidence window without Madhav's recorded yes. docs/INDIA_LOCK.md explains each one; tests/test_india_lock.py checks them.",
- "how_to_change_a_pin": "Only on Madhav's decision: append an entry to that pin's history (date, approved_by starting with Madhav, a note quoting his words, the new sha256) and set the pin's sha256 to the same value. Run `python tests/test_india_lock.py` for the current hashes.",
+ "how_to_change_a_pin": "Only on Madhav's decision: append an entry to that pin's history (date, approved_by starting with Madhav, a note quoting his words, the new sha256) and set the pin's sha256 to the same value. Run `python tests/test_india_lock.py` for the current hashes. From 13 Nov 2026 the repair door applies (see repair_door): a repair that changes no decision is recorded by Claude under Madhav's standing yes of that day; a change to a decision still needs his own yes for it.",
+ "repair_door": {
+  "since": "2026-11-13",
+  "approved": "Madhav, 13 Nov 2026 07:06 Toronto: \"Yes to all\" (asked: narrowing the two lock files and adding the repair door; dropping the five work freezes; one outside check per repair instead of repeat rounds). The list and the plan: claude/review-2026-11-13-the-locks-and-a-plan.md.",
+  "what": "A lock protects the decisions under test, not the file they sit in. A fault in a pinned thing is fixed the same day.",
+  "no_decision_change": "A repair that changes no decision (a crash, a wrong record, wrong words): Claude fixes it at once, appends a history entry to the pin whose note starts 'Repair, no rule change:' and quotes this yes, and tells Madhav after, in the change book and the next message.",
+  "decision_change": "A repair that changes what Ananta buys, sells or sizes: fixed now too, on Madhav's one-word yes for that repair. The record is split at that day (one record up to the fix, a clean one after) and the test's count says which sessions came before and after.",
+  "shown_by": "'No decision changed' is shown by running the stored history through the old and the new code and getting the same trades. Until that check is built for a book, a fresh outside agent reads the change.",
+  "not_covered": "Real money, the Zerodha account (read only, no order), the sealed India years and the early looks: no repair door opens these."
+ },
+ "ends": {
+  "sp1_playbook": "2026-11-25, the options line's 20-session review",
+  "all other pins": "the managed book's 60-session judgement (about the end of January 2027, by the session count); a pin lapses then unless Madhav renews it"
+ },
  "pins": {
   "paper_rules": {
    "what": "The stock paper book's rules as configured (india/paper_config.json): families, exits, slots, the Rs 50,000 options book (60,000 until 2 Nov) and the survival rules (5% day, 22% pause, record-only on paper).",

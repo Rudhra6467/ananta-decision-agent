@@ -178,7 +178,73 @@ def test_a_replacement_buy_spends_at_most_what_its_own_cut_freed_and_waits_when_
     b, sell, buy = run(60.0, plan="P2")                                  # it opens higher: the buy stays at the plan, the rest stays in cash
     assert buy["filled"] and buy["value_inr"] + buy["cost_inr"] <= 1825 and "capped_at_freed_inr" not in buy
     b, sell, buy = run(None, plan="P3")                                  # no bar for the cut today: it is skipped, and so is its replacement
-    assert sell["skipped"].startswith("no bar") and buy["skipped"] == "its cut was not sold today, so there is nothing to replace yet"
+    assert sell["skipped"].startswith("no bar") and buy["skipped"] == "its cut was not sold today"
     assert b["cash_inr"] == 5000.0 and "BBB" not in b["positions"] and b["positions"]["AAA"]["qty"] == 73
     b, sell, buy = run(40.0, for_cut="AAA+ZZZ", plan="P4")               # pooled from two cuts, one of them not sold: what the sold one freed
     assert buy["filled"] and buy["value_inr"] + buy["cost_inr"] <= sell["value_inr"] - sell["cost_inr"] + 0.01
+
+
+def test_the_buy_caps_small_finds_and_the_halving_rule_14nov(tmp_path, monkeypatch):
+    """14 Nov 2026 (the buy cap's outside check, C1, C3, C4, C5; and the halving rule, left to the builder by Madhav's word of 14 Nov
+    09:59): two buys naming one cut spent it twice; the cap's mark did not say the plan; the skip reasons were cut short on the phone;
+    and a halving of 3 shares sold 1 or 2, as the allocator's rounding to Rs 100 fell."""
+    import pandas as pd
+    (tmp_path / "paper" / "managed").mkdir(parents=True, exist_ok=True)
+    cfg = dict(C, slippage_pct=0.1, max_gap_pct=3, stop_pct=12, min_hold_sessions=5)
+
+    def bars(aaa_open=40.0, bbb=True):
+        rows = [{"symbol": "BBB", "date": pd.Timestamp("2026-11-03"), "open": 100.0, "close": 100.0},
+                {"symbol": "CCC", "date": pd.Timestamp("2026-11-03"), "open": 100.0, "close": 100.0},
+                {"symbol": "CCC", "date": pd.Timestamp("2026-11-04"), "open": 100.0, "close": 100.0}]
+        if bbb:
+            rows.append({"symbol": "BBB", "date": pd.Timestamp("2026-11-04"), "open": 100.0, "close": 101.0})
+        if aaa_open:
+            rows.append({"symbol": "AAA", "date": pd.Timestamp("2026-11-04"), "open": aaa_open, "close": aaa_open})
+        return pd.DataFrame(rows)
+
+    def run(plan, cut, buys, cash=5000.0, df=None):
+        _view(tmp_path, monkeypatch, [])
+        b = {"positions": {"AAA": {"qty": 73, "last": 50.0, "avg": 60.0}}, "cut_days": {}, "filled_plans": [], "trades": [], "cash_inr": cash,
+             "costs_inr": 0.0}
+        monkeypatch.setattr(managed, "_plans", lambda: [{"id": plan, "for_session": "2026-11-04", "cuts": [cut], "buys": buys}])
+        done = managed.fill(b, "2026-11-04", bars() if df is None else df, cfg)
+        return b, [t for t in done if t["side"] == "SELL"], [t for t in done if t["side"] == "BUY"]
+
+    half = {"symbol": "AAA", "kind": "REDUCE", "all": False, "inr": 1825, "share": 0.5}
+    spent = lambda buys: sum(t["value_inr"] + t["cost_inr"] for t in buys if t.get("filled"))   # noqa: E731
+    # C1: two buys naming the same cut share what it freed; the spare cash is not drawn on (it was 3,373.55 of 5,000 left)
+    b, sells, buys = run("T1", half, [{"symbol": "BBB", "inr": 1825, "for_cut": "AAA"}, {"symbol": "CCC", "inr": 1825, "for_cut": "AAA"}])
+    brought = sells[0]["value_inr"] - sells[0]["cost_inr"]
+    assert spent(buys) <= brought + 0.01 and b["cash_inr"] >= 5000.0 - 0.01
+    assert buys[0]["filled"] and buys[1].get("skipped") == "its cut freed less than one share"
+    # C3: a capped buy says the plan's rupees beside the cap
+    assert buys[0]["planned_inr"] == 1825.0 and buys[0]["capped_at_freed_inr"] == round(brought, 2)
+    # C4: both skip reasons fit the phone's row (44 characters, places.py)
+    b, sells, buys = run("T2", half, [{"symbol": "BBB", "inr": 1825, "for_cut": "AAA"}], df=bars(aaa_open=None))
+    assert buys[0]["skipped"] == "its cut was not sold today" and all(len(x) <= 37 for x in ("its cut was not sold today", "its cut freed less than one share"))
+    # C5: a cut marked all, a cut on the old rupee rule, cash under what was freed, the gap rule, a buy with no cut of its own
+    for n, cut in enumerate(({"symbol": "AAA", "kind": "TIDY", "all": True, "inr": 3650}, {"symbol": "AAA", "kind": "REDUCE", "all": False, "inr": 1825})):
+        b, sells, buys = run(f"T3{n}", cut, [{"symbol": "BBB", "inr": 3650, "for_cut": "AAA"}])
+        assert buys[0]["filled"] and spent(buys) <= sells[0]["value_inr"] - sells[0]["cost_inr"] + 0.01 and b["cash_inr"] >= 5000.0 - 0.01
+    b, sells, buys = run("T4", half, [{"symbol": "BBB", "inr": 1825, "for_cut": "AAA"}], cash=-1200.0)
+    assert b["cash_inr"] >= 0 and spent(buys) <= sells[0]["value_inr"] - sells[0]["cost_inr"] - 1200.0 + 0.01
+    gap = bars()
+    gap.loc[(gap["symbol"] == "BBB") & (gap["date"] == pd.Timestamp("2026-11-04")), "open"] = 110.0
+    b, sells, buys = run("T5", half, [{"symbol": "BBB", "inr": 1825, "for_cut": "AAA"}], df=gap)
+    assert "not chased" in buys[0]["skipped"] and abs(b["cash_inr"] - (5000.0 + sells[0]["value_inr"] - sells[0]["cost_inr"])) < 0.01
+    b, sells, buys = run("T6", half, [{"symbol": "BBB", "inr": 1825}], cash=1825.0 - (sells[0]["value_inr"] - sells[0]["cost_inr"]))
+    assert buys[0]["filled"] and spent(buys) <= 1825.0 and "capped_at_freed_inr" not in buys[0]
+    # the halving rule: a suggestion within Rs 50 of half the real holding is exactly half, so 3 shares sell 1, never 2
+    for suggest in (30100, 30050, 30000, 29950, 29900):                  # half of 60,100 is 30,050; the allocator rounds to 100
+        _view(tmp_path, monkeypatch, [{"symbol": "AAA", "action": "REDUCE", "value_inr": 60100, "suggest_inr": suggest}])
+        book = {"positions": {"AAA": {"qty": 3, "last": 1000.0, "avg": 900.0}}, "cut_days": {}, "filled_plans": [], "trades": [], "cash_inr": 0.0,
+                "costs_inr": 0.0}
+        cut = managed.cut_list(book, "2026-11-03", cfg)[0]
+        want = 0.5 if abs(suggest - 30050) <= 50 else round(suggest / 60100, 4)
+        assert cut["share"] == want, (suggest, cut["share"])
+        monkeypatch.setattr(managed, "_plans", lambda c=cut, s=suggest: [{"id": f"H{s}", "for_session": "2026-11-04", "cuts": [c], "buys": []}])
+        sold = managed.fill(book, "2026-11-04", pd.DataFrame([{"symbol": "AAA", "date": pd.Timestamp("2026-11-04"), "open": 1000.0, "close": 1000.0}]), cfg)
+        assert sold[0]["qty"] == 1, (suggest, sold[0]["qty"])
+    _view(tmp_path, monkeypatch, [{"symbol": "AAA", "action": "TRIM", "value_inr": 60000, "suggest_inr": 15000}])   # a quarter stays a quarter
+    book = {"positions": {"AAA": {"qty": 40, "last": 1000.0, "avg": 900.0}}, "cut_days": {}, "filled_plans": [], "trades": [], "cash_inr": 0.0, "costs_inr": 0.0}
+    assert managed.cut_list(book, "2026-11-03", cfg)[0]["share"] == 0.25

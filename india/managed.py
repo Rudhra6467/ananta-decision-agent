@@ -353,7 +353,7 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
         # skipped for the day (no bar) still had its replacement bought.
         its_cuts = [x for x in str(buy.get("for_cut") or "").split("+") if x]
         if its_cuts and not any(x in freed for x in its_cuts):
-            t["skipped"] = "its cut was not sold today, so there is nothing to replace yet"
+            t["skipped"] = "its cut was not sold today"
             done.append(t)
             continue
         if sym not in today.index:
@@ -373,7 +373,7 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
         while qty >= 1 and qty * price + costs.cost("delivery", "buy", qty * price) > inr + 1e-9:    # the buy's own cost fits inside it
             qty -= 1
         if qty < 1:
-            t["skipped"] = "what its cut freed does not buy one share" if got < min(float(buy["inr"]), book["cash_inr"]) else "not enough cash for one share"
+            t["skipped"] = "its cut freed less than one share" if got < min(float(buy["inr"]), book["cash_inr"]) else "not enough cash for one share"
             done.append(t)
             continue
         value = qty * price
@@ -384,8 +384,13 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
         p.update({"stop": round(p["avg"] * (1 - c["stop_pct"] / 100), 2), "min_exit_after": c["min_hold_sessions"], "plan": plan["id"], "for_cut": buy.get("for_cut")})
         book["cash_inr"] -= value + k
         book["costs_inr"] += k
+        left = value + k                                               # 14 Nov: spent once; a second buy naming the same cut gets what is left
+        for x in its_cuts:
+            take = min(freed.get(x, 0.0), left)
+            freed[x] = freed.get(x, 0.0) - take
+            left -= take
         t.update({"qty": qty, "price": round(price, 2), "value_inr": round(value, 2), "cost_inr": round(k, 2), "gap_pct": round(100 * gap, 2), "stop": p["stop"], "filled": True,
-                  **({"capped_at_freed_inr": round(got, 2)} if its_cuts and got < float(buy["inr"]) else {})})
+                  **({"capped_at_freed_inr": round(got, 2), "planned_inr": round(float(buy["inr"]), 2)} if its_cuts and got < float(buy["inr"]) else {})})
         done.append(t)
     book["filled_plans"].append(plan["id"])
     book["trades"] += done
@@ -450,6 +455,8 @@ def cut_list(book: dict, day: str, c: dict) -> list[dict]:
             inr, share = mine, 1.0
         elif real > 0:
             share = min(1.0, float(s.get("suggest_inr") or 0) / real)
+            if abs(float(s.get("suggest_inr") or 0) - real / 2) <= 50:    # 14 Nov: a halving is exactly half (the allocator rounds its rupees
+                share = 0.5                                           # to 100); with the tie going down it never sells more than half
             inr = mine * share                                            # the plan's estimate in rupees; the fill takes the share (13 Nov)
         else:
             continue

@@ -732,7 +732,7 @@ def _managed_book() -> dict:
                                  "that list's REDUCE/TRIM over Rs 1,000 PLUS the tidy-ups (TIDY: stakes too small to matter, sold whole), so the plan usually has more names"),
             "stops_whose": "the 7% fixed stop belongs to the managed book's replacements only; the practice book's trades exit by their own rule's exit; the 5% day loss limit and the 22% pause are the survival rules of the research book",
             "clocks_named": "when citing a clock, name whose it is: the practice book's stock rules (20 sessions, started 30 Oct after the no-chase change), the options line (20), the managed book against the frozen portfolio (60)",
-            "rule": "a replacement is chosen from the Nifty 500 by the proved not-losing filters (above its 50- and 200-day averages, not stretched, not a 40%-down name, calm, liquid, sector not over 25%), one per cut for the same rupees, at most three new names a week, a 7% fixed stop, a 20-session minimum hold; fills at the next open, a buy gapping over 2% is skipped; judged only after 60 sessions"}
+            "rule": "a replacement is chosen from the Nifty 500 by the proved not-losing filters (above its 50- and 200-day averages, not stretched, not a 40%-down name, calm, liquid, sector not over 25%), one per cut, paid for by at most what its own cut freed, at most three new names a week, a 7% fixed stop, a 20-session minimum hold; fills at the next open, a buy gapping over 2% is skipped; judged only after 60 sessions"}
 
 
 def _fresh_words(v):

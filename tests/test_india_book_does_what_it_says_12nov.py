@@ -248,3 +248,41 @@ def test_the_buy_caps_small_finds_and_the_halving_rule_14nov(tmp_path, monkeypat
     _view(tmp_path, monkeypatch, [{"symbol": "AAA", "action": "TRIM", "value_inr": 60000, "suggest_inr": 15000}])   # a quarter stays a quarter
     book = {"positions": {"AAA": {"qty": 40, "last": 1000.0, "avg": 900.0}}, "cut_days": {}, "filled_plans": [], "trades": [], "cash_inr": 0.0, "costs_inr": 0.0}
     assert managed.cut_list(book, "2026-11-03", cfg)[0]["share"] == 0.25
+
+
+def test_the_second_check_of_the_halving_rule_and_the_buy_cap_14nov(tmp_path, monkeypatch):
+    """14 Nov 2026 (the outside check of the small finds, ~/ananta_runs/keen_audit/recheck/buy_cap_finds_14nov.md, F2, F3, F4 and its test
+    gaps): a buy naming one cut twice counted it twice; a suggestion of nothing on a tiny holding read as a halving; after a pooled buy,
+    a buy on an unsold cut gave the wrong reason; and the halving was tried on 3 shares only."""
+    import pandas as pd
+    (tmp_path / "paper" / "managed").mkdir(parents=True, exist_ok=True)
+    cfg = dict(C, slippage_pct=0.1, max_gap_pct=3, stop_pct=12, min_hold_sessions=5)
+    for held, sold in ((1, 1), (2, 1), (5, 2), (7, 3), (9, 4), (10, 5)):      # one share held is still sold: a cut that sells nothing is no cut
+        for suggest in (30000, 30100):
+            _view(tmp_path, monkeypatch, [{"symbol": "AAA", "action": "REDUCE", "value_inr": 60100, "suggest_inr": suggest}])
+            book = {"positions": {"AAA": {"qty": held, "last": 5000.0, "avg": 900.0}}, "cut_days": {}, "filled_plans": [], "trades": [], "cash_inr": 0.0,
+                    "costs_inr": 0.0}
+            cut = managed.cut_list(book, "2026-11-03", cfg)[0]
+            monkeypatch.setattr(managed, "_plans", lambda c=cut, k=(held, suggest): [{"id": f"H{k}", "for_session": "2026-11-04", "cuts": [c], "buys": []}])
+            done = managed.fill(book, "2026-11-04", pd.DataFrame([{"symbol": "AAA", "date": pd.Timestamp("2026-11-04"), "open": 5000.0, "close": 5000.0}]), cfg)
+            assert cut["share"] == 0.5 and done[0]["qty"] == sold, (held, suggest, done[0]["qty"])
+    _view(tmp_path, monkeypatch, [{"symbol": "AAA", "action": "REDUCE", "value_inr": 90, "suggest_inr": 0}])      # F3: nothing suggested is no cut
+    book = {"positions": {"AAA": {"qty": 40, "last": 1000.0, "avg": 900.0}}, "cut_days": {}, "filled_plans": [], "trades": [], "cash_inr": 0.0, "costs_inr": 0.0}
+    assert managed.cut_list(book, "2026-11-03", cfg) == []
+
+    def run(plan, buys):
+        _view(tmp_path, monkeypatch, [])
+        b = {"positions": {"AAA": {"qty": 73, "last": 50.0, "avg": 60.0}, "DDD": {"qty": 10, "last": 50.0, "avg": 60.0}}, "cut_days": {}, "filled_plans": [],
+             "trades": [], "cash_inr": 5000.0, "costs_inr": 0.0}
+        cuts = [{"symbol": "AAA", "kind": "REDUCE", "all": False, "inr": 1825, "share": 0.5}, {"symbol": "DDD", "kind": "REDUCE", "all": False, "inr": 250, "share": 0.5}]
+        rows = [{"symbol": x, "date": pd.Timestamp(d), "open": o, "close": o} for x, o in (("BBB", 100.0), ("CCC", 100.0)) for d in ("2026-11-03", "2026-11-04")]
+        rows.append({"symbol": "AAA", "date": pd.Timestamp("2026-11-04"), "open": 50.0, "close": 50.0})          # DDD has no bar: its cut is not sold
+        monkeypatch.setattr(managed, "_plans", lambda: [{"id": plan, "for_session": "2026-11-04", "cuts": cuts, "buys": buys}])
+        done = managed.fill(b, "2026-11-04", pd.DataFrame(rows), cfg)
+        sell = next(t for t in done if t["side"] == "SELL" and t.get("filled"))
+        return b, sell["value_inr"] - sell["cost_inr"], [t for t in done if t["side"] == "BUY"]
+
+    b, brought, buys = run("F2", [{"symbol": "BBB", "inr": 3650, "for_cut": "AAA+AAA"}])                     # F2: it spent 3,507.66 of 1,780.99
+    assert buys[0]["filled"] and buys[0]["value_inr"] + buys[0]["cost_inr"] <= brought + 0.01 and b["cash_inr"] >= 5000.0 - 0.01
+    b, brought, buys = run("F4", [{"symbol": "BBB", "inr": 3650, "for_cut": "AAA+DDD"}, {"symbol": "CCC", "inr": 250, "for_cut": "DDD"}])
+    assert buys[0]["filled"] and buys[1]["skipped"] == "its cut was not sold today" and b["cash_inr"] >= 5000.0 - 0.01

@@ -247,7 +247,8 @@ def test_a_first_time_reader_answers_five_questions_from_the_top_of_home(crypto)
     hero = top[0]
     assert hero["t"] == "hero" and hero["value"].startswith("C$")                        # how much do I have
     assert hero["tone"] in ("good", "bad", None) and hero["change"]                      # up or down, with its sign
-    assert top[1]["t"] == "today" and K.nwords(top[1]["line"]) <= 9                      # what Ananta did today
+    # 14 Nov 2026 (Madhav): the two boxes come first under the big number, the Today card second
+    assert top[1]["t"] == "boxes" and top[2]["t"] == "today" and K.nwords(top[2]["line"]) <= 9   # what Ananta did today
     assert h["bell"]["count"] == 2 and top[3]["title"] == "Needs you"                    # does it need me
     assert hero["status"]["words"] == "Running"                                          # is everything running
     assert all(K.nwords(s) <= 13 for s in K._texts(top))

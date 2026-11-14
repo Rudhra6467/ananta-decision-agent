@@ -16,6 +16,7 @@ import { AnantaMark } from "./logo";
 import { goTab } from "./context";
 import { type Market, setMarket, useMarket } from "./market";
 import { ChevDown, ChoiceSheet } from "./choicesheet";
+import { TileArt, hasArt } from "./tileart";
 import { useData } from "./useData";
 import { soft, tap } from "./haptics";
 import { api } from "./api";
@@ -462,7 +463,7 @@ function Tiles({ p, needs }: { p: any; needs?: any }) {
                   <Icon name={x.icon} size={20} />
                   <View style={{ position: "absolute", right: -7, bottom: -7, width: 18, height: 18, borderRadius: 9, backgroundColor: C.text, alignItems: "center", justifyContent: "center" }}><Icon name="plus" size={12} color={C.bg} stroke={3} /></View>
                 </View>
-              ) : <IconTile name={x.icon} tint={x.tint} size={36} />}
+              ) : hasArt(x.icon) ? <TileArt name={x.icon} size={36} /> : <IconTile name={x.icon} tint={x.tint} size={36} />}
             </View>
             <View>
               <Text style={[T.meta, { color: C.text }]} numberOfLines={1}>{x.label}</Text>

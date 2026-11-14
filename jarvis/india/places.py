@@ -360,7 +360,6 @@ def home(full: bool = True) -> dict:
                            + (f" · {len(mb['kept_old_price'])} at an older price" if mb.get("kept_old_price") else "")
                            + (f"; {out_words}" if out_words else "")) or None,
                     status={"ok": bool((t.get("running") or {}).get("ok")), "words": "Running" if (t.get("running") or {}).get("ok") else "Needs a look"}),
-             K.today(label, line, sub, to=K.place("plan")),
              K.boxes([K.paged(_index_boxes(t)),
                       K.paged([K.box("In stocks", _rs(stocks), bar=[round(stocks / tot, 3), round(opts / tot, 3)], caption=f"{mb.get('positions') or len(m.get('holdings') or [])} stocks", to=K.place("stocks")),
                                # 12 Nov (N4, N5): it said "At the line's value", a second meaning beside the Options page's own figure
@@ -379,6 +378,9 @@ def home(full: bool = True) -> dict:
                                      to=K.place("options_pnl")) if pnl else None])]),
              # 14 Nov (Madhav: the boxes did not add up to the big number): the cash, the third part, said under them
              K.line(f"Plus {_rs(cash)} in cash: stocks, options and cash make {_rs(value)}.") if isinstance(value, (int, float)) and cash else None,
+             # 14 Nov 2026 (Madhav: "move the two boxes up for the first section, and the next session to the second"): the boxes and the
+             # cash line under the big number, then the plan card
+             K.today(label, line, sub, to=K.place("plan")),
              {"t": "needs", "title": "Needs you", "badge": True, "more": K.place("notices")},
              K.rows("What Ananta did", top, more=K.tab("activity")) if top else None,
              K.notices(home_notices(t, m, clk))]

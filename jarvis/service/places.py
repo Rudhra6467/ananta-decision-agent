@@ -591,12 +591,13 @@ def home(j) -> dict:
     parts = [K.hero("Your paper account", S._cad(value), change=(f"{S._cad(value - start)} ({S._pct(ret)})" if isinstance(value, (int, float)) and isinstance(ret, (int, float)) else None),
                     tone=S._tone(ret), since=f"since {S._dw(b.get('started'))}" if b.get("started") else None,
                     status={"ok": bool(run.get("ok")), "words": "Running" if run.get("ok") else "Needs a look"}),
-             K.today("Today", line, sub, to=K.place("why")),
              K.boxes([K.paged(_coin_boxes(j, pages)),
                       K.paged([K.box("In coins", S._cad(coins, 0), bar=[round(coins / value, 3) if value else 0],
                                      caption="All in cash" if not pos else f"{len(pos)} coin{'s' if len(pos) != 1 else ''}", to=K.place("coins")),
                                K.box("Cash", S._cad(b.get("cash_cad"), 0), bar=[0, round((b.get("cash_cad") or 0) / value, 3) if value else 0],
                                      caption=f"{round(100 * (b.get('cash_cad') or 0) / value)}% of the book" if value else None, to=K.place("cash"))])]),
+             # 14 Nov 2026 (Madhav): the two boxes first, under the big number; the Today card second
+             K.today("Today", line, sub, to=K.place("why")),
              K.rows("Needs you", you[:3], count=len(you), badge=True, more=K.place("notices")) if you else None,
              K.rows("What Ananta did", did, more=K.tab("activity")) if did else None,
              K.notices(home_notices(j, c))]

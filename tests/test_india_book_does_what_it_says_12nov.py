@@ -33,6 +33,7 @@ def test_a_trim_takes_the_same_share_and_a_suggestion_without_the_real_value_cut
     book = {"positions": {"TATAPOWER": {"qty": 78, "last": 400.0}, "LICI": {"qty": 44, "last": 900.0}}, "cut_days": {}}
     cuts = {c["symbol"]: c for c in managed.cut_list(book, "2026-10-30", C)}
     assert cuts["TATAPOWER"]["inr"] == round(78 * 400.0 * 0.25)      # a quarter of the book's own, as of the real holding
+    assert cuts["TATAPOWER"]["share"] == 0.25                        # 13 Nov: the share itself, which the fill now takes
     assert "LICI" not in cuts                                         # no share to apply: no cut, never the real rupees
 
 
@@ -140,3 +141,44 @@ def test_a_cut_is_a_share_of_the_books_own_shares_at_the_fill_whatever_the_open(
              "costs_inr": 0.0}
         monkeypatch.setattr(managed, "_plans", lambda s=share: [{"id": f"Q{s}", "for_session": "2026-11-04", "cuts": [dict(cut, share=s)], "buys": []}])
         assert managed.fill(b, "2026-11-04", df, cfg)[0]["qty"] == sold, (held, share)
+
+
+def test_a_replacement_buy_spends_at_most_what_its_own_cut_freed_and_waits_when_its_cut_was_skipped(tmp_path, monkeypatch):
+    """13 Nov 2026 (Madhav, 19:41 Toronto: "yes"; open-list flag 158): the buy was sized from the cut's planned rupees, so with spare cash
+    it spent more than the sale brought in, and a cut skipped for the day still had its replacement bought."""
+    import pandas as pd
+    _view(tmp_path, monkeypatch, [])
+    (tmp_path / "paper" / "managed").mkdir(parents=True, exist_ok=True)
+    cfg = dict(C, slippage_pct=0.1, max_gap_pct=3, stop_pct=12, min_hold_sessions=5)
+    cut = {"symbol": "AAA", "kind": "REDUCE", "all": False, "inr": 1825, "share": 0.5}
+
+    def book():
+        return {"positions": {"AAA": {"qty": 73, "last": 50.0, "avg": 60.0}}, "cut_days": {}, "filled_plans": [], "trades": [], "cash_inr": 5000.0,
+                "costs_inr": 0.0}
+
+    def bars(aaa_open):
+        rows = [{"symbol": "BBB", "date": pd.Timestamp("2026-11-03"), "open": 100.0, "close": 100.0},
+                {"symbol": "BBB", "date": pd.Timestamp("2026-11-04"), "open": 100.0, "close": 101.0}]
+        if aaa_open:
+            rows.append({"symbol": "AAA", "date": pd.Timestamp("2026-11-04"), "open": aaa_open, "close": aaa_open})
+        return pd.DataFrame(rows)
+
+    def run(aaa_open, for_cut="AAA", plan="P"):
+        b = book()
+        monkeypatch.setattr(managed, "_plans", lambda: [{"id": plan, "for_session": "2026-11-04", "cuts": [cut],
+                                                         "buys": [{"symbol": "BBB", "inr": 1825, "for_cut": for_cut}]}])
+        done = managed.fill(b, "2026-11-04", bars(aaa_open), cfg)
+        return b, next(t for t in done if t["side"] == "SELL"), next(t for t in done if t["side"] == "BUY")
+
+    b, sell, buy = run(40.0, plan="P1")                                  # the stock opens a fifth lower: the cut brings in less than planned
+    brought = sell["value_inr"] - sell["cost_inr"]
+    assert buy["filled"] and buy["value_inr"] + buy["cost_inr"] <= brought + 0.01 < 1825        # it spent 128% of this before
+    assert buy["capped_at_freed_inr"] == round(brought, 2) and abs(b["cash_inr"] - 5000.0) < brought   # the spare cash is not drawn on
+    assert b["cash_inr"] >= 5000.0 - 0.01
+    b, sell, buy = run(60.0, plan="P2")                                  # it opens higher: the buy stays at the plan, the rest stays in cash
+    assert buy["filled"] and buy["value_inr"] + buy["cost_inr"] <= 1825 and "capped_at_freed_inr" not in buy
+    b, sell, buy = run(None, plan="P3")                                  # no bar for the cut today: it is skipped, and so is its replacement
+    assert sell["skipped"].startswith("no bar") and buy["skipped"] == "its cut was not sold today, so there is nothing to replace yet"
+    assert b["cash_inr"] == 5000.0 and "BBB" not in b["positions"] and b["positions"]["AAA"]["qty"] == 73
+    b, sell, buy = run(40.0, for_cut="AAA+ZZZ", plan="P4")               # pooled from two cuts, one of them not sold: what the sold one freed
+    assert buy["filled"] and buy["value_inr"] + buy["cost_inr"] <= sell["value_inr"] - sell["cost_inr"] + 0.01

@@ -313,6 +313,7 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
     prev = df[df["date"] < pd.Timestamp(day)].groupby("symbol").tail(1).set_index("symbol")
     slip = c["slippage_pct"] / 100
     done = []
+    freed: dict[str, float] = {}                                       # 13 Nov: what each cut really brought in today, after its cost
     for cut in plan.get("cuts") or []:
         sym, p = cut["symbol"], book["positions"].get(cut["symbol"])
         t = {"plan": plan["id"], "day": day, "side": "SELL", "symbol": sym, "why": cut.get("why"), "kind": cut.get("kind")}
@@ -337,6 +338,7 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
         p["qty"] -= qty
         book["cash_inr"] += value - k
         book["costs_inr"] += k
+        freed[sym] = freed.get(sym, 0.0) + value - k
         book["cut_days"][sym] = day
         t.update({"qty": qty, "price": round(price, 2), "value_inr": round(value, 2), "cost_inr": round(k, 2), "pnl_inr": round(qty * (price - p["avg"]) - k, 2), "filled": True,
                   "sized": sized, **({"share": cut["share"]} if sized == "share" else {})})
@@ -346,6 +348,14 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
     for buy in plan.get("buys") or []:
         sym = buy["symbol"]
         t = {"plan": plan["id"], "day": day, "side": "BUY", "symbol": sym, "for_cut": buy.get("for_cut"), "why": buy.get("why")}
+        # 13 Nov 2026 (Madhav's yes, 19:41): a replacement spends at most what its own cut freed today, and waits when its cut was not
+        # sold. It was sized from the cut's planned rupees: with spare cash it could spend more than the sale brought in, and a cut
+        # skipped for the day (no bar) still had its replacement bought.
+        its_cuts = [x for x in str(buy.get("for_cut") or "").split("+") if x]
+        if its_cuts and not any(x in freed for x in its_cuts):
+            t["skipped"] = "its cut was not sold today, so there is nothing to replace yet"
+            done.append(t)
+            continue
         if sym not in today.index:
             t["skipped"] = "no bar for the day"
             done.append(t)
@@ -357,10 +367,13 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
             done.append(t)
             continue
         price = o * (1 + slip)
-        inr = min(float(buy["inr"]), book["cash_inr"])
+        got = sum(freed.get(x, 0.0) for x in its_cuts) if its_cuts else float(buy["inr"])
+        inr = min(float(buy["inr"]), book["cash_inr"], got)
         qty = math.floor(inr / price)
+        while qty >= 1 and qty * price + costs.cost("delivery", "buy", qty * price) > inr + 1e-9:    # the buy's own cost fits inside it
+            qty -= 1
         if qty < 1:
-            t["skipped"] = "not enough cash for one share"
+            t["skipped"] = "what its cut freed does not buy one share" if got < min(float(buy["inr"]), book["cash_inr"]) else "not enough cash for one share"
             done.append(t)
             continue
         value = qty * price
@@ -371,7 +384,8 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
         p.update({"stop": round(p["avg"] * (1 - c["stop_pct"] / 100), 2), "min_exit_after": c["min_hold_sessions"], "plan": plan["id"], "for_cut": buy.get("for_cut")})
         book["cash_inr"] -= value + k
         book["costs_inr"] += k
-        t.update({"qty": qty, "price": round(price, 2), "value_inr": round(value, 2), "cost_inr": round(k, 2), "gap_pct": round(100 * gap, 2), "stop": p["stop"], "filled": True})
+        t.update({"qty": qty, "price": round(price, 2), "value_inr": round(value, 2), "cost_inr": round(k, 2), "gap_pct": round(100 * gap, 2), "stop": p["stop"], "filled": True,
+                  **({"capped_at_freed_inr": round(got, 2)} if its_cuts and got < float(buy["inr"]) else {})})
         done.append(t)
     book["filled_plans"].append(plan["id"])
     book["trades"] += done

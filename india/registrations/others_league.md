@@ -6,57 +6,57 @@ picks over the same horizon. Coverage counts, among the best 20 rises per horizo
 a family fired but did not hold (PASSED), or nothing fired (NOT_COVERED). INFORMED hit rates score each participant's index-futures stance and that
 day's change on the next session's Nifty move; Ananta's daily call is scored the same way. Ratings are decision quality, not rupees.
 
-## League, trailing 20 review sessions (through 2026-11-12; 18 sessions)
+## League, trailing 20 review sessions (through 2026-11-13; 19 sessions)
 
 | H | sessions | HINDSIGHT | MARKET | RANDOM (median) | ANANTA | Ananta pct vs random | TAKEN | CONTROL | PASSED | NOT_COVERED | had a rule | took |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 17 | +4.50% | -0.08% | -0.08% | +0.03% | 51% | 148 | 19 | 48 | 120 | 58% | 44% |
-| 5 | 13 | +11.45% | +1.93% | +1.98% | +0.89% | 14% | 151 | 17 | 9 | 83 | 62% | 58% |
+| 1 | 18 | +4.45% | -0.12% | -0.12% | -0.01% | 52% | 163 | 20 | 48 | 124 | 59% | 46% |
+| 5 | 14 | +11.43% | +1.91% | +1.96% | +0.90% | 14% | 169 | 17 | 9 | 85 | 64% | 60% |
 | 20 | 0 | | | | | | | | | | | |
 
 ## Informed money and Ananta's call, next-session hit rates (last 20 scored sessions)
 
 | who | stance hit rate (n) | flow hit rate (n) | latest |
 |---|---|---|---|
-| FII | 35% (17) | 62% (16) | 2026-11-12: short -49719 index futures, added longs |
-| DII | 65% (17) | 50% (16) | 2026-11-12: long 27148 index futures, added shorts |
-| Pro | 35% (17) | 38% (16) | 2026-11-12: short -35374 index futures, added shorts |
-| Client | 65% (17) | 31% (16) | 2026-11-12: long 57945 index futures, added shorts |
-| ANANTA call | 29% (14) | | 2026-11-12: BEARISH |
+| FII | 39% (18) | 59% (17) | 2026-11-13: short -55920 index futures, added shorts |
+| DII | 61% (18) | 53% (17) | 2026-11-13: long 26281 index futures, added shorts |
+| Pro | 39% (18) | 41% (17) | 2026-11-13: short -32937 index futures, added longs |
+| Client | 61% (18) | 35% (17) | 2026-11-13: long 62576 index futures, added longs |
+| ANANTA call | 33% (15) | | 2026-11-13: BEARISH |
 
-## 2026-11-12: best 1-session trips that closed on the day (entry 2026-11-11, 250 eligible, 0 dropped)
-
-| symbol | net | class | why | situation at entry |
-|---|---|---|---|---|
-| CUPID | +8.40% | TAKEN | held by PULL (signal 2026-10-28) | inside its range in an uptrend |
-| POLICYBZR | +7.26% | TAKEN | held by REV (signal 2026-10-21) | rising while below its 200-day average |
-| PAYTM | +7.01% | PASSED | BRK fired on 2026-11-12; rejected: no_chase | inside its range in an uptrend |
-| KALYANKJIL | +6.80% | TAKEN | held by BRK, PULL, REV (signal 2026-10-23, 2026-10-27, 2026-11-06) | to a 52-week high, on 10.8x its 20-day volume |
-| SKYGOLD | +6.39% | TAKEN | held by PULL (signal 2026-10-28) | inside its range in an uptrend |
-| ABCAPITAL | +5.55% | PASSED | BRK fired on 2026-11-12; rejected: no_chase | inside its range in an uptrend |
-| PINELABS | +5.49% | CONTROL | held only by CTL, the random control draw: luck by construction | rising while below its 200-day average |
-| ANANTRAJ | +5.30% | TAKEN | held by REV (signal 2026-11-02) | rising while below its 200-day average |
-| PHOENIXLTD | +5.19% | CONTROL | held only by CTL, the random control draw: luck by construction | to a 52-week high |
-| MFSL | +5.14% | TAKEN | held by REV (signal 2026-10-22) | rising while below its 200-day average, on 2.1x its 20-day volume |
-
-Ananta's research picks open at 2026-11-11: 133, mean +0.74% to 2026-11-12; random band -0.33% .. +0.41% .. +1.14%; market +0.40%.
-
-## 2026-11-12: best 5-session trips that closed on the day (entry 2026-11-04, 248 eligible, 2 dropped)
+## 2026-11-13: best 1-session trips that closed on the day (entry 2026-11-12, 250 eligible, 0 dropped)
 
 | symbol | net | class | why | situation at entry |
 |---|---|---|---|---|
-| KALYANKJIL | +34.04% | TAKEN | held by BRK, PULL, REV (signal 2026-10-23, 2026-10-27, 2026-11-06) | rebounding from a pullback in an uptrend |
-| MOTILALOFS | +19.71% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-11-05) | inside its range in an uptrend |
-| PNB | +15.42% | TAKEN | held by BRK (signal 2026-10-19) | inside its range in an uptrend |
-| MAHABANK | +14.90% | TAKEN | held by BRK (signal 2026-11-05) | inside its range in an uptrend |
-| M&M | +14.45% | NOT_COVERED | no family fired in the window | breaking out of a tight 20-day base (7% wide) |
-| IIFL | +14.29% | TAKEN | held by BRK (signal 2026-11-11) | rebounding from a pullback in an uptrend |
-| DIVISLAB | +14.11% | TAKEN | held by BRK (signal 2026-10-30) | inside its range in an uptrend |
-| CUPID | +14.04% | TAKEN | held by PULL (signal 2026-10-28) | inside its range in an uptrend |
-| NAVINFLUOR | +13.08% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-10-30) | breaking out of a tight 20-day base (14% wide) |
-| SKYGOLD | +12.85% | TAKEN | held by PULL (signal 2026-10-28) | rebounding from a pullback in an uptrend |
+| POWERINDIA | +10.35% | TAKEN | held by REV (signal 2026-10-22) | rising while below its 200-day average |
+| AMBER | +8.68% | TAKEN | held by REV (signal 2026-10-26) | rising while below its 200-day average, on 2.3x its 20-day volume |
+| APOLLO | +7.73% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-11-11) | inside its range in an uptrend |
+| GVT&D | +4.94% | TAKEN | held by REV (signal 2026-10-22) | inside its range in an uptrend |
+| POLICYBZR | +4.90% | TAKEN | held by REV (signal 2026-10-21) | rising while below its 200-day average |
+| GESHIP | +4.34% | TAKEN | held by PULL (signal 2026-11-05) | rebounding from a pullback in an uptrend |
+| E2E | +3.19% | TAKEN | held by PULL (signal 2026-11-06) | inside its range in an uptrend |
+| WELCORP | +3.16% | TAKEN | held by PULL (signal 2026-10-22) | rebounding from a pullback in an uptrend |
+| KIRLOSENG | +2.92% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
+| ENRIN | +2.53% | TAKEN | held by REV (signal 2026-10-21) | rising while below its 200-day average |
 
-Ananta's research picks open at 2026-11-04: 114, mean +1.96% to 2026-11-12; random band +1.51% .. +3.45% .. +5.56%; market +3.62%.
+Ananta's research picks open at 2026-11-12: 139, mean -0.53% to 2026-11-13; random band -1.39% .. -0.75% .. +0.01%; market -0.75%.
+
+## 2026-11-13: best 5-session trips that closed on the day (entry 2026-11-05, 248 eligible, 2 dropped)
+
+| symbol | net | class | why | situation at entry |
+|---|---|---|---|---|
+| KALYANKJIL | +24.14% | TAKEN | held by BRK, PULL, REV (signal 2026-10-23, 2026-10-27, 2026-11-06) | inside its range in an uptrend |
+| POLICYBZR | +13.34% | TAKEN | held by REV (signal 2026-10-21) | rising while below its 200-day average |
+| PNB | +12.86% | TAKEN | held by BRK (signal 2026-10-19) | breaking out of a tight 20-day base (12% wide) |
+| NAVINFLUOR | +12.69% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-10-30) | breaking out of a tight 20-day base (15% wide) |
+| DIVISLAB | +12.53% | TAKEN | held by BRK (signal 2026-10-30) | to a 52-week high |
+| POWERINDIA | +11.70% | TAKEN | held by REV (signal 2026-10-22) | rising while below its 200-day average |
+| MOTILALOFS | +11.02% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-11-05) | to a 52-week high, on 3.0x its 20-day volume |
+| BANKINDIA | +10.47% | TAKEN | held by BRK (signal 2026-11-11) | rising while below its 200-day average |
+| CUPID | +10.40% | TAKEN | held by PULL (signal 2026-10-28) | inside its range in an uptrend |
+| LICHSGFIN | +10.21% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
+
+Ananta's research picks open at 2026-11-05: 119, mean +0.98% to 2026-11-13; random band +0.24% .. +1.69% .. +3.38%; market +1.74%.
 
 ## History
 
@@ -87,3 +87,4 @@ Ananta's research picks open at 2026-11-04: 114, mean +1.96% to 2026-11-12; rand
 | 2026-11-10 | no session (NSE holiday) | | | | | |
 | 2026-11-11 | ok | +5.61% / +0.77% / +0.89% | +14.97% / +4.76% / +3.09% |  | 2 | 0 |
 | 2026-11-12 | ok | +5.18% / +0.40% / +0.74% | +14.46% / +3.62% / +1.96% |  | 4 | 2 |
+| 2026-11-13 | ok | +3.60% / -0.75% / -0.53% | +11.10% / +1.74% / +0.98% |  | 3 | 0 |

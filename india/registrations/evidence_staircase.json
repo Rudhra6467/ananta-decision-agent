@@ -19,14 +19,14 @@
   "ADMITTED": "Madhav (beats RANDOM and MARKET on 10+ independent sessions net of costs; leak check passes; pinned in the lock)",
   "LIVE_ELIGIBLE": "Madhav (the India gate and the live-readiness rules)"
  },
- "built_at": "2026-11-13T02:30:31+00:00",
+ "built_at": "2026-11-14T02:30:31+00:00",
  "rules": {
   "stock:BRK": {
    "what": "20-session breakout on volume",
    "step": "SHADOW",
-   "shadow_sessions": 15,
+   "shadow_sessions": 16,
    "shadow_bar": 20,
-   "independent_sessions_beating_random_and_market": 9,
+   "independent_sessions_beating_random_and_market": 10,
    "independent_bar": 10,
    "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
   },
@@ -35,7 +35,7 @@
    "step": "SHADOW",
    "shadow_sessions": 13,
    "shadow_bar": 20,
-   "independent_sessions_beating_random_and_market": 9,
+   "independent_sessions_beating_random_and_market": 10,
    "independent_bar": 10,
    "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
   },
@@ -44,14 +44,14 @@
    "step": "SHADOW",
    "shadow_sessions": 13,
    "shadow_bar": 20,
-   "independent_sessions_beating_random_and_market": 9,
+   "independent_sessions_beating_random_and_market": 10,
    "independent_bar": 10,
    "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
   },
   "options:SP1": {
    "what": "the index playbook's 1-lot option line",
    "step": "SHADOW",
-   "shadow_sessions": 13,
+   "shadow_sessions": 14,
    "shadow_bar": 20,
    "independent_sessions_beating_random_and_market": 0,
    "independent_bar": 10,
@@ -67,5 +67,5 @@
   "DRAFT": 1
  },
  "history": [],
- "words": "No rule has proved itself yet. The stock rules have 17 of 20 trial sessions; the options line has 13; Ananta beat chance and the average stock on 9 of the 10 days needed."
+ "words": "No rule has proved itself yet. The stock rules have 18 of 20 trial sessions; the options line has 14; Ananta beat chance and the average stock on 10 of the 10 days needed."
 }

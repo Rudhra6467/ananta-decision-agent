@@ -451,7 +451,7 @@ def credit_probe(key: str, post=None) -> list[dict]:
         return []
     if "credit balance" in why:
         return [{"market": "both", "severity": "high", "source": "Claude credit",
-                 "what": ("Claude's API credit has run out, so India answers from its rules only and crypto falls back to Gemini; "
+                 "what": ("Claude's API credit has run out, so India answers from its rules only and crypto says it cannot answer; "
                           "it is topped up in the Anthropic Console under Plans & Billing")}]
     return []
 

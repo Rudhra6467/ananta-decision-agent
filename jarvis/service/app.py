@@ -871,7 +871,7 @@ from jarvis.service import ask as _ask  # noqa: E402
 from jarvis.service import views  # noqa: E402
 
 _A: dict[int, _ask.Ask] = {}
-GUEST_CLAUDE_BUDGET = 0.5      # dollars a day of Madhav's Claude credit a guest can use; then Gemini answers
+GUEST_CLAUDE_BUDGET = 0.5      # dollars a day of Madhav's Claude credit a guest can use; then no model answers until midnight
 
 
 def A() -> _ask.Ask:
@@ -880,7 +880,7 @@ def A() -> _ask.Ask:
         _A[id(j)] = _ask.Ask(j)
     a = _A[id(j)]
     if j.sandbox and float(a.setting("daily_budget_usd") or 0) > GUEST_CLAUDE_BUDGET:
-        a.set_setting("system", "daily_budget_usd", str(GUEST_CLAUDE_BUDGET))    # guests: a small Claude budget, then free Gemini
+        a.set_setting("system", "daily_budget_usd", str(GUEST_CLAUDE_BUDGET))    # guests: a small Claude budget, then no answers until midnight
     return a
 
 

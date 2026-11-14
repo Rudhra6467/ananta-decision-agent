@@ -278,7 +278,7 @@ TOOLS = [
     ("propose_switch", "Prepare flipping a main switch: switch = kill_switch (on stops all new trading in the backend; off lets it trade again) or autopilot (the trend portfolio's mode: on = AUTO applies its changes itself, off = SUGGEST waits for his approval). on = true/false. Creates a card he confirms with Face ID.", _schema({"switch": {"type": "string", "enum": ["kill_switch", "autopilot"]}, "on": {"type": "boolean"}}, ["switch", "on"])),
     ("propose_portfolio_decision", "Prepare approving or rejecting the trend portfolio's suggested changes (the ones waiting in suggest mode): decision approve | reject, ids = 'all' or a list of suggestion ids from the portfolio lookup. Creates a card he confirms with Face ID.", _schema({"decision": {"type": "string", "enum": ["approve", "reject"]}, "ids": {"type": "string", "description": "'all' or comma-separated ids"}}, ["decision"])),
     ("propose_alert_off", "Prepare switching off one of the owner's active alerts: alert = its id from the alerts lookup. Creates a card he confirms.", _schema({"alert": {"type": "string"}}, ["alert"])),
-    ("propose_setting", "Prepare changing an Ananta setting: daily_budget_usd (Claude budget per day, 0-50; when it is used up no model answers until midnight Toronto time), voice_enabled (1/0). Creates a card he confirms with Face ID.", _schema({"key": {"type": "string", "enum": ["daily_budget_usd", "over_budget", "voice_enabled"]}, "value": {"type": "string"}}, ["key", "value"])),
+    ("propose_setting", "Prepare changing an Ananta setting: daily_budget_usd (Claude budget per day, 0-50; when it is used up no model answers until midnight Toronto time), voice_enabled (1/0). Creates a card he confirms with Face ID.", _schema({"key": {"type": "string", "enum": ["daily_budget_usd", "voice_enabled"]}, "value": {"type": "string"}}, ["key", "value"])),
     ("read_doc", "Open one whole document from the knowledge map (for example 'casebook/REBUILD_2026-10-03.md' or 'knowledge/FRAMEWORK.md') when the passages from knowledge are not enough. Optional section = a heading word to return only that part.", _schema({"file": {"type": "string"}, "section": {"type": "string"}}, ["file"])),
     ("chain", "Ananta's decision chain for one coin or all 10 (fail-closed): regime -> trend -> location -> trigger -> invalidation -> risk -> exposure; where each coin stops and why, the stop and size if it got that far, plus relative strength vs BTC, volume and setup family as evidence. Use for 'should we buy X', 'why no trade', 'what is Ananta waiting for', 'which coins are closest'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
     ("changes", "What changed / happened in the last N hours: buys, sells, orders, portfolio moves, warnings, owner actions.", _schema({"hours": {"type": "number"}})),
@@ -2154,7 +2154,7 @@ def local_up() -> bool:
 def route(text: str) -> tuple[str, str]:
     """Auto mode, cheapest level that can do it well and fast: investigations to Claude Sonnet, routine questions to Claude Haiku
     (about 0.5 cents). The Mac's model is too slow for live answers on a MacBook Air (20-80 s), so it does background jobs (mode
-    "worker"). Over budget, Haiku/Sonnet fall back to Gemini like before."""
+    "worker"). Over budget, no model answers (13 Nov 2026: no backup model)."""
     if len(text) > 160 or DEEP_WORDS.search(text):
         return "sonnet", "Auto: Claude Sonnet, this needs investigation"
     if os.getenv("ANTHROPIC_API_KEY"):
@@ -2206,11 +2206,12 @@ def claude_is_out(reply: dict, planned: str, used: str, note: str = "", guest: b
 
 
 def backup_done(log: list[dict], created: list[dict] | None) -> list[str]:
-    """What the backup already prepared or did while it answered (E2: a withheld answer hid it, and asking again would do it twice)."""
+    """What a model already prepared or did before it failed (asking again would do it twice). A tool call that returned an error did
+    nothing, so it is not counted (13 Nov, the outside check: a failed watch was said to stand)."""
     out = [f"prepared a card for you to confirm ({c.get('summary')})" for c in (created or []) if c.get("summary")]
     for x in log or []:
         w = DONE_WORDS.get(str(x.get("tool")))
-        if w and w not in out:
+        if w and w not in out and x.get("ok", True):
             out.append(w)
     return out
 
@@ -2390,7 +2391,7 @@ def run_claude(system: str, history: list[dict], user: str, tools: Lookups, log:
         results = []
         for c in calls:
             out = tools.call(c["name"], c.get("input") or {})
-            log.append({"tool": c["name"], "args": c.get("input")})
+            log.append({"tool": c["name"], "args": c.get("input"), "ok": not (isinstance(out, dict) and out.get("error"))})
             results.append({"type": "tool_result", "tool_use_id": c["id"], "content": json.dumps(out, default=str)[:20000]})
         msgs.append({"role": "user", "content": results})
     raise RuntimeError("too many lookup rounds")
@@ -2696,7 +2697,7 @@ class Ask:
                                      f"AND thread {'IN' if tests else 'NOT IN'} ({evals}) GROUP BY 1", (since,)).fetchall()
             out: dict = {}
             for k, n, c in rows:
-                lab = MODELS.get(ALIASES.get(k, k), {}).get("label", k)
+                lab = "No model" if k == "none" else MODELS.get(ALIASES.get(k, k), {}).get("label", k)
                 o = out.setdefault(lab, {"answers": 0, "usd": 0.0})
                 o["answers"] += n
                 o["usd"] = round(o["usd"] + c, 4)
@@ -2704,7 +2705,7 @@ class Ask:
         today, month = tot(d0), tot(m0)
         spent = sum(v["usd"] for v in today.values())
         budget = float(self.setting("daily_budget_usd"))
-        if getattr(self.j, "sandbox", False):                     # D5: each visitor gets $0.50 of Claude a day, then free Gemini
+        if getattr(self.j, "sandbox", False):                     # D5: each visitor gets $0.50 of Claude a day; after it no model answers until midnight
             budget = min(budget, GUEST_BUDGET_USD)
         t_today, t_month = tot(d0, True), tot(m0, True)            # Test Lab runs have their own budget, never eat the owner's
         t_spent = sum(v["usd"] for v in t_today.values())
@@ -2713,7 +2714,7 @@ class Ask:
                 "left_usd": round(max(0.0, budget - spent), 4), "today": today, "month": month,
                 "tests": {"today_usd": round(t_spent, 4), "month_usd": round(sum(v["usd"] for v in t_month.values()), 4),
                           "budget_usd": t_budget, "left_usd": round(max(0.0, t_budget - t_spent), 4), "today": t_today},
-                "settings": self.settings()}
+                "settings": {**self.settings(), "over_budget": "stop"}}     # 13 Nov: no backup model; an older phone build shows its true sentence
 
     def _last_chat(self, thread: str) -> dict | None:
         """Madhav's conversation before this one (last_conversation, his own only): its day and time in Toronto, how it was held, how
@@ -3061,12 +3062,18 @@ class Ask:
                         + ("Claude had already acted before it failed; " if claude_did else "")
                         + "there is no backup model, so no other model was asked")
                     raw, usage = NO_BACKUP, dict(NO_USAGE)
+                elif MODELS[used]["provider"] == "claude" and L.created:
+                    # 13 Nov (the outside check, an older fault): Claude prepared a card and then failed; the reply was only the error, and
+                    # the card sat waiting unsaid. It is said, as when Claude ends with no words after preparing one.
+                    note = (note + "; " if note else "") + f"Claude failed ({type(exc).__name__}) after it had prepared a card; the card is said"
+                    raw, usage = json.dumps({"kind": "answer", "stage": "decision", "answer": "I've prepared this for you; nothing happens until "
+                                             "you confirm the card: " + "; ".join(a["summary"] for a in L.created)}), {"in": 0, "out": 0}
                 else:
                     raise exc
             try:
                 reply = parse(raw)
             except RuntimeError:
-                if not L.created and MODELS[used]["provider"] == "claude":
+                if not L.created and MODELS[used]["provider"] == "claude" and MODELS[planned]["provider"] == "claude":
                     # Claude occasionally ends with thinking only: no other model is asked (13 Nov: no backup model)
                     used = "gemini"                                      # the stand-in name of the answer no model gave
                     claude_did = backup_done(log, None)                  # 13 Nov (N1, N2): as above

@@ -195,11 +195,14 @@ class Alerts:
             # evening one (an hour after each is first due) the day gets one plain line instead: the wait is said and the asking stops
             local = datetime.fromtimestamp(self.now(), _tz())
             late = local.hour >= 9 if kind == "morning" else (local.hour, local.minute) >= (22, 30)
-            if not (late and r.get("backup_withheld_why")):
+            # its outside check: only the scheduled job (it alone pushes) saves the line, never the "brief now" door, and never over
+            # a brief the day already has; and the line gives the true reason (the budget, when that is what stood in the way)
+            has = self.db.execute("SELECT 1 FROM briefings WHERE day=? AND kind=?", (day, kind)).fetchone()
+            if not (late and r.get("backup_withheld_why") and push is not None and not has):
                 return None
+            why = ("today's Claude budget was used up" if "budget" in r["backup_withheld_why"] else "the main model was not available")
             r = {"kind": "answer", "no_brief_why": r["backup_withheld_why"],
-                 "answer": f"No {kind} brief today: the main model was not available when it was due, and Ananta has no backup model. "
-                           "Ask me for a brief when you want one."}
+                 "answer": f"No {kind} brief today: {why} when it was due, and Ananta has no backup model. Ask me for a brief when you want one."}
         r = three_sentences(r)
         bid = "B" + uuid.uuid4().hex[:9]
         self.db.execute("INSERT INTO briefings VALUES (?,?,?,?,?,?)", (bid, int(self.now()), kind, day, r.get("answer", ""), json.dumps(r, default=str)))

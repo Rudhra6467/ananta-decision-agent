@@ -21,7 +21,8 @@ def summary(dbs: list, days: int = 30) -> dict[str, Any]:
                 "SELECT provider, tokens_in, tokens_out, cost_usd, mode, thread, timing FROM ask_messages WHERE role='assistant' AND t>=?", (since,)):
             job = ("brain" if thread == "brain" else "tests" if (mode or "").startswith("eval") or (thread or "").startswith("acceptance")
                    else "voice" if "voice" in (mode or "") else "chat")
-            tier = {"sonnet": "Claude Sonnet", "opus": "Claude Opus", "haiku": "Claude Haiku", "claude": "Claude Sonnet", "local": "Mac (free)"}.get(
+            tier = {"sonnet": "Claude Sonnet", "opus": "Claude Opus", "haiku": "Claude Haiku", "claude": "Claude Sonnet", "local": "Mac (free)",
+                    "none": "No model"}.get(                              # 13 Nov: a reply no model gave is not counted as Gemini's
                 prov or "", "Gemini (free)")
             r = rows[(job, tier)]
             r[0] += 1

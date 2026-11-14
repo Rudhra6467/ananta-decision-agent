@@ -184,3 +184,77 @@ def test_the_manual_book_the_stop_line_and_the_rebuild_hour_are_said_right():
     # D6 (S5): the self-rebuild runs after the daily close, which is 7 pm Toronto in winter
     assert "the nightly self-rebuild (8 pm Toronto" not in ask.SYSTEM
     assert "the nightly self-rebuild (after each daily close, 7 pm Toronto in winter and 8 pm in summer" in ask.SYSTEM
+
+
+# ------------------------------------------------------------------ 13 Nov: what the one outside check found (recheck/pkg5_nobackup.md)
+def test_a_tool_call_that_failed_before_claude_failed_is_not_said_to_stand():
+    # find 3: the watch call returned an error, Claude timed out, and the reply said the watch "stands"
+    def claude(s, h, u, t, log, **k):
+        log.append({"tool": "watch", "args": {}, "ok": False})
+        raise TimeoutError("the call took too long")
+
+    out, _, _ = _ask("Set a watch on SOL.", claude=claude)
+    assert out["answer"] == ask.CLAUDE_OUT + " Nothing was saved or done."
+    assert ask.backup_done([{"tool": "watch", "ok": False}, {"tool": "remember"}], None) == ["saved your note"]
+    assert '"ok": not (isinstance(out, dict) and out.get("error"))' in inspect.getsource(ask.run_claude)      # the real log says whether it worked
+
+
+def test_a_card_claude_prepared_before_it_failed_is_said():
+    # find 7 (older): the reply was only the error and the card sat waiting, unsaid
+    def claude(s, h, u, t, log, **k):
+        t.call("propose_setting", {"key": "voice_enabled", "value": "1"})
+        raise TimeoutError("the call took too long")
+
+    calls = []
+    out, note, _ = _ask("Turn the voice on.", calls=calls, claude=claude)
+    assert calls == [] and "error" not in out and out["answer"].startswith("I've prepared this for you; nothing happens until you confirm the card: ")
+    assert out["actions"] and "after it had prepared a card" in note and out["provider"] == "sonnet"
+
+
+def test_haiku_stepping_in_for_a_busy_gemini_with_no_words_is_an_error_not_an_empty_answer(monkeypatch):
+    # find 4: the answer was '' under the name "Gemini Flash"; only a Claude that was MEANT to answer gets the plain words
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test")
+    j = _world()
+    asked = []
+
+    def gemini(s, h, u, t, log):
+        asked.append("gemini")
+        raise RuntimeError("503 busy")
+
+    def haiku(s, h, u, t, log, **k):
+        asked.append("haiku")
+        return "", {"in": 5, "out": 0}
+
+    out = ask.Ask(j, providers={"gemini": gemini, "haiku": haiku, "sonnet": _claude_down}).ask("owner", "How is my book doing?", mode="everyday")
+    assert asked == ["gemini", "haiku"] and out.get("error") and not out.get("answer")
+
+
+def test_the_no_brief_line_gives_the_true_reason_only_from_the_job_and_never_over_a_real_brief():
+    # finds 1 and 2: it said "the main model was not available" when the budget was used up; the "brief now" door saved it over a real brief
+    import datetime as dt
+    from zoneinfo import ZoneInfo
+
+    from jarvis.service.alerts import Alerts
+    j = _world()
+    clock = {"t": dt.datetime(2026, 10, 2, 22, 35, tzinfo=ZoneInfo("America/Toronto")).timestamp()}
+    AB, pushed = Alerts(j.db, lambda: clock["t"]), []
+    held = {"kind": "answer", "answer": ask.CLAUDE_OUT_BUDGET, "backup_withheld_why": "no backup model: the day's Claude budget is used up"}
+    assert AB.write_brief("evening", lambda q: dict(held)) is None                           # the door (no push): nothing is saved
+    assert j.db.execute("SELECT COUNT(*) FROM briefings").fetchone()[0] == 0
+    b = AB.write_brief("evening", lambda q: dict(held), push=lambda t, x: pushed.append(x))  # the 15-minute job
+    assert b["text"].startswith("No evening brief today: today's Claude budget was used up when it was due, and Ananta has no backup model.")
+    assert "main model was not available" not in b["text"] and len(pushed) == 1
+    assert AB.write_brief("evening", lambda q: dict(held), push=lambda t, x: pushed.append(x)) is None       # the day has one: never again
+    assert AB.write_brief("evening", lambda q: dict(held)) is None and j.db.execute("SELECT COUNT(*) FROM briefings").fetchone()[0] == 1
+
+
+def test_a_reply_no_model_gave_is_named_so_on_the_spend_page_and_an_older_phone_reads_a_true_sentence():
+    # finds 5b and 6
+    j = _world()
+    A = ask.Ask(j, providers={"sonnet": _claude_down, "gemini": lambda *a, **k: (json.dumps({"answer": "x"}), {"in": 1, "out": 1})})
+    A.ask("owner", "How is my book doing?", mode="deep")
+    sp = A.spend()
+    assert "No model" in sp["today"] and "none" not in sp["today"] and "Gemini Flash" not in sp["today"]
+    assert sp["settings"]["over_budget"] == "stop"                                           # the old page then says "Claude stops until tomorrow."
+    tool = next(t for t in ask.TOOLS if t[0] == "propose_setting")
+    assert "over_budget" not in json.dumps(tool[2])

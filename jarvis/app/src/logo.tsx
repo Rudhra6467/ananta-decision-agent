@@ -38,9 +38,15 @@ export const MARK2 = {
 };
 // MARK2-END
 
-export function AnantaMark({ size = 24, full = false }: { size?: number; full?: boolean; color?: string }) {
+// 14 Nov 2026 (Madhav: "the logo when I open the app, the trishul in light silver, I liked it; use the same one across the app"): every
+// mark is the full one now, the trishul behind the A. Below 80 px its engraving is drawn in light silver with a firmer line, so it still
+// reads on a button; at the opening screen's size it is exactly the splash. full={false} keeps the old small cut where one is wanted.
+const SILVER = { fill: "#262A30", stroke: "#AEB4BE" };
+export function AnantaMark({ size = 24, full = true }: { size?: number; full?: boolean; color?: string }) {
   const id = "am" + useId().replace(/[^a-zA-Z0-9]/g, "");          // one set of gradients per mark on the page
   const c = full ? MARK2.full : MARK2.small;
+  const small = size < 80;
+  const eng = small ? SILVER : MARK2.engraving;
   const order = ["lo", "li", "ri", "ro", "bt", "bb"] as const;
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
@@ -61,7 +67,7 @@ export function AnantaMark({ size = 24, full = false }: { size?: number; full?: 
       <Circle cx={50} cy={50} r={43.2} stroke={`url(#${id}b)`} strokeWidth={full ? 1.1 : 1.6} />
       {full ? (
         <G clipPath={`url(#${id}h)`}>
-          <G transform={MARK2.engraving_transform} fill={MARK2.engraving.fill} stroke={MARK2.engraving.stroke} strokeWidth={0.45} strokeLinejoin="round">
+          <G transform={MARK2.engraving_transform} fill={eng.fill} stroke={eng.stroke} strokeWidth={small ? Math.min(1.6, 0.45 * 80 / Math.max(size, 24) + 0.3) : 0.45} strokeLinejoin="round">
             {MARK2.blades.map((d, i) => <Path key={i} d={d} />)}
           </G>
         </G>

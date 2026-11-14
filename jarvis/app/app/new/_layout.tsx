@@ -60,16 +60,24 @@ function Bar({ state, navigation }: any) {
   );
 }
 
+// 14 Nov 2026 (Madhav: "while moving between tabs with side swipes it should not show the Ananta voice tab; swiping right from Markets goes
+// directly to Activity and back; the Ananta tab only opens from its symbol"). The pages a finger moves through are Home · Markets · Activity ·
+// More, in the bar's order; Ask sits after More, out of the swipe path, and is opened only by the orb (or a link or the voice). It stays a tab,
+// so once opened it stays alive behind the others (the voice loop, the conversation, the answer that moves the app while it speaks).
+// A pager only stops at its ends, so on More (the page before Ask) and on Ask the pager's own swipe is off: on More a swipe right still goes
+// back to Activity (src/moreswipe.tsx), a swipe left goes nowhere; Ask is left from the bar.
+const NO_PAGER_SWIPE = ["more", "ask"];
+
 export default function NewLayout() {
   useThemeVersion();
   return (
     <SwipeTabs tabBarPosition="bottom" initialRouteName="home" tabBar={(p: any) => <Bar {...p} />}
-      screenOptions={{ lazy: true, swipeEnabled: true, animationEnabled: true, sceneStyle: { backgroundColor: C.bg } } as any}>
+      screenOptions={({ route }: any) => ({ lazy: true, swipeEnabled: !NO_PAGER_SWIPE.includes(route.name), animationEnabled: true, sceneStyle: { backgroundColor: C.bg } }) as any}>
       <SwipeTabs.Screen name="home" />
       <SwipeTabs.Screen name="markets" />
-      <SwipeTabs.Screen name="ask" />
       <SwipeTabs.Screen name="activity" />
       <SwipeTabs.Screen name="more" />
+      <SwipeTabs.Screen name="ask" />
     </SwipeTabs>
   );
 }

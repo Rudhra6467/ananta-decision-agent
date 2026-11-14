@@ -238,7 +238,7 @@ def _events(full: bool = True) -> list[tuple]:
 def activity(full: bool = True) -> dict:
     ev = _events(full)
     parts = [K.chips([{"id": "all", "label": "All"}, {"id": "trade", "label": "Trades"}, {"id": "change", "label": "Changes"}, {"id": "note", "label": "Plans"},
-                      {"id": "fix", "label": "Fixes"}, {"id": "you", "label": "For you"}]),
+                      {"id": "fix", "label": "Fixes"}, {"id": "you", "label": "For you"}], sort=K.SORT_DATED),   # 14 Nov (Madhav): Recents ⌄
              {"t": "needs", "title": "Waiting for you", "tags": ["you"]}]
     days: dict[str, list] = {}
     for d, _o, r in ev:

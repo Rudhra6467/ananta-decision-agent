@@ -506,7 +506,7 @@ def activity(j, c: dict | None = None) -> dict:
     ev = _events(j, c)
     you = you_rows(c["list"])
     parts = [K.chips([{"id": "all", "label": "All"}, {"id": "trade", "label": "Trades"}, {"id": "change", "label": "Changes"}, {"id": "note", "label": "Notes"},
-                      {"id": "fix", "label": "Fixes"}, {"id": "you", "label": "For you", "count": len(you) or None}])]
+                      {"id": "fix", "label": "Fixes"}, {"id": "you", "label": "For you", "count": len(you) or None}], sort=K.SORT_DATED)]   # 14 Nov (Madhav): Recents ⌄
     if you:
         parts.append(K.rows("Waiting for you", you, tags=["you"]))
     days: dict[str, list] = {}

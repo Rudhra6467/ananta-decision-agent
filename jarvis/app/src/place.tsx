@@ -14,7 +14,8 @@ import * as SecureStore from "expo-secure-store";
 import { C, NUM, setTheme, themeName } from "./theme";
 import { AnantaMark } from "./logo";
 import { goTab } from "./context";
-import { useMarket } from "./market";
+import { type Market, setMarket, useMarket } from "./market";
+import { ChevDown, ChoiceSheet } from "./choicesheet";
 import { useData } from "./useData";
 import { soft, tap } from "./haptics";
 import { api } from "./api";
@@ -201,15 +202,26 @@ export function Bell({ count }: { count: number }) {
     </Pressable>
   );
 }
+// 14 Nov 2026 (Madhav, a YouTube screenshot: "the account change symbol to move between crypto and Indian like YouTube accounts"): the
+// market is an account switch, "India ⌄" at the top left; a tap opens the two accounts in a sheet with a tick on the one in use, and a pick
+// switches in place (every screen reads its market's backend again; no trip through the Which-Ananta screen).
 export function MarketChip() {
   const mk = useMarket();
+  const [open, setOpen] = useState(false);
   return (
-    <Pressable onPress={() => router.push("/market" as any)} accessibilityRole="button" accessibilityLabel={`Market: ${mk === "india" ? "India" : "crypto"}. Switch market`}
-      style={{ flexDirection: "row", alignItems: "center", gap: 8, height: 36, paddingHorizontal: 14, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.line }}>
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: mk === "india" ? C.india : C.twin }} />
-      <Text style={{ color: C.text, fontSize: 14, fontWeight: "600" }}>{mk === "india" ? "India" : "Crypto"}</Text>
-      <Icon name="swap" size={16} />
-    </Pressable>
+    <>
+      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={`Account: ${mk === "india" ? "India" : "Crypto"}. Switch account`}
+        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 8, height: 40, paddingLeft: 16, paddingRight: 12, borderRadius: 999,
+          backgroundColor: pressed ? C.card2 : C.card, borderWidth: 1, borderColor: C.line })}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: mk === "india" ? C.india : C.twin }} />
+        <Text style={{ color: C.text, fontSize: 16, fontWeight: "600" }}>{mk === "india" ? "India" : "Crypto"}</Text>
+        <ChevDown color={C.text} />
+      </Pressable>
+      <ChoiceSheet open={open} close={() => setOpen(false)} title="Accounts" on={mk}
+        choices={[{ id: "india", label: "India", sub: "NSE stocks and index options · paper", dot: C.india },
+                  { id: "crypto", label: "Crypto", sub: "NDAX coins · paper", dot: C.twin }]}
+        pick={async (id) => { closeSheet(); await setMarket(id as Market); showToast(`Switched to ${id === "india" ? "India" : "Crypto"}`); }} />
+    </>
   );
 }
 
@@ -400,9 +412,21 @@ function Section({ p, rows, needs }: { p: any; rows?: any[]; needs?: number }) {
 }
 
 // ---------------------------------------------------------------------------------------------------- 5 · chip line
-function Chips({ p, on, set }: { p: any; on: string; set: (id: string) => void }) {
+function Chips({ p, on, set, order, setOrder }: { p: any; on: string; set: (id: string) => void; order?: string; setOrder?: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const sorts: any[] = p.sort || [];
+  const cur = sorts.find((s) => s.id === order) || sorts[0];
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginRight: -16 }} contentContainerStyle={{ gap: 8, paddingRight: 16 }}>
+      {/* 14 Nov 2026 (Madhav, YouTube's "Recents ⌄"): the order first, as a chip with a down arrow that opens a sheet */}
+      {cur ? (
+        <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={`Order: ${cur.label}. Change the order`}
+          style={{ height: 36, paddingLeft: 14, paddingRight: 10, borderRadius: 999, flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: C.line, backgroundColor: C.card2 }}>
+          <Text style={{ color: C.text, fontSize: 14, fontWeight: "600" }}>{cur.label}</Text>
+          <ChevDown color={C.text} size={16} />
+        </Pressable>
+      ) : null}
+      {cur ? <ChoiceSheet open={open} close={() => setOpen(false)} choices={sorts} on={cur.id} pick={(id) => setOrder && setOrder(id)} /> : null}
       {(p.items || []).map((c: any) => {
         const sel = c.id === on;
         return (
@@ -1255,9 +1279,33 @@ function Search({ s }: { s: any }) {
 const SHEET_PLACES = ["home", "markets"];
 const sheetTo = (to: any, b: any) => (to && to.place ? { ...to, as: "sheet", peek: { label: b.label, value: b.value, change: b.change, tone: b.tone, since: b.since } } : to);
 const inSheet = (b: any) => ({ ...b, to: sheetTo(b.to, b), pages: b.pages ? b.pages.map((x: any) => ({ ...x, to: sheetTo(x.to, x) })) : b.pages });
+// 14 Nov 2026 (Madhav, "Recents ⌄"): a dated list read oldest first (the days and the rows in each turned round), or as one A-Z / Z-A list
+// with each row's day put in front of its grey line. The day sections are the untagged, titled row sections of a page with a sort chip.
+function ordered(parts: any[], chipPart: any, order: string): any[] {
+  const sorts: any[] = chipPart?.sort || [];
+  if (!sorts.length || order === sorts[0].id) return parts;
+  const dated = (p: any) => p.t === "rows" && !p.tags && !!p.title;
+  const secs = parts.filter(dated);
+  if (!secs.length) return parts;
+  let fresh: any[];
+  if (order === "oldest") fresh = secs.slice().reverse().map((s) => ({ ...s, rows: (s.rows || []).slice().reverse() }));
+  else {
+    const all = secs.flatMap((s) => (s.rows || []).map((r: any) => ({ ...r, sub: r.sub ? `${s.title} · ${r.sub}` : s.title })));
+    all.sort((a: any, b: any) => String(a.title || "").localeCompare(String(b.title || ""), undefined, { sensitivity: "base" }));
+    if (order === "za") all.reverse();
+    fresh = [{ ...secs[0], title: (sorts.find((x) => x.id === order) || {}).label || order, rows: all }];
+  }
+  const out: any[] = [];
+  let placed = false;
+  parts.forEach((p) => { if (!dated(p)) out.push(p); else if (!placed) { out.push(...fresh); placed = true; } });
+  return out;
+}
+
 export function Parts({ data, needs }: { data: any; needs?: any }) {
-  const parts: any[] = data?.parts || [];
-  const chipPart = parts.find((p) => p.t === "chips");
+  const raw: any[] = data?.parts || [];
+  const chipPart = raw.find((p) => p.t === "chips");
+  const [order, setOrder] = useState<string>(chipPart?.sort?.[0]?.id || "recent");
+  const parts: any[] = ordered(raw, chipPart, order);
   const [on, setOn] = useState<string>(chipPart?.items?.[0]?.id || "all");
   const first = chipPart?.items?.[0]?.id || "all";
   const shown = (p: any) => {
@@ -1285,7 +1333,7 @@ export function Parts({ data, needs }: { data: any; needs?: any }) {
         break;
       }
       case "needs": out.push(<Section key={k} p={{ ...p, count: needs?.count }} rows={(needs?.rows || []).slice(0, p.tags ? 40 : 3)} needs={needs?.count} />); break;
-      case "chips": out.push(<Chips key={k} p={p} on={on} set={setOn} />); break;
+      case "chips": out.push(<Chips key={k} p={p} on={on} set={setOn} order={order} setOrder={setOrder} />); break;
       case "tiles": out.push(<Tiles key={k} p={p} needs={needs} />); break;
       case "pill": out.push(<Pill key={k} p={p} />); break;
       case "heading": out.push(<Text key={k} accessibilityRole="header" style={[T.title, { color: C.text }]}>{p.text}</Text>); break;

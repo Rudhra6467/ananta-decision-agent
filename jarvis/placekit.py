@@ -134,8 +134,13 @@ def rows(title, items, count=None, more=None, foot=None, badge=False, sub=None, 
                   "sub": sub, "tags": tags, "plain": plain or None})
 
 
-def chips(items) -> dict:
-    return {"t": "chips", "items": [_drop(x) for x in items]}
+def chips(items, sort=None) -> dict:
+    """sort (14 Nov 2026, Madhav's YouTube screenshot "Recents ⌄"): [{"id", "label"}], the orders a dated list can be read in; the app draws
+    a chip with the first label and a down arrow ahead of the filters, and a sheet with a tick to pick another. The first is the default."""
+    return _drop({"t": "chips", "items": [_drop(x) for x in items], "sort": [_drop(x) for x in sort] if sort else None})
+
+
+SORT_DATED = [{"id": "recent", "label": "Recents"}, {"id": "oldest", "label": "Oldest first"}, {"id": "az", "label": "A-Z"}, {"id": "za", "label": "Z-A"}]
 
 
 def tile(label, value=None, icon="dot", tint=None, to=None, quiet=False) -> dict:

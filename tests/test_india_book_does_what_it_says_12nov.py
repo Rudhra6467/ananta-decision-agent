@@ -118,6 +118,7 @@ def test_a_cut_is_a_share_of_the_books_own_shares_at_the_fill_whatever_the_open(
     monkeypatch.setattr(managed, "_plans", lambda: [{"id": "P1", "for_session": "2026-11-04", "cuts": [cut], "buys": []}])
     done = managed.fill(b, "2026-11-04", df, cfg)
     assert done[0]["filled"] and done[0]["qty"] == 36 and b["positions"]["AAA"]["qty"] == 37     # half of 73, not the 45 (62%) that Rs 1,825 is at 40
+    assert done[0]["sized"] == "share" and done[0]["share"] == 0.5                                # the sale row says how it was sized
     up = pd.DataFrame([{"symbol": "AAA", "date": pd.Timestamp("2026-11-04"), "open": 60.0, "close": 61.0}])   # and half when it opens higher (30 in rupees)
     b = book()
     monkeypatch.setattr(managed, "_plans", lambda: [{"id": "P2", "for_session": "2026-11-04", "cuts": [cut], "buys": []}])
@@ -125,8 +126,17 @@ def test_a_cut_is_a_share_of_the_books_own_shares_at_the_fill_whatever_the_open(
     # a plan written before this day carries no share: it is filled in rupees, as it was written
     b = book()
     monkeypatch.setattr(managed, "_plans", lambda: [{"id": "P0", "for_session": "2026-11-04", "cuts": [{k: v for k, v in cut.items() if k != "share"}], "buys": []}])
-    assert managed.fill(b, "2026-11-04", df, cfg)[0]["qty"] == 45
+    done = managed.fill(b, "2026-11-04", df, cfg)
+    assert done[0]["qty"] == 45 and done[0]["sized"] == "rupees" and "share" not in done[0]
     # an exit (stop, weak, tidy) is all of it, as before
     b = book()
     monkeypatch.setattr(managed, "_plans", lambda: [{"id": "P3", "for_session": "2026-11-04", "cuts": [dict(cut, all=True)], "buys": []}])
-    assert managed.fill(b, "2026-11-04", df, cfg)[0]["qty"] == 73 and "AAA" not in b["positions"]
+    done = managed.fill(b, "2026-11-04", df, cfg)
+    assert done[0]["qty"] == 73 and done[0]["sized"] == "all" and "AAA" not in b["positions"]
+    # the nearest whole share, a tie going down: the allocator rounds its rupees to 100, so "half" arrives as 0.4982 or 0.5016
+    for held, share, sold in ((100, 0.4982, 50), (100, 0.5016, 50), (73, 0.25, 18), (4, 0.496, 2), (30, 0.3333, 10), (3, 0.5, 1), (2, 0.5, 1),
+                              (1, 0.5, 1), (10, 1.0, 10)):
+        b = {"positions": {"AAA": {"qty": held, "last": 50.0, "avg": 60.0}}, "cut_days": {}, "filled_plans": [], "trades": [], "cash_inr": 0.0,
+             "costs_inr": 0.0}
+        monkeypatch.setattr(managed, "_plans", lambda s=share: [{"id": f"Q{s}", "for_session": "2026-11-04", "cuts": [dict(cut, share=s)], "buys": []}])
+        assert managed.fill(b, "2026-11-04", df, cfg)[0]["qty"] == sold, (held, share)

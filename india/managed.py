@@ -324,19 +324,22 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
         # 13 Nov 2026 (Madhav's yes, 13:16): a cut is a SHARE of this book's own shares, taken at the fill. Sized in rupees at the last
         # price the book had, a halving sold more than half when the stock opened lower (sized at 50, opening at 40: about 62%), and a
         # holding left at an older price made that likelier. A plan written before this day carries no share: it fills in rupees, as written.
+        # Its outside check the same day: the nearest whole share, a tie going down (rounded down, "half" of 100 was 49 as often as 50,
+        # because the allocator rounds its rupees to 100); and every sale row says how it was sized, so results can be counted apart.
         if cut.get("all"):
-            qty = p["qty"]
+            qty, sized = p["qty"], "all"
         elif cut.get("share") is not None:
-            qty = min(p["qty"], max(1, math.floor(p["qty"] * float(cut["share"]) + 1e-9)))
+            qty, sized = min(p["qty"], max(1, math.ceil(p["qty"] * float(cut["share"]) - 0.5 - 1e-9))), "share"
         else:
-            qty = min(p["qty"], max(1, math.floor(float(cut["inr"]) / price)))
+            qty, sized = min(p["qty"], max(1, math.floor(float(cut["inr"]) / price))), "rupees"
         value = qty * price
         k = costs.cost("delivery", "sell", value)
         p["qty"] -= qty
         book["cash_inr"] += value - k
         book["costs_inr"] += k
         book["cut_days"][sym] = day
-        t.update({"qty": qty, "price": round(price, 2), "value_inr": round(value, 2), "cost_inr": round(k, 2), "pnl_inr": round(qty * (price - p["avg"]) - k, 2), "filled": True})
+        t.update({"qty": qty, "price": round(price, 2), "value_inr": round(value, 2), "cost_inr": round(k, 2), "pnl_inr": round(qty * (price - p["avg"]) - k, 2), "filled": True,
+                  "sized": sized, **({"share": cut["share"]} if sized == "share" else {})})
         if p["qty"] <= 0:
             del book["positions"][sym]
         done.append(t)

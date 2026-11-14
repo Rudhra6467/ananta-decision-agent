@@ -1,30 +1,30 @@
 {
  "account": {
-  "last": "2026-11-13",
+  "last": "2026-11-14",
   "last_ok": true,
-  "streak": 3
+  "streak": 4
  },
  "dial": {
-  "last": "2026-11-13",
+  "last": "2026-11-14",
   "last_ok": true,
-  "streak": 3
+  "streak": 4
  },
  "rules": {
-  "last": "2026-11-13",
+  "last": "2026-11-14",
   "last_ok": true,
-  "streak": 3
+  "streak": 4
  },
  "brief3": {
-  "last": "2026-11-13",
-  "last_ok": true,
-  "streak": 2,
+  "last": "2026-11-14",
+  "last_ok": false,
+  "streak": 0,
   "failed": true,
   "first_failed": "2026-11-11"
  },
  "market_now": {
-  "last": "2026-11-13",
-  "last_ok": true,
-  "streak": 2,
+  "last": "2026-11-14",
+  "last_ok": false,
+  "streak": 0,
   "failed": true,
   "first_failed": "2026-11-11"
  },
@@ -37,5 +37,12 @@
   "last": "2026-11-13",
   "last_ok": true,
   "streak": 1
+ },
+ "two_weeks": {
+  "last": "2026-11-14",
+  "last_ok": false,
+  "streak": 0,
+  "failed": true,
+  "first_failed": "2026-11-14"
  }
 }

@@ -85,7 +85,7 @@ def test_india_home_and_what_moved_down_a_level(india):
     assert [x["label"] for x in box["pages"]] == ["Nifty 50", "Bank Nifty"] and box["pages"][1]["change"] == "+1.5%"
     assert [x["label"] for x in boxes[1]["pages"]] == ["In stocks", "Options"] and boxes[1]["pages"][1]["value"] == "₹50,000"
     did = json.dumps(next(p for p in h["parts"] if p.get("title") == "What Ananta did"), ensure_ascii=False)
-    assert "Options · Bank Nifty short" in did and "−₹6,054" in did
+    assert "Options · Bank Nifty put" in did and "−₹6,054" in did          # 12 Nov (G-23): a bought put, not "short"
     # coverage: holdings with grade and action, the replacements, the options book, the plan
     acct = json.dumps(IP.account(), ensure_ascii=False)
     for fact in ("Tata Power", "Jio Financial", "Eternal", "+₹7,154", "Session 6 of 60: too early", "+5.27%", "+7.41%"):

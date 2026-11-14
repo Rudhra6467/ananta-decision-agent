@@ -316,7 +316,9 @@ def facts(owner: bool = False) -> dict:
                                                                    "the market section above, which is current through data_through. Mention it only when asked about "
                                                                    "the picks or the data, once.",
                                            "chosen": [{"symbol": x.get("symbol"), "campaign": x.get("campaign"), "close": x.get("close"), "why": x.get("why")} for x in d.get("chosen", [])]},
-            "index_line_sp1": (lambda s1: {"capital_inr": int(views.ACCOUNT_START), **{k: s1.get(k) for k in ("status", "words", "decisions", "errors", "date")}, "sessions": (s1.get("book") or {}).get("sessions")})(views.sp1_live(rm)),
+            "index_line_sp1": (lambda s1: {"capital_inr": int(views.ACCOUNT_START), **{k: s1.get(k) for k in ("status", "words", "decisions", "errors", "date")}, "sessions": (s1.get("book") or {}).get("sessions"),
+                                           # 12 Nov 2026 (G-01): the trade its totals leave out, in the screens' own words; say it with any total
+                                           "left_out": _sp1_left_out()})(views.sp1_live(rm)),
             "reference_traders_league": {"h1": lg.get("h1"), "informed": lg.get("informed"), "meaning": "HINDSIGHT = best trips the session offered; RANDOM = chance; MARKET = the liquid 250; coverage = of the top 20 trips, how many Ananta took / passed / had no rule for"},
             "missed_movers": (L.get("missed") or {}).get("line"),
             # 28 Oct outside round 3 re-grade: "3 open drafts" (this missed-moves file) contradicted the 12 waiting in the whole queue
@@ -414,6 +416,17 @@ def options_review_day() -> dict | None:
         scored = None
     return {"sessions_run": done, "through": through.isoformat(), "twentieth": twentieth.isoformat() if done <= 20 else None,
             "review": _ag.next_session_after(twentieth).isoformat() if done <= 20 else None, "scored_days": scored}
+
+
+def _sp1_left_out() -> str | None:
+    """The options line's trades its totals leave out, in the screens' own words (surfaces.sp1_left_out_words), or None. 12 Nov 2026 (the
+    keen audit, G-01): the 6 Nov Bank Nifty trade is scored late at the next regular open; until then every total says it leaves it out."""
+    try:
+        from jarvis.india import surfaces as _sf
+
+        return _sf.sp1_left_out_words() or None
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _options_review() -> dict:
@@ -739,9 +752,15 @@ def _account_value() -> dict:
     m = _json_file(DATA / "paper" / "managed" / "view.json") or {}
     if not m.get("value_inr"):
         return {"words": "the managed book has no value yet"}
+    # 12 Nov 2026 (the outside check of repair 4, N4 and N8): the value counts the options line at its own value (G-11), so its options part
+    # is that value (the parts add up), with the account's own sentence and the trade it leaves out (G-01)
+    at = isinstance(m.get("options_value_inr"), (int, float))
     return {"owner": "the managed book (the one book that manages your account on paper)", "value_inr": m.get("value_inr"), "return_pct": m.get("return_pct"),
-            "stocks_inr": m.get("stocks_inr"), "options_inr": m.get("options_inr"), "cash_inr": m.get("cash_inr"), "stocks": m.get("positions"), "day": m.get("day"),
-            "rule": "say this value for his account; the real holdings count comes from the Zerodha snapshot, said with its time"}
+            "stocks_inr": m.get("stocks_inr"), "options_inr": m.get("options_value_inr") if at else m.get("options_inr"),
+            "options_set_aside_inr": m.get("options_inr"), "options_counted": m.get("options_counted"), "left_out": _sp1_left_out() if at else None,
+            "cash_inr": m.get("cash_inr"), "stocks": m.get("positions"), "day": m.get("day"),
+            "rule": ("say this value for his account; the real holdings count comes from the Zerodha snapshot, said with its time; the options part is "
+                     "the options line at its own value (options_counted says how); when left_out is given, say it with the total")}
 
 
 def _books_benchmark() -> dict:
@@ -757,7 +776,8 @@ def _books_benchmark() -> dict:
     if not sw.get("ready"):
         return {"words": sw.get("words"), "day": v.get("day")}
     return {**sw, "how": ("compare the managed book only with these same-window numbers; never put its return beside the holdings' return "
-                          "since 22 Oct, which starts on a different day"),
+                          "since 22 Oct, which starts on a different day; the managed figure holds the options line's result (options_words), "
+                          "and when left_out_words is given, say it with the managed figure (12 Nov, G-01)"),
             "holdings_since_22_oct_pct": v.get("frozen_ret_pct"), "nifty500_since_22_oct_pct": v.get("nifty500_ret_pct")}
 
 

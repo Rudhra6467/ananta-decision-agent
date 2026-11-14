@@ -197,7 +197,8 @@ def test_a_company_known_by_its_initials_keeps_them_in_capitals(monkeypatch, tmp
 
 
 def test_a_trade_with_no_result_is_shown_beside_the_options_lines_record(tmp_path, monkeypatch):
-    """Madhav, 9 Nov 19:51 Toronto ("Yes to all your recommendations", 2): the 6 Nov Bank Nifty trade stays unscored and shown as such."""
+    """Madhav, 9 Nov 19:51 Toronto ("Yes to all your recommendations", 2): the 6 Nov Bank Nifty trade stays unscored and shown as such.
+    12 Nov (the keen audit, G-01; his yes of 12 Nov 01:52 re-opens it): it is scored late at the next regular open; until then it is shown."""
     from jarvis.india import surfaces
     monkeypatch.setattr(surfaces, "DATA", tmp_path)
     (tmp_path / "paper" / "sp1").mkdir(parents=True)
@@ -207,4 +208,7 @@ def test_a_trade_with_no_result_is_shown_beside_the_options_lines_record(tmp_pat
         {"kind": "outcome", "date": "2026-11-06", "index": "BANKNIFTY", "point": "D0", "note": "the study's outcome is not defined for this day"}]) + "\n")
     cl = [{"name": "the options line", "done": 10, "so_far": "x"}]
     surfaces._sp1_clock(cl)
-    assert "Not in these figures: 1 trade with no result (Fri 6 Nov, Bank Nifty)" in cl[0]["so_far"] and "stays unscored and is shown here" in cl[0]["so_far"]
+    # 12 Nov (the confirm check of repair 4, C4): in the words every total uses, which say "never scored" once the option has expired
+    assert "Not in these figures: 1 trade, Fri 6 Nov Bank Nifty, not scored yet." in cl[0]["so_far"]
+    assert "tried again each evening while its option trades, and marked scored late" in cl[0]["so_far"]
+    assert "stays unscored" not in cl[0]["so_far"]

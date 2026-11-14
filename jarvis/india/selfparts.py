@@ -175,7 +175,10 @@ def managed_book_check(paper: Path | None = None) -> list[dict]:
     item = lambda w, sev="high": {"market": "india", "severity": sev, "source": "India book check", "what": w}   # noqa: E731
     pos = st.get("positions") or {}
     held = sum(float(p.get("qty") or 0) * float(p.get("last") or 0) for p in pos.values())
-    worth = float(st.get("cash_inr") or 0) + float(st.get("options_inr") or 0) + held
+    # 12 Nov 2026 (the outside check of repair 4, N3): from G-11 the view's value counts the options line at its own value (the money set
+    # aside plus the line's result, options_result_inr); added here too, or this check would raise a false high alarm every day
+    res = float(view.get("options_result_inr") or 0) if isinstance(view, dict) else 0.0
+    worth = float(st.get("cash_inr") or 0) + float(st.get("options_inr") or 0) + res + held
     if isinstance(view, dict) and isinstance(view.get("value_inr"), (int, float)) and abs(worth - float(view["value_inr"])) > 2:
         out.append(item(f"the managed book's value reads Rs {float(view['value_inr']):,.0f} but its cash, options money and holdings add up to "
                         f"Rs {worth:,.0f}: the two disagree"))

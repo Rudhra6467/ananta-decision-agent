@@ -197,14 +197,24 @@ def scorecard(f: dict, mv: dict) -> dict:
     """'How are we doing', in one place: the daily call against a coin flip, the options line's paper result per index, holdings vs the Nifty."""
     dc = f.get("daily_call") or {}
     try:
-        book = (views.sp1_live(views.readmodel()).get("book") or {})
+        s1 = views.sp1_live(views.readmodel()) or {}
     except Exception:  # noqa: BLE001
-        book = {}
-    per = {k: {"sessions": v.get("sessions"), "trades": v.get("trades"), "result_inr_one_lot": v.get("option_1lot_rs_realistic_fill")}
-           for k, v in (book.get("by_index") or {}).items()}
+        s1 = {}
+    book = s1.get("book") or {}
+    per = {k: {"sessions": v.get("sessions"), "trades": v.get("trades"), "result_inr_one_lot": v.get("option_1lot_rs_realistic_fill"),
+               "scored_late": v.get("scored_late") or 0} for k, v in (book.get("by_index") or {}).items()}
+    # 12 Nov 2026 (the keen audit, G-01): the voice's scorecard said "scored trades only" and never which trade that left out; the words
+    # are the screens' own (surfaces.sp1_left_out_words)
+    try:
+        from jarvis.india import surfaces as _IS
+
+        left = _IS.sp1_left_out_words()
+    except Exception:  # noqa: BLE001
+        left = ""
     return {"daily_call": {"right": dc.get("hits"), "of": dc.get("scored"), "coin_flip": dc.get("null_hits"), "below_coin_flip": dc.get("below_coin_flip")},
             "options_line": {"sessions": book.get("sessions"), "of_needed": 20, "per_index": per,
-                             "note": "paper, one lot, realistic fills, scored trades only (the open trades are marked separately)"},
+                             "note": "paper, one lot, realistic fills, scored trades only (the open trades are marked separately)"
+                                     + (f"; NOT in these figures: {left}; say so with any total" if left else "")},
             "holdings_vs_nifty": mv.get("holdings_vs_nifty")}
 
 

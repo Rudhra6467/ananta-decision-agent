@@ -65,9 +65,11 @@ def test_same_window_counts_all_three_from_the_managed_start(tmp_path):
             {"day": "2026-11-04", "frozen_inr": 166606, "nifty500_ret_pct": 4.95, "managed_ret_pct": 1.51}]
     (acct / "benchmark.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
     w = compare.same_window(tmp_path)
-    assert w["ready"] and w["since"] == "2026-10-29" and w["managed_pct"] == 1.51
-    assert w["yours_pct"] == 3.78 and w["nifty500_pct"] == 3.78 and w["managed_minus_yours_pts"] == -2.27
-    assert "29 Oct close" in w["words"] and "session 3 of 60" in w["words"].lower()
+    # 12 Nov 2026 (the keen audit, G-12): the row labelled 29 Oct holds the 30 Oct close's prices (the managed book's start), and its index
+    # runs only to 29 Oct; all three now count from the 30 Oct close, the index from the row labelled that day
+    assert w["ready"] and w["since"] == "2026-10-30" and w["managed_pct"] == 1.51
+    assert w["yours_pct"] == 3.78 and w["nifty500_pct"] == round(((1 + 4.95 / 100) / (1 + 0.92 / 100) - 1) * 100, 2) and w["managed_minus_yours_pts"] == -2.27
+    assert "30 Oct close" in w["words"] and "session 3 of 60" in w["words"].lower()
 
 
 def test_watch_points():

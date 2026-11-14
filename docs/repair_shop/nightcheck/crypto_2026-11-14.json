@@ -1,0 +1,106 @@
+{
+ "market": "crypto",
+ "day": "2026-11-14",
+ "t": 1794614898,
+ "budget_usd": 0.4,
+ "asked": 6,
+ "right": 3,
+ "wrong": [
+  {
+   "id": "brief3",
+   "name": "the briefing",
+   "question": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
+   "why": "RUBRIC broken: says 'hasn't bought or sold anything since last night' but fills_last_14_days shows 6 trades on 2026-11-05 and 2026-11-06, within the last 14 days (today is 2026-11-13)",
+   "answer": "Evening, sir. Your $500 account is all cash at about C$468, down 6.5% since the start, and it hasn't bought or sold anything since last night. The market is weak. Bitcoin is near 68 thousand dollars, under both its 50-day and 200-day averages, so the dial stays closed and I expect only oversold bounces. Two things need your yes: flag 134, a read-only row on the account page showing the pause line (C$426), which I recommend, and one India research draft."
+  },
+  {
+   "id": "two_weeks",
+   "name": "the last two weeks",
+   "question": "What did the $500 book do in the last two weeks, trade by trade, and what is it worth now?",
+   "why": "The answer says the core bought on Nov 4, but fills_last_14_days shows buys on Nov 5 only; it also implies the Solana sale on Nov 6 was a '10-day exit' when the truth shows only Nov 6 as the date with no prior buy in the last 14 days.",
+   "answer": "Evening, sir. The $500 book is worth C$467.55 now, down 6.5% since it started. It's all cash, and every closed trade in the last two weeks lost money except one small win. The core bought Bitcoin and Ethereum on Nov 4 and sold both the next day when the dial closed, losing about C$6. The dip trades (Ethereum won C$0.80, Avalanche lost C$0.66, Solana lost C$3.38 on its 10-day exit) were small. The core's whipsaw, buying when the dial flickers open and selling a day later, is where most of the los"
+  },
+  {
+   "id": "market_now",
+   "name": "the market and the book",
+   "question": "Hey Ananta, how is the crypto market and how is our book doing?",
+   "why": "Bitcoin down 'more than four percent on the day' contradicts btc_close of 68314 vs start, which is about 0.2% move; 'about ten percent on the week' contradicts btc_vs_avg50_pct of -12.7% and btc_live_vs_avg50_pct of -12.5%.",
+   "answer": "Evening, sir. The market is weak and our book is sitting in cash. Bitcoin closed at about 68 thousand, down more than four percent on the day and about ten percent on the week. It's under both its 50-day and 200-day averages, so the dial stays closed. The $500 book is all cash at about C$468, down 6.5% since the start. That loss came from earlier core and dip trades that stopped out. It did nothing today, and nothing needs you. Want the details?"
+  }
+ ],
+ "look": [],
+ "ungraded": 0,
+ "cost_usd": 0.4222,
+ "cost_answers_usd": 0.4148,
+ "cost_grader_usd": 0.0073,
+ "stopped_for_budget": false,
+ "not_asked": 0,
+ "rows": [
+  {
+   "id": "account",
+   "name": "the account's figures",
+   "question": "Five things about the 500 dollar book, each with its number: what it is worth now in Canadian dollars; how much is cash and how much is in coins; its return since the start in percent and whether that is up or down; how many trades it has closed and how many of them made money; and which coins it holds right now.",
+   "answer": "Evening, sir. The $500 book is worth about C$467.55, down 6.5% since it started on 11 October. All of it is cash and nothing is in coins, because the dial is closed (Bitcoin is under its 50-day or 200-day average). It has closed 9 trades and only 1 made money: the Ethereum dip trade, which gained about 80 cents. It holds no coins right now. It fails the graduation check, with 3 of 10 gates passed, and the average trade loses about C$3.61.",
+   "cost_usd": 0.13621,
+   "ok": true,
+   "want": "C$467.55; C$467.55 cash, C$0.00 in coins; -6.5%; 9 closed, 1 made money; no coins, all cash",
+   "by": "code",
+   "marks": 5
+  },
+  {
+   "id": "dial",
+   "name": "the dial and what turns buying on",
+   "question": "At what price did Bitcoin last close for the dial, is the dial open or closed, and what are the two average levels (50-day and 200-day) it has to close above for buying to be on?",
+   "answer": "Evening, sir. The dial is closed, so no new buys. Bitcoin's last daily close was Nov 13 at 68,314 dollars. The 50-day average is 78,209 and the 200-day average is 73,092. Bitcoin is below both: about 9,900 under the 50-day and about 4,800 under the 200-day. It has to close above both for buying to switch on, so it needs roughly 14% more, to clear the 50-day. Live price now is about 68,236, down 4.4% over the last 24 hours, so it isn't close.",
+   "cost_usd": 0.06968,
+   "ok": true,
+   "want": "68314.0, buying off; a close above the 50-day (78209.0) and the 200-day (73092.0)",
+   "by": "code",
+   "marks": 2
+  },
+  {
+   "id": "rules",
+   "name": "the core rule, no shorts, paper only",
+   "question": "Three short things: when buying turns on, what share of the 500 dollar book goes to Bitcoin and to Ethereum, and is it bought at once or in steps? Can the book sell short or bet on a fall? Do you place real orders on NDAX with my money?",
+   "answer": "Evening, sir. When the dial opens, Bitcoin gets 40% of the book and Ethereum 20%, so 60% in the core. It's bought all at once, and all of it is sold when the dial closes. The thirds-in-steps version from 24 Oct failed review 39 and has been off since 10 Nov. No, the book can't sell short or bet on a fall. It's spot buying only, and when the dial is closed the core just sits in cash. No, I don't place real orders on NDAX. It's all paper, no exchange is connected, and real orders only come after your live rules are written and approved.",
+   "cost_usd": 0.0186,
+   "ok": true,
+   "want": "{'BTC': 40, 'ETH': 20}, all_in; no: it only buys or holds cash; no: paper only",
+   "by": "code",
+   "marks": 3
+  },
+  {
+   "id": "brief3",
+   "name": "the briefing",
+   "question": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
+   "answer": "Evening, sir. Your $500 account is all cash at about C$468, down 6.5% since the start, and it hasn't bought or sold anything since last night. The market is weak. Bitcoin is near 68 thousand dollars, under both its 50-day and 200-day averages, so the dial stays closed and I expect only oversold bounces. Two things need your yes: flag 134, a read-only row on the account page showing the pause line (C$426), which I recommend, and one India research draft.",
+   "cost_usd": 0.06101,
+   "ok": false,
+   "why": "RUBRIC broken: says 'hasn't bought or sold anything since last night' but fills_last_14_days shows 6 trades on 2026-11-05 and 2026-11-06, within the last 14 days (today is 2026-11-13)",
+   "by": "grader"
+  },
+  {
+   "id": "two_weeks",
+   "name": "the last two weeks",
+   "question": "What did the $500 book do in the last two weeks, trade by trade, and what is it worth now?",
+   "answer": "Evening, sir. The $500 book is worth C$467.55 now, down 6.5% since it started. It's all cash, and every closed trade in the last two weeks lost money except one small win. The core bought Bitcoin and Ethereum on Nov 4 and sold both the next day when the dial closed, losing about C$6. The dip trades (Ethereum won C$0.80, Avalanche lost C$0.66, Solana lost C$3.38 on its 10-day exit) were small. The core's whipsaw, buying when the dial flickers open and selling a day later, is where most of the loss comes from. Want the Oct 11 to Oct 30 trades in the same detail?",
+   "cost_usd": 0.0723,
+   "ok": false,
+   "why": "The answer says the core bought on Nov 4, but fills_last_14_days shows buys on Nov 5 only; it also implies the Solana sale on Nov 6 was a '10-day exit' when the truth shows only Nov 6 as the date with no prior buy in the last 14 days.",
+   "by": "grader"
+  },
+  {
+   "id": "market_now",
+   "name": "the market and the book",
+   "question": "Hey Ananta, how is the crypto market and how is our book doing?",
+   "answer": "Evening, sir. The market is weak and our book is sitting in cash. Bitcoin closed at about 68 thousand, down more than four percent on the day and about ten percent on the week. It's under both its 50-day and 200-day averages, so the dial stays closed. The $500 book is all cash at about C$468, down 6.5% since the start. That loss came from earlier core and dip trades that stopped out. It did nothing today, and nothing needs you. Want the details?",
+   "cost_usd": 0.05705,
+   "ok": false,
+   "why": "Bitcoin down 'more than four percent on the day' contradicts btc_close of 68314 vs start, which is about 0.2% move; 'about ten percent on the week' contradicts btc_vs_avg50_pct of -12.7% and btc_live_vs_avg50_pct of -12.5%.",
+   "by": "grader"
+  }
+ ],
+ "grader": "haiku",
+ "minutes": 1.0,
+ "line": "Night test: 3 of 6 answers right. Wrong: the briefing; the last two weeks; the market and the book."
+}

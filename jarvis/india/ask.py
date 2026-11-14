@@ -755,7 +755,27 @@ def _account_value() -> dict:
     # 12 Nov 2026 (the outside check of repair 4, N4 and N8): the value counts the options line at its own value (G-11), so its options part
     # is that value (the parts add up), with the account's own sentence and the trade it leaves out (G-01)
     at = isinstance(m.get("options_value_inr"), (int, float))
+    # 14 Nov 2026 (Madhav: "we want to see how we made in stocks and options ... ask Ananta about them where it explains us"): the gain or
+    # loss since the book started, split into the stocks' part and the options' part (Home's two P&L boxes, places.pnl_now; they add up)
+    try:
+        from jarvis.india import places as _pl
+
+        p = _pl.pnl_now(m)
+        counted, later = _pl.option_pnl_trades()
+        nets = [r["legs"]["option"]["net_rs_realistic"] for r in counted]
+        pnl = {"since": m.get("start_day"), "start_inr": m.get("start_inr"), "total_change_inr": p.get("total"),
+               "stocks_pnl_inr": p.get("stocks"), "stocks_return_pct": p.get("stocks_pct"), "costs_inr": p.get("costs"),
+               "options_pnl_inr": p.get("options"), "options_pct_of_set_aside": p.get("options_pct"), "options_in_total": p.get("counted"),
+               "options_trades": len(nets), "options_won": sum(1 for x in nets if x > 0), "options_lost": sum(1 for x in nets if x <= 0),
+               "options_best_inr": round(max(nets)) if nets else None, "options_worst_inr": round(min(nets)) if nets else None,
+               "options_scored_after_close": [{"date": r.get("date"), "index": r.get("index"), "inr": round(r["legs"]["option"]["net_rs_realistic"])} for r in later],
+               "how": ("stocks_pnl is the book's change since it started less the options' result (it counts the cash the stocks trade from, "
+                       "after costs); options_pnl is the options line's result on trades since the book started; the two add up to the total change. "
+                       "A trade scored after the last close joins the total at the next close. Paper only; too few sessions to judge.")} if p else None
+    except Exception:  # noqa: BLE001
+        pnl = None
     return {"owner": "the managed book (the one book that manages your account on paper)", "value_inr": m.get("value_inr"), "return_pct": m.get("return_pct"),
+            "profit_loss": pnl,
             "stocks_inr": m.get("stocks_inr"), "options_inr": m.get("options_value_inr") if at else m.get("options_inr"),
             "options_set_aside_inr": m.get("options_inr"), "options_counted": m.get("options_counted"), "left_out": _sp1_left_out() if at else None,
             "cash_inr": m.get("cash_inr"), "stocks": m.get("positions"), "day": m.get("day"),

@@ -342,6 +342,8 @@ def home(full: bool = True) -> dict:
     opts = (m.get("options_value_inr") if at_value else m.get("options_inr")) or 0
     tot = (stocks + opts + cash) or 1
     out_words = _left_total() if at_value else ""          # 12 Nov (the outside check of repair 4, N4): a total that leaves a trade out says so
+    pnl = (IS._safe(pnl_now, mb) or {}) if full else {}     # 14 Nov (Madhav): the stocks' and the options' profit/loss, the owner only
+    n_opt = len((IS._safe(option_pnl_trades) or ([], []))[0]) if pnl else 0
     did = [r for _d, _o, r in _events(full)]
     seen, top = set(), []
     for r in did:
@@ -365,7 +367,18 @@ def home(full: bool = True) -> dict:
                                # 13 Nov (the outside read of the merge): "1 options trade left out" is about as wide as this box's one line on a
                                # phone; the box is labelled Options, so it says what Account's and Markets' options rows say
                                K.box("Options", _rs(opts), bar=[0, round(opts / tot, 3)], caption=(_left_n() or "Since the book began") if at_value else _options_caption(t, m),
-                                     to=K.place("options"))])]),
+                                     to=K.place("options")),
+                               # 14 Nov 2026 (Madhav: "where is the profit or loss number? We want to see how we made in stocks and options"):
+                               # the hero's change split in two, each opening to its chart, its breakdown and Ask Ananta; the two add up to it
+                               K.box("Stocks P&L", _rs(pnl["stocks"], sign=True), change=_pct(pnl.get("stocks_pct")) if pnl.get("stocks_pct") is not None else None,
+                                     tone=_tone(pnl["stocks"]), caption=f"Since {IS._dw(pnl['start_day'])}, after costs" if pnl.get("start_day") else "After costs",
+                                     to=K.place("stocks_pnl")) if pnl else None,
+                               K.box("Options P&L", _rs(pnl["options"], sign=True), change=_pct(pnl.get("options_pct"), 1) if pnl.get("options_pct") is not None else None,
+                                     tone=_tone(pnl["options"]), caption=(f"{n_opt} trade{'s' if n_opt != 1 else ''} since {IS._dw(pnl['start_day'])}" if pnl.get("counted")
+                                                                         else "Not in the total yet"),
+                                     to=K.place("options_pnl")) if pnl else None])]),
+             # 14 Nov (Madhav: the boxes did not add up to the big number): the cash, the third part, said under them
+             K.line(f"Plus {_rs(cash)} in cash: stocks, options and cash make {_rs(value)}.") if isinstance(value, (int, float)) and cash else None,
              {"t": "needs", "title": "Needs you", "badge": True, "more": K.place("notices")},
              K.rows("What Ananta did", top, more=K.tab("activity")) if top else None,
              K.notices(home_notices(t, m, clk))]
@@ -699,13 +712,105 @@ def option_points() -> list[tuple[str, float]]:
     return out
 
 
+def _known_day(r: dict) -> str:
+    """The day an options trade's result was known (a trade scored late counts from the day it was scored, as the account counts it)."""
+    return str(r.get("scored_at") or r.get("date") or "")[:10]
+
+
+def option_pnl_trades(start_day: str | None = None, upto_day: str | None = None) -> tuple[list[dict], list[dict]]:
+    """The options trades the account counts since the managed book started, and those decided in that window but scored after `upto_day`
+    (they join the total at the next close). The same window as india/managed.py options_line: decided on or after the book's first day."""
+    mb = IS._managed()
+    start = str(start_day or mb.get("start_day") or "")[:10]
+    upto = str(upto_day or mb.get("day") or "")[:10]
+    counted, later = [], []
+    for r in IS._safe(IS._sp1_outcomes) or []:
+        net = ((r.get("legs") or {}).get("option") or {}).get("net_rs_realistic")
+        if not start or str(r.get("date") or "") < start or not isinstance(net, (int, float)):
+            continue
+        (later if upto and _known_day(r) > upto else counted).append(r)
+    return counted, later
+
+
+def option_pnl_points() -> list[tuple[str, float]]:
+    """Options profit/loss in rupees since the managed book started, one point a day a result was known (14 Nov 2026, Madhav: Home shows
+    the stocks' and the options' profit/loss, each opening to its chart)."""
+    mb = IS._managed()
+    counted, _later = option_pnl_trades()
+    if not mb.get("start_day"):
+        return []
+    by: dict[str, float] = {}
+    for r in counted:
+        by[_known_day(r)] = by.get(_known_day(r), 0.0) + r["legs"]["option"]["net_rs_realistic"]
+    out, run = [(str(mb["start_day"])[:10], 0.0)], 0.0
+    for d in sorted(by):
+        run += by[d]
+        out.append((d, round(run)))
+    return out
+
+
+def stock_pnl_points() -> list[tuple[str, float]]:
+    """The stocks' profit/loss in rupees since the managed book started (stocks and the cash they trade from, after costs), one point a close:
+    the book's value less its start and less the options line's result in that row (rows from before 12 Nov hold no options result)."""
+    mb = IS._managed()
+    start, sd = mb.get("start_inr"), str(mb.get("start_day") or "")[:10]
+    if not isinstance(start, (int, float)) or not sd:
+        return []
+    try:
+        rows = [json.loads(x) for x in (views.DATA / "paper" / "account" / "benchmark.jsonl").read_text().splitlines() if x.strip()]
+    except (OSError, ValueError):
+        rows = []
+    out = []
+    for r in rows:
+        d, v = str(r.get("day") or "")[:10], r.get("managed_inr")
+        if d >= sd and isinstance(v, (int, float)):
+            out.append((d, round(v - start - float(r.get("managed_options_inr") or 0))))
+    if not out or out[0][0] > sd:
+        out.insert(0, (sd, 0))
+    pnl = pnl_now(mb)
+    if pnl.get("stocks") is not None and str(mb.get("day") or "") >= out[-1][0]:
+        if out[-1][0] == str(mb.get("day"))[:10]:
+            out[-1] = (out[-1][0], pnl["stocks"])                                     # the book's own figure for its last close
+        else:
+            out.append((str(mb.get("day"))[:10], pnl["stocks"]))
+    return out
+
+
+def pnl_now(mb: dict | None = None) -> dict:
+    """Where the account's gain or loss since the managed book started came from: stocks (with the cash they trade from, after costs) and
+    options (the options line's result as the total counts it). The two add up to the hero's change. `counted`: the options result is in the
+    total (the managed book's view counts the line at its own value); when it is not, the options figure is worked out here and said apart."""
+    mb = mb if mb is not None else IS._managed()
+    value, start = mb.get("value_inr"), mb.get("start_inr")
+    if not isinstance(value, (int, float)) or not isinstance(start, (int, float)):
+        return {}
+    counted = isinstance(mb.get("options_result_inr"), (int, float)) and isinstance(mb.get("options_value_inr"), (int, float))
+    if counted:
+        opts = round(mb["options_result_inr"])
+    else:
+        c, _l = option_pnl_trades()
+        opts = round(sum(r["legs"]["option"]["net_rs_realistic"] for r in c))
+    stocks = round(value - start - (opts if counted else 0))
+    set_aside = mb.get("options_inr") or 50000
+    ret = stock_return()
+    return {"stocks": stocks, "options": opts, "counted": counted, "total": round(value - start), "start_day": mb.get("start_day"),
+            "stocks_pct": ret[-1][1] if ret else None, "options_pct": round(100 * opts / set_aside, 1) if set_aside else None,
+            "set_aside": set_aside, "costs": mb.get("costs_inr")}
+
+
 def candles(name: str, rng: str | None = None, tf: str | None = None, full: bool = True, fetch=None) -> dict:
     """/india/v3/candles/<name>: NIFTY, BANKNIFTY or VIX (candles), STOCKS or OPTIONS (Madhav's history, the owner only)."""
     from jarvis import chartkit as CK
     key = str(name or "").upper().replace("%20", " ").strip()
-    if key in ("STOCKS", "OPTIONS"):
+    if key in ("STOCKS", "OPTIONS", "STOCKSPNL", "OPTIONSPNL"):
         if not full:
             raise PermissionError("This chart shows Madhav's account.")
+        if key == "STOCKSPNL":                  # 14 Nov 2026 (Madhav): the stocks' profit/loss behind Home's box
+            return CK.history("Stocks profit/loss", "india", stock_pnl_points(), rng, ccy="₹", tz_min=330,
+                              note="Rupees made or lost on the stocks since the managed book started, after costs, one point a session at the close.")
+        if key == "OPTIONSPNL":                 # 14 Nov 2026 (Madhav): the options' profit/loss behind Home's box
+            return CK.history("Options profit/loss", "india", option_pnl_points(), rng, ccy="₹", tz_min=330,
+                              note="Rupees made or lost on options since the managed book started, one point each day a trade's result was known, on paper.")
         if key == "STOCKS":
             return CK.history("Your stocks", "india", stock_return(), rng, ccy="%", tz_min=330,
                               note="The stocks' own return since the book started, one point a session at the close. Sales and buys are taken out, "
@@ -796,6 +901,62 @@ def stocks_page(full: bool = True) -> dict:
                   second={"label": "Show the portfolio", "to": K.place("account")})
 
 
+def stocks_pnl_page(full: bool = True) -> dict:
+    """Home's Stocks P&L box (14 Nov 2026, Madhav: "we want to see how we made in stocks and options"): the rupees made or lost on the stocks
+    since the managed book started, its chart, how it is worked out from the total, and the positions."""
+    mb = IS._managed()
+    p = pnl_now(mb)
+    own = sorted(mb.get("holdings") or [], key=lambda x: -(x.get("value_inr") or 0))
+    sd = IS._dw(p.get("start_day")) if p.get("start_day") else None
+    how = [K.kvrow("The book now", _rs(mb.get("value_inr"))), K.kvrow(f"It started at{' (' + sd + ')' if sd else ''}", _rs(mb.get("start_inr"))),
+           K.kvrow("Options' part" if p.get("counted") else "Options (not in the total yet)", _rs(p.get("options"), sign=True), tone=_tone(p.get("options"))),
+           K.kvrow("Stocks' part", _rs(p.get("stocks"), sign=True), tone=_tone(p.get("stocks")), bold=True)] if p else []
+    parts = [K.hero("Stocks profit/loss · on paper", _rs(p.get("stocks"), sign=True) if p else "—",
+                    change=(f"{_pct(p['stocks_pct'])} on the stocks" if p and p.get("stocks_pct") is not None else None), tone=_tone(p.get("stocks") if p else None),
+                    since=(f"since {sd}, after ₹{p['costs']:,.0f} costs" if p and sd and isinstance(p.get("costs"), (int, float)) else f"since {sd}" if sd else None)),
+             K.pricechart("STOCKSPNL", "Stocks profit/loss", kind="line", private=True),
+             K.kv(how, title="How it is worked out", foot="The stocks' part counts the cash they trade from, so a sale into cash is no loss.") if how else None,
+             K.rows("In the managed book", [book_row(x) for x in own[:5]], count=len(own), sub="on paper, biggest first; % on what was paid",
+                    more=K.to_page(book_page(own, mb.get("marks")))) if own else None,
+             K.trust("Paper only. The options' result is apart, on its own box.")]
+    return K.page("Stocks profit/loss", parts,
+                  ask_q="How much did my stocks make or lose since the managed book started? Which holdings and which trades did it, and what did costs take?",
+                  second={"label": "Your stocks", "to": K.place("stocks")})
+
+
+def options_pnl_page(full: bool = True) -> dict:
+    """Home's Options P&L box (14 Nov 2026, Madhav): the rupees made or lost on options since the managed book started (the window the total
+    counts), its chart, wins and losses, the trades, and a trade scored after the last close said apart (it joins the total at the next one)."""
+    mb = IS._managed()
+    p = pnl_now(mb)
+    counted, later = option_pnl_trades()
+    nets = [r["legs"]["option"]["net_rs_realistic"] for r in counted]
+    wins, losses = [x for x in nets if x > 0], [x for x in nets if x <= 0]
+    sd = IS._dw(p.get("start_day")) if p.get("start_day") else None
+    trades = counted[::-1]
+    kv = [K.kvrow("Trades", str(len(nets)), v_sub=f"{len(wins)} won, {len(losses)} lost"),
+          K.kvrow("Won", _rs(sum(wins), sign=True), tone="good" if wins else None),
+          K.kvrow("Lost", _rs(sum(losses), sign=True), tone="bad" if losses else None),
+          K.kvrow("Best trade", _rs(max(nets), sign=True), tone=_tone(max(nets))), K.kvrow("Worst trade", _rs(min(nets), sign=True), tone=_tone(min(nets)))] if nets else []
+    late = sum(r["legs"]["option"]["net_rs_realistic"] for r in later)
+    parts = [K.hero("Options profit/loss · on paper", _rs(p.get("options"), sign=True) if p else "—",
+                    change=(f"{_pct(p['options_pct'], 1)} on ₹{p['set_aside']:,.0f} set aside" if p and p.get("options_pct") is not None else None),
+                    tone=_tone(p.get("options") if p else None),
+                    since=(f"since {sd}, {len(nets)} trade{'s' if len(nets) != 1 else ''}" if sd else None)),
+             K.line("In the total since the managed book started; the Options page counts from the line's own start.") if p.get("counted") else
+             K.line("Worked out here: the total still counts options at the money set aside."),
+             K.line(f"{len(later)} trade{'s' if len(later) != 1 else ''} scored after the {IS._dw(mb.get('day'))} close, {_rs(late, sign=True)}, "
+                    f"join{'s' if len(later) == 1 else ''} at the next close.") if later else None,
+             K.pricechart("OPTIONSPNL", "Options profit/loss", kind="line", private=True),
+             K.kv(kv, title="Wins and losses") if kv else None,
+             K.rows("Trades on paper", [_trade_row(r) for r in trades[:3]], count=len(trades),
+                    more=K.to_page(option_trades_page(trades)) if len(trades) > 3 else None) if trades and full else None,
+             K.trust("Paper only, realistic fills, one option lot a trade. Too few sessions to judge yet: graded after 20.")]
+    return K.page("Options profit/loss", parts,
+                  ask_q="How much did options make or lose since the managed book started? Walk me through the wins and losses and why they happened.",
+                  second={"label": "The options line", "to": K.place("options")})
+
+
 def _left_out() -> str:
     """The options line's trades with no result yet, in words ("1 trade left out: Fri 6 Nov Bank Nifty, not scored yet"), or "".
     12 Nov 2026 (audit repair 4, G-01; Madhav's yes of 12 Nov 01:52): the 6 Nov Bank Nifty trade is scored at the next regular open and
@@ -859,6 +1020,7 @@ def _trade_row(r: dict) -> dict:
 PLACES = {"home": home, "markets": markets, "activity": activity, "more": more, "account": account, "proof": proof, "plan": lambda full=True: plan_page(IS.money(full), IS.today(full)),
           "holdings": lambda full=True: holdings_page(sorted(IS.money(full).get("holdings") or [], key=lambda h: -(h.get("value_inr") or 0))),
           "options": options_page, "people": people, "morning": lambda full=True: morning_page(), "stocks": stocks_page,
+          "stocks_pnl": stocks_pnl_page, "options_pnl": options_pnl_page,          # 14 Nov 2026 (Madhav): Home's two profit/loss boxes
           "nifty": lambda full=True: index_page("nifty", full), "banknifty": lambda full=True: index_page("banknifty", full),
           "vix": lambda full=True: index_page("vix", full)}
 

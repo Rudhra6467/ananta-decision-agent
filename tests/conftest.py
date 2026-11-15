@@ -1,13 +1,21 @@
 """Tests never push to a real phone, even when run on the laptop where .env holds the ntfy topic; and they never reach the web
 or touch the live paid-search counters."""
+import atexit
 import importlib.util
 import os
 import pwd
+import shutil
 import sys
 import tempfile
 
 import pytest
 
+# 15 Nov 2026 (audit repair 6, G-70; as the agent checkout's conftest since 12 Nov): test runs left their scratch in the Mac's temporary
+# folder (47 GB in five days; the disk reached 99% on 12 Nov). Everything a run makes there now sits in one run folder, emptied at the end.
+RUN_TMP = tempfile.mkdtemp(prefix="ananta-records-tests-run-")
+tempfile.tempdir = RUN_TMP                                          # every mkdtemp() and TemporaryDirectory() of this process
+os.environ["TMPDIR"] = RUN_TMP                                      # and of every Python a test starts
+atexit.register(shutil.rmtree, RUN_TMP, ignore_errors=True)
 # 12 Nov 2026 (the outside check of audit repair 1, N4: "the records tests run with the real home and an open network; only the phone and
 # the sign-in are guarded"). The agent checkout's tests' wall (tests/wall.py there, on Python's audit hooks) goes up here too, before any
 # records module is imported, with one difference: India's data folder may be read (three test files read it on purpose), never written,

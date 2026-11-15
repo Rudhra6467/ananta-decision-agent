@@ -74,9 +74,12 @@ def fx_or_last(j, get=None) -> tuple[float, str | None]:
         return r, None
     except Exception:  # noqa: BLE001
         last = _get(j, "fx_last") or {}
-        if not last.get("rate"):
+        if not last.get("rate") or time.time() - float(last.get("t") or 0) > FX_MAX_AGE:   # its outside check, find 7: an age limit
             raise
         return float(last["rate"]), f"the Bank of Canada could not be read; the rate of {time.strftime('%Y-%m-%d', time.gmtime(int(last.get('t') or 0)))} was used"
+
+
+FX_MAX_AGE = 3 * DAY            # 15 Nov 2026: a rate older than three days stops the step, as an outage did before
 
 
 def quote(coin: str, inst: dict, get=None) -> dict | None:
@@ -218,6 +221,11 @@ def step(j, get=None, now: float | None = None) -> dict:
         return {"error": "no Bitcoin history"}
     btc = C["BTC"]
     bar_t = btc.t[-1]
+    # 15 Nov 2026 (audit repair 6, its outside check, find 8): a core coin whose candle is late would be stepped on a day-old candle, and the
+    # step would not run again. Until 06:00 UTC it waits (the feed pulls the core again every 15 minutes); after that it steps and says so.
+    late = [c for c in B.CORE if c in C and C[c].t[-1] < bar_t]
+    if late and now - bar_t < DAY + 6 * 3600:
+        return {"waiting": f"{', '.join(late)}: the candle of {B._day(bar_t)} is not in yet", "bar": B._day(bar_t)}
     s = _get(j, "state") or {"started": time.strftime("%Y-%m-%d", time.gmtime(now)), "cash": B.START_CAD, "pos": {}, "closed": [], "brakes": {},
                                  "judged": []}
     if s.get("last_bar") == bar_t:
@@ -249,6 +257,9 @@ def step(j, get=None, now: float | None = None) -> dict:
     out: dict = {"bar": B._day(bar_t), "usdcad": rate, "sold": [], "bought": [], "skipped": []}
     if rate_note:
         out["usdcad_note"] = rate_note
+    s["usdcad_note"] = rate_note                             # said in the night's note and the self-check (its outside check, find 7)
+    if late:
+        out["late_core"] = f"{', '.join(late)} stepped on an older candle: its candle of {B._day(bar_t)} had not come by 06:00 UTC"
     closed_pnls = []
     waiting = s.setdefault("sell_next", {})                  # 15 Nov (G-42): sales that found no quote, sold first at the next step
 
@@ -472,6 +483,15 @@ def step(j, get=None, now: float | None = None) -> dict:
     s["last_bar"], s["last_step_t"], s["last_step"] = bar_t, now, time.strftime("%Y-%m-%d %H:%M", time.gmtime(now))
     s["judged"] = s["judged"][-200:]
     _put(j, "state", s)
+    try:     # 15 Nov 2026 (its outside check, find 2): a step that runs after the night's note was written reaches the next note instead
+        from jarvis.service import officer
+
+        day = time.strftime("%Y-%m-%d", time.gmtime(now))
+        if officer.note_written(j, day):
+            j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", ("late_step:" + day, json.dumps(
+                {"bar": B._day(bar_t), "at": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(now)), "bought": out["bought"], "sold": out["sold"]})))
+    except Exception:  # noqa: BLE001  no notes table yet: no note to come late for
+        pass
     j.db.commit()
     out["value_cad"] = s["value"]
     return out

@@ -317,14 +317,18 @@ def status(j) -> dict:
             "errors": STATE.get("errors"), "source": "Binance public market data (spot, against USDT)"}
 
 
+CORE_COINS = ("BTC", "ETH")
+
+
 def _waiting_for_btc(j, now: float) -> bool:
-    """Bitcoin's candle of the UTC day just ended is not stored yet (15 Nov 2026, G-42)."""
+    """Bitcoin's or Ether's candle of the UTC day just ended is not stored yet (15 Nov 2026, G-42; Ether too, from the outside check of
+    repair 6, find 8: the core is both)."""
     con = _con(j)
     try:
-        t = con.execute("SELECT MAX(t) FROM d1 WHERE coin='BTC'").fetchone()[0]
+        last = dict(con.execute("SELECT coin, MAX(t) FROM d1 WHERE coin IN ('BTC', 'ETH') GROUP BY coin").fetchall())
     finally:
         con.close()
-    return (t or 0) < int(now // DAY * DAY) - DAY
+    return any((last.get(c) or 0) < int(now // DAY * DAY) - DAY for c in CORE_COINS)
 
 
 def cycle(j, now: float | None = None, on_daily: Callable | None = None) -> dict:

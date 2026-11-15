@@ -548,6 +548,9 @@ def test_clean_nights_count_in_a_row_and_start_again_after_a_bad_night(tmp_path)
     class JJ:
         db = sqlite3.connect(tmp_path / "jarvis.sqlite")
 
+        def now(self):                                                   # 15 Nov: the count walks back from the night due last
+            return 1794657600.0                                          # 2026-11-14 12:00 UTC
+
     j = JJ()
     j.db.execute("CREATE TABLE engine_state (k TEXT PRIMARY KEY, v TEXT)")
     # 15 Nov 2026 (audit repair 6, G-42): the note is written on the UTC day after its candle, as on every real night

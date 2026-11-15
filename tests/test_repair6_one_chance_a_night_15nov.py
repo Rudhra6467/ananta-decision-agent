@@ -94,6 +94,7 @@ def test_the_daily_pull_tries_again_until_bitcoins_candle_is_in(tmp_path, monkey
         if len(pulls) == 2:                                                     # the candle lands on the second try
             con = feed._con(j)
             con.execute("INSERT INTO d1 VALUES ('BTC', ?, 1, 1, 1, 1, 1, 1)", (now // DAY * DAY - DAY,))
+            con.execute("INSERT INTO d1 VALUES ('ETH', ?, 1, 1, 1, 1, 1, 1)", (now // DAY * DAY - DAY,))
             con.commit()
             con.close()
         return {"coins": len(coins)}

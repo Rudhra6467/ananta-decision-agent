@@ -19,6 +19,7 @@ sentences, and the body sent is kept (G-63).
 """
 from __future__ import annotations
 
+import calendar
 import datetime as _dt
 import json
 import re
@@ -208,6 +209,7 @@ def facts(j, daily: dict | None = None) -> dict:
                         "brakes": brake_record({**(s.get("brakes") or {}), "log": (s.get("brakes") or {}).get("log") or s.get("brake_log") or []},
                                                s.get("repairs")),
                         "last_step": s.get("last_step"), "started": s.get("started"),
+                        **({"rate_note": (ndax_book._get(j, "state") or {}).get("usdcad_note")} if (ndax_book._get(j, "state") or {}).get("usdcad_note") else {}),
                         "closed_recent": toronto_days(j, (s.get("closed") or [])[-3:]), "closed_days_note": CLOSED_DAYS_NOTE}
         # 25 Oct: the note said "the day-loss brake fired once today" when it had fired on 22 Oct ("fired" counts are totals since the start).
         # Say in words what fired today and when each brake last fired.
@@ -221,6 +223,15 @@ def facts(j, daily: dict | None = None) -> dict:
             last[x.get("brake")] = x
         f["account"]["brakes_today"] = ("; ".join(f"the {x.get('brake', '').replace('_', '-')} brake fired at this close (no new buys until {x.get('until')})" for x in today)
                                         or "none fired at this close" + ("; last fired: " + ", ".join(f"{b.replace('_', '-')} on {x.get('day')} (blocked until {x.get('until')})" for b, x in last.items()) if last else ""))
+        # 15 Nov 2026 (audit repair 6, its outside check, find 2): the step of a late candle ran after last night's note; this note says it
+        prev = time.strftime("%Y-%m-%d", time.gmtime(calendar.timegm(time.strptime(f["day"], "%Y-%m-%d")) - 86400))
+        try:
+            row = j.db.execute("SELECT v FROM engine_state WHERE k=?", ("late_step:" + prev,)).fetchone()
+        except Exception:  # noqa: BLE001  no engine_state table yet
+            row = None
+        if row:
+            f["account"]["after_the_last_note"] = {**json.loads(row[0]), "meaning": "the book stepped after last night's note was written (its "
+                                                   "candle was late); what it did then was not in that note, so it is said here"}
         fixes = [r for r in ((ndax_book._get(j, "state") or {}).get("repairs") or []) if str(r.get("day") or "") >= time.strftime("%Y-%m-%d", time.gmtime(j.now() - 86400))]
         if fixes:                                             # a correction to the book is said once, in the note after it
             f["account"]["corrections"] = [{k: r.get(k) for k in ("day", "what", "cash_added")} for r in fixes]
@@ -339,6 +350,14 @@ def cad_labels(note: str, f: dict) -> str:
     return re.sub(r"(^|[^A-Za-z$])\$(\d[\d,]*(?:\.\d+)?)", fix, note)
 
 
+def note_written(j, day: str) -> bool:
+    """Whether the night's note of this UTC day is written (15 Nov 2026: a late step is kept for the next note). Only the writer reads its table."""
+    try:
+        return bool(j.db.execute("SELECT 1 FROM officer_notes WHERE day=?", (day,)).fetchone())
+    except Exception:  # noqa: BLE001  no notes table yet
+        return False
+
+
 def mark_clean_night(j, f: dict) -> dict:
     """A clean night: the book stepped on tonight's candle, the note read the dial from the same candle, and the book check is silent.
     Kept in engine_state as clean_night:<day>; the Proof screen counts the nights in a row."""
@@ -409,13 +428,26 @@ def clean_nights(j) -> dict:
         return {}
     start = str(card.get("freeze_from") or "")
     rows = j.db.execute("SELECT k, v FROM engine_state WHERE k LIKE 'clean_night:%' AND k >= ? ORDER BY k DESC", ("clean_night:" + start,)).fetchall()
+    marks = {k.split(":", 1)[1]: json.loads(v) for k, v in rows}
+    # 15 Nov 2026 (audit repair 6, its outside check, find 3): a UTC day with no note left no mark, and the count stepped over it as if the
+    # night had been clean. Every day is walked back from the last night that should be marked (a night's note is in by 02:00 UTC); a day
+    # with no mark breaks the run, as a bad night does.
+    import datetime as _d
+
+    now = float(j.now()) if hasattr(j, "now") else time.time()
+    day = _d.datetime.fromtimestamp(now - 7200, _d.timezone.utc).date()
     run, broke = 0, None
-    for k, v in rows:
-        d = json.loads(v)
+    first = _d.date.fromisoformat(start) if start else min((_d.date.fromisoformat(x) for x in marks), default=day)
+    while day >= first:
+        d = marks.get(day.isoformat())
+        if d is None:
+            broke = {"day": day.isoformat(), "why": ["no note was written that night, so the night was not marked"]}
+            break
         if not d.get("clean"):
-            broke = {"day": k.split(":", 1)[1], "why": d.get("why")}
+            broke = {"day": day.isoformat(), "why": d.get("why")}
             break
         run += 1
+        day -= _d.timedelta(days=1)
     return {"in_a_row": run, "need": int(card.get("clean_nights_needed") or 30), "since": start, "nights_marked": len(rows), "last_break": broke}
 
 

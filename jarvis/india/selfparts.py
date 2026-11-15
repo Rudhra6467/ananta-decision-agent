@@ -179,6 +179,8 @@ def managed_book_check(paper: Path | None = None) -> list[dict]:
     item = lambda w, sev="high": {"market": "india", "severity": sev, "source": "India book check", "what": w}   # noqa: E731
     pos = st.get("positions") or {}
     held = sum(float(p.get("qty") or 0) * float(p.get("last") or 0) for p in pos.values())
+    if (base / "view.json").exists() and not isinstance(view, dict):   # 15 Nov (repair 6's check, find 4): a view that cannot be read is said
+        out.append(item("the India book check could not read the managed book's view, so the value the screens show is not checked"))
     # 12 Nov 2026 (the outside check of repair 4, N3): from G-11 the view's value counts the options line at its own value (the money set
     # aside plus the line's result, options_result_inr); added here too, or this check would raise a false high alarm every day
     res = float(view.get("options_result_inr") or 0) if isinstance(view, dict) else 0.0
@@ -193,8 +195,11 @@ def managed_book_check(paper: Path | None = None) -> list[dict]:
     keys = {(t.get("plan"), t.get("symbol"), t.get("side"), int(t.get("qty") or 0)) for t in trades}
     try:
         led = [json.loads(x) for x in (base / "ledger.jsonl").read_text().splitlines() if x.strip()]
-    except (OSError, ValueError):
+    except FileNotFoundError:
         led = []
+    except (OSError, ValueError):                             # 15 Nov (repair 6's check, find 4): a ledger that cannot be read is said
+        led = []
+        out.append(item("the India book check could not read the managed book's ledger, so its filled lines are not checked"))
     miss = [f"{x.get('side')} {x.get('qty')} {x.get('symbol')} ({x.get('plan')})" for x in led if x.get("filled")
             and (x.get("plan"), x.get("symbol"), x.get("side"), int(x.get("qty") or 0)) not in keys]
     if miss:

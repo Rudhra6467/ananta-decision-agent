@@ -206,6 +206,8 @@ def _book500(db: Path = CRYPTO_DB) -> list[dict]:
     if state.get("last_bar") and now % 86400 >= 7200 and int(state["last_bar"]) < int(now // 86400 * 86400) - 86400:
         out.append({"market": "crypto", "severity": "high", "source": "book check",
                     "what": f"the $500 book has not stepped on last night's candle: it stands on the {time.strftime('%Y-%m-%d', time.gmtime(int(state['last_bar'])))} close"})
+    if state.get("usdcad_note"):
+        out.append({"market": "crypto", "severity": "medium", "source": "book check", "what": f"the $500 book's last step: {state['usdcad_note']}"})
     for c, w in (state.get("sell_next") or {}).items():
         out.append({"market": "crypto", "severity": "medium", "source": "book check",
                     "what": f"the $500 book's sale of {c} ({w.get('why')}) waits for an NDAX quote since the {w.get('day')} close"})
@@ -215,8 +217,10 @@ def _book500(db: Path = CRYPTO_DB) -> list[dict]:
         money = con.execute("SELECT side, qty, px, fee FROM book500_fills").fetchall()
         note = con.execute("SELECT day, facts FROM officer_notes ORDER BY day DESC LIMIT 1").fetchone()
         con.close()
-    except sqlite3.Error:
+    except sqlite3.Error as exc:                              # 15 Nov (repair 6's check, find 4): said, not taken for "nothing"
         money, note = [], None
+        if "no such table: officer_notes" not in str(exc):
+            out.append(CANNOT_LOOK("crypto", "book check", f"the $500 book check could not read the fills or the nightly note ({str(exc)[:60]}), so the cash and the note are not checked"))
     if money and isinstance(state.get("cash"), (int, float)):
         cash = BOOK500_START + sum((-(q * p) - (f or 0)) if side == "BUY" else (q * p - (f or 0)) for side, q, p, f in money)
         if abs(cash - float(state["cash"])) > 0.01:
@@ -233,7 +237,7 @@ def _book500(db: Path = CRYPTO_DB) -> list[dict]:
             out.append({"market": "crypto", "severity": "medium", "source": "book check",
                         "what": f"the nightly note of {note[0]} read the dial from the {d['candle']} candle, but the book stepped on {d['book_stepped_on']}"})
     except (ValueError, TypeError, AttributeError):
-        pass
+        out.append(CANNOT_LOOK("crypto", "book check", f"the $500 book check could not read the nightly note of {note[0] if note else '?'}, so its dial and value are not checked"))
     # 11 Nov 2026 (R-147, the 10 Nov outside grading): no check asked whether the night's value is its cash plus what the fills say the book
     # holds, at the note's own prices; on 28 Oct it would have fired that night (the note valued 0.009683 ETH where the fills held 0.017998).
     try:
@@ -263,8 +267,9 @@ def _book500(db: Path = CRYPTO_DB) -> list[dict]:
                 out.append({"market": "crypto", "severity": "high", "source": "book check",
                             "what": (f"the nightly note of {note[0]} values the book at C${got:,.2f}, but its cash and what the fills say it holds, at "
                                      f"the note's prices, come to C${want:,.2f}: the night's change is not explained by its holdings")})
-    except (ValueError, TypeError, AttributeError, sqlite3.Error):
-        pass
+    except (ValueError, TypeError, AttributeError, sqlite3.Error) as exc:
+        if not any(x.get("cannot_look") for x in out):          # one "could not look" line for the note is enough
+            out.append(CANNOT_LOOK("crypto", "book check", f"the $500 book check could not check the nightly note's value against the fills ({type(exc).__name__})"))
     for coin in sorted(set(net) | set(held)):
         diff = net.get(coin, 0.0) - held.get(coin, 0.0)
         if abs(diff) > 1e-9:
@@ -293,16 +298,21 @@ def _fills_against_candles(db: Path = CRYPTO_DB, days: int = 3, band: float = 0.
     feed keeps for the coin (in US dollars, at the book's last Bank of Canada rate): a fill more than 3% outside its candle's range is said.
     The worker Mac's minute record is the better yardstick; it has been out of reach since 8 Nov."""
     bars = db.parent / "universe_bars.sqlite"
-    if not db.exists() or not bars.exists():
+    if not db.exists():
         return []
+    if not bars.exists():                                     # its outside check, find 10: a check that cannot look says so
+        return [CANNOT_LOOK("crypto", "fills check", "the fills check could not find the feed's candles, so the book's fills are not checked")]
     try:
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2)
         fills = con.execute("SELECT t, coin, side, px FROM book500_fills WHERE t >= ?", (int(time.time()) - days * 86400,)).fetchall()
         r = con.execute("SELECT v FROM book500 WHERE k='fx_last'").fetchone()
         con.close()
         rate = float(json.loads(r[0])["rate"]) if r else None
-        if not fills or not rate:
+        if not fills:
             return []
+        if not rate:
+            return [{"market": "crypto", "severity": "medium", "source": "fills check", "cannot_look": True,
+                     "what": "the fills check has no Bank of Canada rate kept yet, so the book's fills are not checked against their candles"}]
         con = sqlite3.connect(f"file:{bars}?mode=ro", uri=True, timeout=2)
         out = []
         for t, coin, side, px in fills:
@@ -318,23 +328,32 @@ def _fills_against_candles(db: Path = CRYPTO_DB, days: int = 3, band: float = 0.
              "what": f"{len(out)} of the $500 book's fills in the last {days} days sit outside their 5-minute candle by more than 3%: " + "; ".join(out[:3])}]
 
 
+_COSTS: dict = {}
+
+
 def _costs_all_coins() -> list[dict]:
     """15 Nov 2026 (audit repair 6, G-49): the measuring books charge 43 of the 69 NDAX coins less per side than the worker measures, and the
     cost check looked only at the ten lab coins. Every NDAX coin the books may trade is read here, from the worker's pulled days."""
     from jarvis.service import ndax_spreads, registry
 
+    if time.time() - _COSTS.get("t", 0) < 6 * 3600:          # its outside check, find 10: 14 days of files read every 15 minutes (2.5 s)
+        return _COSTS["out"]
     s = ndax_spreads.summary(14, cost_fn=registry.cost)
+    _COSTS.update(t=time.time(), out=[])
     if not s.get("days_measured"):
-        return []
+        _COSTS["out"] = [{"market": "crypto", "severity": "medium", "source": "cost check", "cannot_look": True,
+                          "what": "the cost check has no day of the worker's NDAX quotes in the last 14 days, so the books' costs are not checked"}]
+        return _COSTS["out"]
     dear = list(s.get("dearer_than_assumed") or [])
     if not dear:
         return []
     det = s.get("dear_detail") or {}
     worst = sorted(dear, key=lambda c: -((float((det.get(c) or [0, 0])[0] or 0)) - float((det.get(c) or [0, 0])[1] or 0)))[:3]
-    return [{"market": "crypto", "severity": "medium", "source": "cost check",
+    _COSTS["out"] = [{"market": "crypto", "severity": "medium", "source": "cost check",
              "what": f"{len(dear)} NDAX coin{'s' if len(dear) != 1 else ''} cost more a side than the paper books charge (measured by the worker, "
                      f"{s.get('days_measured')} days): " + ", ".join(f"{c} {(det.get(c) or ['?', '?'])[0]}% against {(det.get(c) or ['?', '?'])[1]}%" for c in worst)
                      + "; the books against their random twins pay the same, so comparisons hold, but small coins' own results are flattered"}]
+    return _COSTS["out"]
 
 
 def _restarts(now: float) -> list[dict]:

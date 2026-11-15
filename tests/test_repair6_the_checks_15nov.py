@@ -40,6 +40,10 @@ def test_g22_a_day_chart_that_holds_one_price_and_jumps_to_the_close_is_noticed(
     assert L.thin_close(rows) == {"2026-11-11": "15:14"}
     healthy = rows[:15] + [[r[0], 1, 1, 1, 114.0 + i * 0.5] for i, r in enumerate(rows[15:])]
     assert L.thin_close(healthy) == {}
+    five = [[int((day + dt.timedelta(minutes=m)).timestamp()), 1, 1, 1, c] for m, c in ((0, 100.0), (5, 101.0), (10, 102.0), (15, 103.5),
+                                                                                       (20, 103.5), (25, 109.0))]   # the day charts' 5-minute bars
+    assert L.thin_close(five) == {"2026-11-11": "15:15"}                         # the outside check: 8 flat bars could never be met
+    assert L.thin_close(five[:4] + [[five[4][0], 1, 1, 1, 104.0], five[5]]) == {}
     f = tmp_path / "thin_close.jsonl"
     L.record_thin_close("NIFTY BANK", "2026-11-11", "15:14", f)
     L.record_thin_close("NIFTY BANK", "2026-11-11", "15:14", f)                                                 # once a day and index
@@ -99,10 +103,15 @@ def test_g49_the_cost_check_reads_every_ndax_coin(monkeypatch):
     monkeypatch.setattr(ndax_spreads, "summary", lambda days, cost_fn=None: {
         "days_measured": 14, "dearer_than_assumed": ["MOODENG", "XDC", "BTC"],
         "dear_detail": {"MOODENG": [0.86, 0.6], "XDC": [0.69, 0.6], "BTC": [0.12, 0.1]}})
+    selfcheck._COSTS.clear()
     found = selfcheck._costs_all_coins()
     assert found and found[0]["what"].startswith("3 NDAX coins cost more a side") and "MOODENG 0.86% against 0.6%" in found[0]["what"]
     monkeypatch.setattr(ndax_spreads, "summary", lambda days, cost_fn=None: {"days_measured": 0})
-    assert selfcheck._costs_all_coins() == []
+    assert selfcheck._costs_all_coins() == found                                  # read once in six hours, not every 15 minutes
+    selfcheck._COSTS.clear()
+    none = selfcheck._costs_all_coins()                                           # no worker day: it says it cannot look
+    assert none and none[0].get("cannot_look") and "not checked" in none[0]["what"]
+    selfcheck._COSTS.clear()
 
 
 def test_g68_the_morning_view_number_check_matches_rounded_figures():
@@ -113,6 +122,7 @@ def test_g68_the_morning_view_number_check_matches_rounded_figures():
     note = "The account is Rs 2,53,346, up 14.1%. All 100. Nifty 25,413."
     assert m.stray_numbers(note, facts) == []                                   # each of these fired before
     assert m.stray_numbers(note + " It made Rs 9,999 today.", facts) == ["9999"]
+    assert m.stray_numbers("VIX up 0.8%, the book 4.5%.", {"vix_pct": 0.83}) == ["4.5"]        # small figures are checked too
 
 
 def test_g70_the_disk_is_watched_and_a_record_is_kept(tmp_path):

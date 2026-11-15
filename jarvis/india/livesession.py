@@ -187,10 +187,11 @@ def index_bars(key: str, interval: str, start: dt.date, end: dt.date, fetch=None
 THIN_FILE = DATA / "manifests" / "thin_close.jsonl"
 
 
-def thin_close(rows: list[list], min_flat: int = 8) -> dict[str, str]:
+def thin_close(rows: list[list], min_minutes: int = 10) -> dict[str, str]:
     """15 Nov 2026 (audit repair 6, G-22): the Nifty and Bank Nifty day charts held one price from 15:15 and then jumped to the official close in
-    the last bar (the feed's thin prints at the close; nothing noticed). Per IST day: the time a run of at least `min_flat` one-price bars
-    after 15:10 began, when the day's last bar then differs from it."""
+    the last bar (the feed's thin prints at the close; nothing noticed). Per IST day: the time a one-price run of at least `min_minutes`
+    after 15:10 began, when the day's last bar then differs from it. Measured in minutes, so 1- and 5-minute bars alike (the outside check of
+    repair 6, find 5: the day charts use 5-minute bars, and a count of eight flat bars could never be met)."""
     by: dict[str, list] = {}
     for r in rows:
         t = dt.datetime.fromtimestamp(r[0], IST)
@@ -198,17 +199,16 @@ def thin_close(rows: list[list], min_flat: int = 8) -> dict[str, str]:
             by.setdefault(t.strftime("%Y-%m-%d"), []).append((t, r[4]))
     out = {}
     for day, bars in by.items():
-        if len(bars) < min_flat + 1:
+        if len(bars) < 3:
             continue
         body, last = bars[:-1], bars[-1]
-        run = 1
-        for i in range(len(body) - 1, 0, -1):
-            if body[i][1] == body[i - 1][1]:
-                run += 1
-            else:
-                break
-        if run >= min_flat and last[1] != body[-1][1]:
-            out[day] = body[len(body) - run][0].strftime("%H:%M")
+        step = (body[-1][0] - body[-2][0]).total_seconds() / 60
+        i = len(body) - 1
+        while i > 0 and body[i - 1][1] == body[-1][1]:
+            i -= 1
+        held = (body[-1][0] - body[i][0]).total_seconds() / 60 + step
+        if i < len(body) - 1 and held >= min_minutes and last[1] != body[-1][1]:
+            out[day] = body[i][0].strftime("%H:%M")
     return out
 
 

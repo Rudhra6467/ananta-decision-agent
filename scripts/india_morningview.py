@@ -128,7 +128,7 @@ def stray_numbers(note: str, facts: dict) -> list[str]:
         except ValueError:
             continue
         have |= {str(round(v)), str(int(v)), f"{v:.1f}", f"{v:.2f}", f"{v / 1000:.1f}", f"{v / 100000:.2f}", f"{v / 10000000:.2f}"}
-    return [n for n in sorted(_numbers(note)) if n not in have and len(n.replace(".", "")) > 2]
+    return [n for n in sorted(_numbers(note)) if n not in have and len(n) > 2]   # "0.8" is checked, as before (its outside check, find 6)
 
 
 def _parse_review(raw: str) -> dict | None:

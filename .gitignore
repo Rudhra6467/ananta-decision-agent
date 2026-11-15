@@ -77,3 +77,6 @@ universe_bars.sqlite
 # 25 Oct audit: web build folders (the live build and the previous one) are rebuilt, never tracked
 dist_prev/
 dist_new/
+
+# 14 Nov 2026: a node_modules link (not only the folder) is never tracked
+node_modules

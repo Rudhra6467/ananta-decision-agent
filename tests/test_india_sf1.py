@@ -140,7 +140,7 @@ NXT = lambda d: (pd.Timestamp(d) + pd.offsets.BDay(1)).date().isoformat()
 def _scores(regimes_and_d, start="2026-11-16"):
     out, day = [], pd.Timestamp(start)
     for reg, d in regimes_and_d:
-        out.append({"entry_session": str(day.date()), "regime": reg, "d_bps": d, "strong": {"n": 10}, "weak": {"n": 10, "excess_bps": 1.0},
+        out.append({"entry_session": str(day.date()), "asof": str((day - pd.offsets.BDay(1)).date()), "regime": reg, "d_bps": d, "strong": {"n": 10}, "weak": {"n": 10, "excess_bps": 1.0},
                     "control": {"n": 50}, "managed_buys": {"excess_bps": None}})
         day += pd.offsets.BDay(1)
     return out
@@ -173,6 +173,16 @@ def test_a_missed_evening_or_a_void_breaks_or_skips_a_spell():
     sc = _scores([("FALLING", -10.0)] * 12)
     sc[6]["void"] = "the entry session did not trade"
     assert [len(r["rows"]) for r in sf1.runs(sc, NXT)] == [6, 5]
+
+
+def test_a_spell_runs_across_a_holiday_without_the_calendar(monkeypatch):
+    sc = _scores([("FALLING", -10.0)] * 12)
+    for i in range(6, 12):                                       # a holiday after the 6th entry session: every later row shifts a day
+        e = pd.Timestamp(sc[i]["entry_session"]) + pd.offsets.BDay(1)
+        sc[i]["entry_session"] = str(e.date())
+        sc[i]["asof"] = sc[i - 1]["entry_session"] if i > 6 else sc[5]["entry_session"]
+    monkeypatch.setattr(managed, "holidays", lambda: (_ for _ in ()).throw(AssertionError("the calendar was read")))
+    assert [len(r["rows"]) for r in sf1.runs(sc)] == [12]
 
 
 def test_supported_and_rejected():

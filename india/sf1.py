@@ -183,12 +183,13 @@ def _next(d: str) -> str:
 
 
 def runs(scores: list[dict], nxt=None) -> list[dict]:
-    """Spells: consecutive scored evenings in the same regime, consecutive on the session calendar (a missed evening or a voided row
-    ends a spell; a voided row is not an evening)."""
-    nxt = nxt or _next
+    """Spells: consecutive scored evenings in the same regime. Two rows are consecutive when the later row was recorded on the close of
+    the earlier row's entry session (its asof equals the earlier entry_session): both are frozen in the rows, so no calendar is read and a
+    spell reads the same every night. A missed evening or a voided row ends a spell; a voided row is not an evening. `nxt` is unused (kept
+    for callers)."""
     out = []
     for s in sorted((s for s in scores if not s.get("void")), key=lambda s: s["entry_session"]):
-        if out and out[-1]["regime"] == s["regime"] and nxt(out[-1]["last"]) == s["entry_session"]:
+        if out and out[-1]["regime"] == s["regime"] and s.get("asof") == out[-1]["last"]:
             out[-1]["rows"].append(s)
             out[-1]["last"] = s["entry_session"]
         else:

@@ -55,7 +55,10 @@ def _wait_for_preopen(digest) -> None:
     tag = f"Pre-open · {ist.strftime('%m-%d')}"
     t0 = time.time()
     while time.time() - t0 < PREOPEN_WAIT_S:
-        if any(x["title"].startswith(tag) for x in digest.pending()) or _preopen_done_today(ist):
+        if any(x["title"].startswith(tag) for x in digest.pending()):
+            return
+        if _preopen_done_today(ist):                   # the job has written its log: give its note a moment to be queued
+            time.sleep(15)
             return
         time.sleep(10)
 

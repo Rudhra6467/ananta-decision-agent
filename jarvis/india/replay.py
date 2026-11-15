@@ -290,14 +290,14 @@ def _ntfy(title: str, body: str) -> None:
         from src.intelligence import digest
 
         if digest.enabled() and digest.is_routine(title, "EVENT", body):
-            digest.queue(title, body, flush=lambda t, b: _ntfy_direct(t, b) or "sent")
+            digest.queue(title, body, flush=_ntfy_direct)
             return
     except Exception:  # noqa: BLE001  the digest never stops the note: it falls back to the old direct push
         pass
     _ntfy_direct(title, body)
 
 
-def _ntfy_direct(title: str, body: str) -> None:
+def _ntfy_direct(title: str, body: str) -> str:
     env = {}
     try:
         for line in Path(ask.ENV_FILE).read_text().splitlines():
@@ -305,11 +305,13 @@ def _ntfy_direct(title: str, body: str) -> None:
                 k, v = line.split("=", 1)
                 env[k.strip()] = v.strip().strip('"').strip("'")
     except OSError:
-        return
+        return "failed: the agent .env could not be read"
     topic = env.get("ANANTA_NTFY_TOPIC", "")
     if topic:
         server = env.get("ANANTA_NTFY_SERVER", "https://ntfy.sh").rstrip("/")
-        requests.post(f"{server}/{topic}", data=body[:500].encode(), headers={"Title": title, "Priority": "3"}, timeout=15)
+        r = requests.post(f"{server}/{topic}", data=body[:500].encode(), headers={"Title": title, "Priority": "3"}, timeout=15)
+        return "sent" if 200 <= r.status_code < 300 else f"failed: HTTP {r.status_code}"
+    return "failed: no phone topic"
 
 
 if __name__ == "__main__":

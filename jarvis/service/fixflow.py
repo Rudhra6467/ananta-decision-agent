@@ -244,7 +244,7 @@ def eta(j, num: int, lane: str) -> tuple[int, str]:
     name = requests_log.label(num)
     if lane == "SAFE":
         q = f" ({ahead} fix{'es' if ahead != 1 else ''} ahead of it)" if ahead else ""
-        return mins, (f"It should be live in about {mins} minutes{q}. You'll get a phone notification, 'Fixed: {name}', the moment it is; "
+        return mins, (f"It should be live in about {mins} minutes{q}. You'll see 'Fixed: {name}' in your next phone digest (twice a day); "
                       "if a check fails, nothing changes and you're told why.")
     return mins, (f"This one is near trading, so the plan comes first, in about {max(5, int(one))} minutes, and it waits for your yes. "
                   f"After your yes, building it takes about {mins} minutes; you'll get a phone notification at each step.")

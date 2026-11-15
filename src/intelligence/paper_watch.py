@@ -96,10 +96,13 @@ def push_phone(title: str, body: str, *, level: str = "INFO", post: Callable[...
     if wanted and post is None:
         # 15 Nov 2026 (Madhav: "sort this out beautifully without missing on anything important"): routine notes wait for the
         # twice-daily digest (src/intelligence/digest.py); anything not on its routine list, and every WARN/ERROR/TEST, goes now.
-        from src.intelligence import digest
+        try:
+            from src.intelligence import digest
 
-        if digest.enabled() and digest.is_routine(title, level) and _reachable(topic):
-            return digest.queue(title, body, level, flush=lambda t, b: _send_now(t, b, level, topic, None))
+            if digest.enabled() and digest.is_routine(title, level, body) and _reachable(topic):
+                return digest.queue(title, body, level, flush=lambda t, b: _send_now(t, b, level, topic, None))
+        except Exception:  # noqa: BLE001  the digest never costs a note: anything wrong with it and the note goes now
+            pass
     return _send_now(title, body, level, topic, post, wanted)
 
 

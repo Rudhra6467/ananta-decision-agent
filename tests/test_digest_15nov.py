@@ -21,7 +21,7 @@ def phone(tmp_path, monkeypatch):
 @pytest.mark.parametrize("title,level,routine", [
     ("Ananta morning brief", "EVENT", True), ("Ananta's note", "EVENT", True), ("Jarvis: my day in review", "EVENT", True),
     ("Ananta's night test", "EVENT", True), ("Ananta nightly check", "EVENT", True), ("Morning view · 11-16", "EVENT", True),
-    ("Pre-open · 11-16", "EVENT", True), ("Opening · 11-16", "EVENT", True), ("Planned: flag 12", "EVENT", True), ("Fixed: flag 3", "EVENT", True),
+    ("Pre-open · 11-16", "EVENT", True), ("Opening · 11-16", "EVENT", False), ("Planned: flag 12", "EVENT", True), ("Fixed: flag 3", "EVENT", True),
     ("Ananta morning brief", "WARN", False), ("Flag 164", "EVENT", False), ("Back: Hands", "EVENT", False),
     ("Ananta: Hands has gone quiet", "EVENT", False), ("Ananta: something is not right", "EVENT", False), ("BTC crossed 90,000", "EVENT", False),
     ("Ananta test alert", "TEST", False), ("Ananta's notebook", "EVENT", False)])
@@ -76,7 +76,7 @@ def test_a_long_digest_fits_the_phone_and_says_how_many_more(phone):
         w.push_phone("Ananta's night test", f"Night {i}: 12 of 12 passed, the bank 40 of 41 passed and one is still open for review.", level="EVENT")
     d.send("night", lambda t, b: w.push_phone(t, b, level="EVENT"))
     body = phone[-1][1]
-    assert len(body) <= d.BODY_MAX and body.rstrip().endswith("more in the app")
+    assert len(body) <= d.BODY_MAX and body.rstrip().endswith("in full in the Mac's digest file")
 
 
 def test_a_missed_digest_is_caught_up_by_the_next_routine_note(phone, monkeypatch):
@@ -94,3 +94,42 @@ def test_the_india_night_replay_note_waits(monkeypatch, tmp_path):
     monkeypatch.setattr(replay.requests, "post", lambda *a, **k: (_ for _ in ()).throw(AssertionError("pushed directly")))
     replay._ntfy("Ananta nightly check", "2 of 30 failed")
     assert [r["title"] for r in d.pending()] == ["Ananta nightly check"]
+
+
+def test_a_flag_note_that_needs_him_goes_at_once(phone):
+    assert w.push_phone("Planned: flag 170", "Needs your yes: the plan for the stop wording is ready.", level="EVENT") == "sent"
+    assert w.push_phone("Planned: flag 171", "Failed: the fix did not pass its checks; nothing changed.", level="EVENT") == "sent"
+    assert w.push_phone("Planned: flag 172", "Queued for the repair worker.", level="EVENT") == "queued for the digest"
+    assert [s[0] for s in phone] == ["Planned: flag 170", "Planned: flag 171"]
+
+
+def test_a_broken_queue_never_costs_a_note(phone, monkeypatch):
+    d.QUEUE.write_text("[]\nnull\n{not json\n")                                  # lines that are not notes are skipped, never fatal
+    assert w.push_phone("Ananta's note", "x", level="EVENT") == "queued for the digest"
+    assert [r["title"] for r in d.pending()] == ["Ananta's note"]
+    monkeypatch.setattr(d, "queue", lambda *a, **k: (_ for _ in ()).throw(PermissionError("disk")))
+    assert w.push_phone("Ananta's note", "y", level="EVENT") == "sent"               # the digest failing sends the note now
+
+
+def test_failures_go_first_and_keep_their_counts(phone):
+    w.push_phone("Ananta's note", "The book is flat.", level="EVENT")
+    w.push_phone("Ananta nightly check", "Nightly check 2026-11-16: 28 of 30 of today's answers passed; the regression bank: 40 of 41 passed (39 fixed for good, 1 still open).", level="EVENT")
+    d.send("night", lambda t, b: w.push_phone(t, b, level="EVENT"))
+    first = phone[-1][1].splitlines()[0]
+    assert first.startswith("• Ananta nightly check") and "40 of 41" in first
+
+
+def test_send_and_queue_do_not_lose_a_note_written_in_between(phone, monkeypatch):
+    w.push_phone("Ananta's note", "one", level="EVENT")
+    real = d._append
+
+    def late_push(t, b):                                                           # a note arrives while the digest is being pushed
+        import threading
+        th = threading.Thread(target=lambda: w.push_phone("Ananta's note", "two", level="EVENT"))
+        th.start()
+        th.join(0.2)
+        return "sent"
+    assert d.send("night", late_push).startswith("sent 1")
+    import time
+    time.sleep(0.3)
+    assert [r["body"] for r in d.pending()] == ["two"]

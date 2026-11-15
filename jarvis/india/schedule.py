@@ -140,11 +140,11 @@ DAY = [   # (job, what it brings), in the order of Madhav's evening and night
     ("com.ananta.india.evening_zerodha", "the Zerodha part of the evening: the account snapshot, the options recorder's second fetch, the options line's replay check and the index bars"),
     ("com.ananta.india.evening", "the evening run: FII/DII flows and big deals, the managed book's fills and its next plan, the teachers' forward checks"),
     ("com.ananta.india.studies", "the studies: the paper trials' clocks, the long-term tilt book, the write-ups and the knowledge map"),
-    ("com.ananta.digest.night", "the night digest: the day's routine notes from both markets in one phone note, just before the open"),
     ("com.ananta.india.sp1paper", "the options line's plan for the session"),
     ("com.ananta.india.paper", "the practice book's picks for the session, the daily call, the missed moves, the comparison traders and the reconstruction (the coach's replay)"),
     ("com.ananta.india.morningview", "the morning view, written once on the session's own morning: your holdings' filings, GIFT Nifty's indicated open, the options line's plan, levels and events to watch, honest chances"),
-    ("com.ananta.india.preopen", "the pre-open read sent to your phone: the indicated open, what changed since the morning view, and the options line's plan for that open"),
+    ("com.ananta.india.preopen", "the pre-open read: the indicated open, what changed since the morning view, and the options line's plan for that open"),
+    ("com.ananta.digest.night", "the night digest on your phone: the day's routine notes from both markets (the morning view and the pre-open read among them) in one note, just before the open"),
     ("com.ananta.india.openingview", "the opening update after the first hour, with the second look against the pre-open"),
 ]
 

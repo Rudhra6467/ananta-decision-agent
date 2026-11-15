@@ -289,11 +289,15 @@ def _ntfy(title: str, body: str) -> None:
     try:                                               # 15 Nov 2026: a routine night note waits for the twice-daily digest
         from src.intelligence import digest
 
-        if digest.enabled() and digest.is_routine(title):
-            digest.queue(title, body)
+        if digest.enabled() and digest.is_routine(title, "EVENT", body):
+            digest.queue(title, body, flush=lambda t, b: _ntfy_direct(t, b) or "sent")
             return
     except Exception:  # noqa: BLE001  the digest never stops the note: it falls back to the old direct push
         pass
+    _ntfy_direct(title, body)
+
+
+def _ntfy_direct(title: str, body: str) -> None:
     env = {}
     try:
         for line in Path(ask.ENV_FILE).read_text().splitlines():

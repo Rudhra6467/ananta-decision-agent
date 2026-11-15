@@ -3,7 +3,7 @@
   python scripts/install_digest_jobs.py           write both plists and (re)load them
   python scripts/install_digest_jobs.py --print   show the plists, change nothing
 
-com.ananta.digest.morning  09:15 Toronto every day
+com.ananta.digest.morning  09:30 Toronto every day
 com.ananta.digest.night    09:12 IST every day (jarvis/india/schedule.py TARGETS keeps it on Indian time across Toronto's clock changes)
 Both run scripts/send_digest.py from the live checkout with the jarvis environment, like the weekly exam."""
 from __future__ import annotations
@@ -30,7 +30,7 @@ def main(argv: list[str]) -> int:
     from jarvis.india import schedule
 
     night = schedule.wanted("com.ananta.digest.night")
-    jobs = {"morning": plist("morning", {"Hour": 9, "Minute": 15}), "night": plist("night", night[0] if len(night) == 1 else night)}
+    jobs = {"morning": plist("morning", {"Hour": 9, "Minute": 30}), "night": plist("night", night[0] if len(night) == 1 else night)}
     for slot, d in jobs.items():
         if "--print" in argv:
             print(plistlib.dumps(d).decode())

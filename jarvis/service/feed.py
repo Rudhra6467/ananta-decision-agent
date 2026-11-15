@@ -331,6 +331,15 @@ def _waiting_for_btc(j, now: float) -> bool:
     return any((last.get(c) or 0) < int(now // DAY * DAY) - DAY for c in CORE_COINS)
 
 
+def _core_missing(j, now: float) -> list[str]:
+    con = _con(j)
+    try:
+        last = dict(con.execute("SELECT coin, MAX(t) FROM d1 WHERE coin IN ('BTC', 'ETH') GROUP BY coin").fetchall())
+    finally:
+        con.close()
+    return [c for c in CORE_COINS if (last.get(c) or 0) < int(now // DAY * DAY) - DAY]
+
+
 def cycle(j, now: float | None = None, on_daily: Callable | None = None) -> dict:
     """One 5-minute round: registry + daily candles after the UTC close, then 5-minute candles for every coin."""
     from jarvis.service import registry
@@ -355,7 +364,19 @@ def cycle(j, now: float | None = None, on_daily: Callable | None = None) -> dict
             finally:
                 con.close()
             out["daily_retry"] = pull_daily(j, ["BTC", "ETH"], now)
-            if not _waiting_for_btc(j, now) and on_daily:
+            miss = _core_missing(j, now)
+            # its outside check (confirm, find 8): with only Ether late, the night's work never ran again. From 06:00 UTC it runs once,
+            # and the book steps on Ether's older candle and says so (ndax_book.step's late_core).
+            con = _con(j)
+            try:
+                ran_late = _meta(con, "late_core_run") == str(int(now // DAY))
+                if miss == ["ETH"] and now % DAY >= 6 * 3600 and not ran_late:
+                    _meta(con, "late_core_run", str(int(now // DAY)))
+                    con.commit()
+                    miss = []
+            finally:
+                con.close()
+            if not miss and on_daily:
                 try:
                     out["on_daily"] = on_daily(j)
                 except Exception as exc:  # noqa: BLE001

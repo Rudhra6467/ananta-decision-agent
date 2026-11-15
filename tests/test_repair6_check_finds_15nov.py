@@ -162,3 +162,25 @@ def test_1_homes_heads_up_says_when_the_holdings_could_not_be_checked(monkeypatc
     monkeypatch.setattr(places.S, "book_gap_checked", lambda j, b: [])
     src = places.home_notices.__code__.co_names
     assert "book_gap_checked" in src and "book_gap" not in src                # the old road (an error read as no gap) is gone
+
+
+def test_8_with_only_ethers_candle_late_the_nights_work_runs_once_from_six(tmp_path, monkeypatch):
+    """Its outside check's confirm: with Bitcoin's candle in and Ether's a day behind, the night's work never ran again all day."""
+    from jarvis.service import feed, registry
+
+    day0 = (int(time.time()) // DAY) * DAY
+    j = J(tmp_path)
+    con = feed._con(j)
+    con.execute("INSERT INTO d1 VALUES ('BTC', ?, 1, 1, 1, 1, 1, 1)", (day0 - DAY,))
+    con.execute("INSERT INTO d1 VALUES ('ETH', ?, 1, 1, 1, 1, 1, 1)", (day0 - 2 * DAY,))
+    con.commit()
+    con.close()
+    monkeypatch.setattr(registry, "load", lambda j: {"built_at": day0 + 600})
+    monkeypatch.setattr(registry, "members", lambda j: ["BTC", "ETH"])
+    monkeypatch.setattr(feed, "pull_5m", lambda *a, **k: {})
+    monkeypatch.setattr(feed, "pull_hx", lambda *a, **k: {})
+    monkeypatch.setattr(feed, "pull_daily", lambda j, coins, t: {})
+    runs = []
+    for t in range(day0 + 3600, day0 + 12 * 3600, 300):                       # every 5-minute round from 01:00 to 12:00 UTC
+        feed.cycle(j, now=t, on_daily=lambda j, t=t: runs.append(t))
+    assert len(runs) == 1 and day0 + 6 * 3600 <= runs[0] < day0 + 6 * 3600 + 900, runs

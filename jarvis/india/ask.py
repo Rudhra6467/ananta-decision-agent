@@ -711,8 +711,15 @@ def _managed_book() -> dict:
             "cuts_made": _managed_cuts(),
             # 2 Nov fact map: the replacement ledger's score file was written nightly and read by nothing
             "score": _json_file(DATA / "paper" / "managed" / "score.json"),
-            "tracked": ("Two places. The replacement ledger scores every cut and every replacement 5 and 20 sessions after the fill: did the cut name fall "
-                        "(the cut was right), did the replacement rise, and replacement minus cut. And the daily benchmark row puts the managed book beside the "
+            # 14 Nov 2026 (Madhav, 22:17): the headline split in three, and the evening decision audit (records india/managed_audit.py)
+            "split": v.get("split"),
+            "audit": (lambda a: {"day": a.get("day"), "words": a.get("words"), "checks": [{"check": c.get("check"), "status": c.get("status"), "words": c.get("words")} for c in a.get("checks") or []]}
+                      if a else None)(_json_file(DATA / "paper" / "managed" / "audit.json")),
+            "tracked": ("Three places. The replacement ledger scores every cut and every replacement 5 and 20 sessions after the fill, against the Nifty 500 "
+                        "over the same sessions (Madhav, 13 Nov): a cut was right when the stock then did worse than the market, a replacement when it did better; "
+                        "the plain rise or fall is kept beside it, and replacement minus cut. The evening audit checks the decisions from those records: cuts "
+                        "against the market, replacements against their cuts, idle cash, plans in a row with no change, many cuts at once, and the stock book "
+                        "against the market. And the daily benchmark row puts the managed book beside the "
                         "frozen portfolio (the holdings left as they were) and the Nifty 500 (3 Nov: the twin is folded into the managed book); "
                         "all three start from the same holdings. Both are under Your money; judged at session 60, nothing read before."),
             # independent audit, 2 Nov: the times are read from the launchd jobs (jarvis/india/schedule.py), not written by hand

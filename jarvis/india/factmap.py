@@ -60,6 +60,8 @@ INTERNAL = [
     ("paper/reconstruction/forwarded.jsonl", "the forwarding log (the repair board holds the items)"),
     ("paper/managed/ledger.jsonl", "the managed book's hash-chained ledger (its state and view are what is read)"),
     ("paper/managed/plans.jsonl", "the plan history (the latest plan is read through the managed view)"),
+    ("paper/managed/audit_history.jsonl", "the evening audit's day-by-day status (the latest audit.json is read by the Ask)"),
+    ("reports/cutstudy_*.json", "research results: the cut-rule study on history (its .md is the report for Madhav)"),
     ("paper/allocation_ledger.jsonl", "the allocator's ledger (its view is what is read)"),
     ("reports/*.md", "a written report for Madhav (the morning review page)"), ("reports/ask_guard.jsonl", "the answer guard's log (the morning review reads it)"),
     ("readmodel/*", "the read model itself"),

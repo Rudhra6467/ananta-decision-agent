@@ -112,7 +112,7 @@ def test_a_board_item_takes_done_and_postpone_and_a_due_list_item_does_not(j):
 def test_every_notification_answer_says_what_it_does():
     """Madhav, 11 Nov 08:13: "I can even have an explanation of the action ... a down arrow towards the end"."""
     look = openlist.answer_rows("ask:5", on_yes="done")
-    assert [a["id"] for a in look] == ["yes", "no", "later"] and look[0]["explain"] == "It closes as done. Your yes is kept with the time."
+    assert [a["id"] for a in look] == ["yes", "no", "later", "postpone", "postpone"] and look[0]["explain"] == "It closes as done. Your yes is kept with the time."
     dec = openlist.answer_rows("ask:6")
     assert dec[0]["explain"].startswith("Ananta goes ahead. It becomes work to do") and dec[1]["icon"] == "close"
     assert dec[2]["label"] == "Not now" and "for 7 days" in dec[2]["explain"] and "stays on the open list" in dec[2]["explain"]

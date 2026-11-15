@@ -22,14 +22,18 @@ def _part(page, t, title=None):
 
 def test_the_page_says_in_short_before_and_after_and_why_in_his_words():
     pg = places.change_page(LINE)
-    assert [p["t"] for p in pg["parts"]] == ["pill", "heading", "points", "ba", "points", "link", "trust"]
+    # 14 Nov 2026 (Madhav): what changed, before and after, who asked, what happens next, what he can do
+    assert [p["t"] for p in pg["parts"]] == ["pill", "heading", "points", "ba", "points", "points", "rows", "trust"]
     assert pg["parts"][0]["text"] == "Live · Wed 11 Nov" and pg["parts"][1]["text"] == "The watchdog"
-    assert [i["text"] for i in _part(pg, "points", "In short")["items"]] == LINE["plain"]
+    assert [i["text"] for i in _part(pg, "points", "What changed")["items"]] == LINE["plain"]
     assert _part(pg, "ba")["rows"] == LINE["before_after"] and _part(pg, "ba")["title"] == "Before and after"
-    why = [i["text"] for i in _part(pg, "points", "Why")["items"]]
-    assert why[0] == "You said on 11 Nov: “i dont want to wait, when we have everything we need, just get it done” (the open findings of the earlier audits)"
-    assert why[1:] == ["Faults only, from Ananta's own records.", "No book rule changed."], "register numbers stay in the full record"
-    full = _part(pg, "link")["to"]["page"]
+    who = [i["text"] for i in _part(pg, "points", "Who asked for it")["items"]]
+    assert who and who[-1].startswith("You asked for it on 11 Nov"), "his own word for it, with its day"
+    assert not any(places.JARGON.search(x) for x in who), "register numbers and check names stay in the full record"
+    assert _part(pg, "points", "What happens next")["items"][0]["text"].startswith("It is live now. Nothing is needed from you.")
+    acts = _part(pg, "rows", "What you can do")["rows"]
+    assert [r["title"] for r in acts] == ["Ask why it was needed", "Flag a problem with it", "See the full record"]
+    full = acts[2]["to"]["page"]
     assert full["title"] == "The full record" and full["pinned"]["ask"]
     assert [i["text"] for i in _part(full, "points", "How it was checked")["items"]] == ["A test: the side named; one blip low", "The live check"]
     assert {r["k"]: r["v"] for r in _part(full, "kv")["rows"]} == {"Day": "Wed 11 Nov", "Market": "Both", "Status": "Live", "Commits": "cc682e4"}
@@ -40,8 +44,8 @@ def test_the_page_says_in_short_before_and_after_and_why_in_his_words():
 def test_a_line_without_plain_words_gives_its_first_two_sentences():
     ln = {k: v for k, v in LINE.items() if k not in ("plain", "before_after")}
     pg = places.change_page(ln)
-    assert [p["t"] for p in pg["parts"]] == ["pill", "heading", "points", "points", "link", "trust"]
-    short = [i["text"] for i in _part(pg, "points", "In short")["items"]]
+    assert [p["t"] for p in pg["parts"]][:3] == ["pill", "heading", "points"] and pg["parts"][-2]["t"] == "rows"
+    short = [i["text"] for i in _part(pg, "points", "What changed")["items"]]
     assert short[0] == "The self-check tells the other market's item with its side" and short[1].startswith("And one errored run")
 
 

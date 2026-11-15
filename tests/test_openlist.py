@@ -142,9 +142,9 @@ def test_his_answer_in_the_app_is_kept_and_does_what_it_says(j, tmp_path, monkey
     k = {n: f"ask:{x['num']}" for n, x in (("look", look), ("dec", dec), ("step", step), ("other", other))}
     assert set(k.values()) <= {x["key"] for x in L["you"]}
     sheets = {r["to"]["sheet"]["key"]: r["to"]["sheet"] for r in places.you_rows(L, "india")}
-    assert [a["id"] for a in sheets[k["dec"]]["answers"]] == ["yes", "no", "later"] and sheets[k["dec"]]["answers"][2]["label"] == "Not now"
-    assert [a["id"] for a in sheets[k["step"]]["answers"]] == ["done", "later"], "his own step is done, not a yes"
-    assert [a["id"] for a in sheets["india:drafts"]["answers"]] == ["later"], "research drafts are answered in their own place"
+    assert [a["id"] for a in sheets[k["dec"]]["answers"]] == ["yes", "no", "later", "postpone", "postpone"] and sheets[k["dec"]]["answers"][2]["label"] == "Not now"
+    assert [a["id"] for a in sheets[k["step"]]["answers"]] == ["done", "later", "postpone", "postpone"], "his own step is done, not a yes"
+    assert "india:drafts" not in sheets, "14 Nov: research drafts come one sheet each (draft:<key>), with yes and skip"
     # Not now: gone from his notifications (the bell, Home, Notices, the phone reminders), still on the open list, back after a week
     said = openlist.answer(j, k["dec"], "later")
     assert said["words"] == "Cleared from your notifications for 7 days. It stays on your open list."

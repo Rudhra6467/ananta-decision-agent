@@ -526,19 +526,12 @@ class Decide(BaseModel):
 
 
 def _decide(key: str, decision: str, who: str, words: str) -> dict:
-    import datetime as _dt
-
-    dec = {"approve": "APPROVED", "approved": "APPROVED", "yes": "APPROVED", "skip": "SKIPPED", "skipped": "SKIPPED", "no": "SKIPPED"}.get(decision.lower(), decision.upper())
-    if dec not in ("APPROVED", "SKIPPED"):
-        raise HTTPException(status_code=400, detail="decision is APPROVED or SKIPPED")
-    if not any(r.get("key") == key and r.get("lane") == "DECISION" for r in india_views._queue_rows()):
-        raise HTTPException(status_code=404, detail=f"no draft {key}")
-    p = india_views.DATA / "paper" / "reconstruction" / "decisions.jsonl"
-    p.parent.mkdir(parents=True, exist_ok=True)
-    row = {"key": key, "decision": dec, "by": india_ask.decided_by(who), "words": words[:300], "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")}
-    with p.open("a") as f:
-        f.write(json.dumps(row) + "\n")
-    return row
+    try:
+        return india_views.decide_draft(key, decision, india_ask.decided_by(who), words)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=f"no draft {key}") from e
 
 
 @r.post("/v3/reconstruction/decide")

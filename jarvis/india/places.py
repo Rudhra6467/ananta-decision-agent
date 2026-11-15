@@ -133,22 +133,44 @@ def book_page(own: list[dict], marks: list[dict] | None = None) -> dict:
 
 
 def plan_page(money: dict | None = None, today: dict | None = None) -> dict:
+    """The next session's plan. 14 Nov 2026 (Madhav's screenshot: one line, then "fills at the open · nothing is placed. Session 9 of 60:
+    nothing is judged before session 60" and an empty screen): it now says what was checked, what happens next, and what he can do."""
     t = today or IS.today()
     m = money or IS.money()
     plan = m.get("plan") or {}
+    mb = IS._managed()
+    raw = mb.get("plan") or {}
     pts = [IS._tidy(x) for x in IS._split_points(str(plan.get("words") or ""))] if plan.get("words") else []
     card = next((c for c in t.get("cards") or [] if c.get("kind") == "plan"), None)
     if card:
         pts = card.get("points") or pts
-    clock = (m.get("clock") or {}).get("words")
-    parts = [K.pill("No change" if plan.get("no_change") else f"{plan.get('cuts') or 0} cuts · {len(plan.get('buys') or [])} buys", icon="check"),
-             K.heading(f"The plan for {IS._dw(plan.get('for_session'))}" if plan.get("for_session") else "The next session's plan"),
-             K.line(str(plan.get("brief") or t.get("decision") or "No plan is written yet.")),
-             K.points(pts[:6]) if pts and not plan.get("no_change") else None,
-             K.trust(f"{t.get('decision_source') or ''}. {clock + ': nothing is judged before session 60.' if clock else ''}".strip(" ."))]
-    return K.page("The plan", parts, bar_kind="close", ask_q="What will you change in my portfolio next session, and why?",
-                  second={"label": "Why no change?" if plan.get("no_change") else "Why these?",
-                          "ask": "Why is there no change for the next session? What was checked?" if plan.get("no_change") else "Why these cuts and replacements? What else passed the filters?"})
+    none = bool(plan.get("no_change"))
+    n = mb.get("positions")
+    checked = []
+    if none:
+        checked.append("Ananta went through every stock in the paper book. None is graded weak enough to cut.")
+        checked.append("With nothing cut, there is no money to move, so nothing new is bought.")
+        if n:
+            checked.append(f"The book keeps its {n} stocks as they are.")
+    fs, wd = plan.get("for_session"), raw.get("written_day")
+    nxt = [(f"On {IS._dw(fs)} the book keeps what it has. " if none and fs else f"The trades fill at the open on {IS._dw(fs)}, on paper. " if fs else "")
+           + "The next plan is written after that session's close."]
+    clock = m.get("clock") or {}
+    if clock.get("sessions") is not None:
+        nxt.append(f"This is session {clock['sessions']} of {clock.get('of') or 60}. The book's result is judged only after session {clock.get('of') or 60}.")
+    parts = [K.pill("No change" if none else f"{plan.get('cuts') or 0} cuts · {len(plan.get('buys') or [])} buys", icon="check"),
+             K.heading(f"The plan for {IS._dw(fs)}" if fs else "The next session's plan"),
+             K.line(str(plan.get("brief") or t.get("decision") or "No plan is written yet.").split(" (")[0].rstrip(".") + "."),
+             K.points(checked, title="What was checked") if checked else None,
+             K.points(pts[:6], title="The plan") if pts and not none else None,
+             K.points(nxt, title="What happens next"),
+             _actions([_act("Why no change?" if none else "Why these?", "What Ananta checked", "ask",
+                            K.ask("Why is there no change for the next session? What was checked?" if none else "Why these cuts and replacements? What else passed the filters?")),
+                       _act("See what the book holds", "Every stock and its grade", "bars", K.place("account")),
+                       _act("Suggest a change", "Tell Ananta your idea", "pencil",
+                            K.ask("I want to suggest a change to the paper book for the next session. Ask me what I have in mind, then tell me what you think of it."))]),
+             K.trust((f"Written {IS._dw(wd)}. " if wd else "") + "On paper only: no real order is placed.")]
+    return K.page("The plan", parts, bar_kind="close", ask_q="What will you change in my portfolio next session, and why?")
 
 
 def morning_page(m: dict | None = None) -> dict:
@@ -174,6 +196,33 @@ def _split_row(p: str) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------ activity
+# 14 Nov 2026 (Madhav, with screenshots of a trade, the plan and three changes: "why don't we have options on what to do with that"): a page
+# one tap down says what happened in plain words, what happens next, and ends with what he can do from there.
+def _actions(rows: list) -> dict:
+    return K.rows("What you can do", [r for r in rows if r])
+
+
+def _act(title: str, sub: str, icon: str, to: dict) -> dict:
+    return K.row(title, sub, icon=icon, to=to)
+
+
+def _option_story(r: dict, name: str, what: str) -> list[str]:
+    """An options trade told in three plain sentences: what Ananta expected, what the index did, what the option did."""
+    opt = (r.get("legs") or {}).get("option") or {}
+    ip = r.get("index_proxy") or {}
+    up = r.get("dir") == 1
+    out = [f"Ananta expected the {name} to {'rise' if up else 'fall'}, so it bought a {what.rsplit(' ', 1)[-1]} on paper."]
+    a, b = ip.get("entry"), ip.get("exit_px")
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)) and a:
+        pct = 100 * (b / a - 1)
+        right = (b > a) == up
+        out.append(f"The {name} went from {a:,.0f} to {b:,.0f} ({'+' if pct >= 0 else '−'}{abs(pct):.1f}%): {'the way Ananta expected' if right else 'against what Ananta expected'}.")
+    p_in, p_out, lot, result = opt.get("entry_realistic"), opt.get("exit"), opt.get("lot"), opt.get("net_rs_realistic")
+    if all(isinstance(x, (int, float)) for x in (p_in, p_out, lot, result)):
+        out.append(f"The option went from {_rs(p_in)} to {_rs(p_out)}. On one lot of {lot:.0f}, that is {_rs(round(result), sign=True)} after costs.")
+    return out
+
+
 def _events(full: bool = True) -> list[tuple]:
     since = (dt.date.today() - dt.timedelta(days=DAYS_BACK)).isoformat()
     out = []
@@ -189,7 +238,15 @@ def _events(full: bool = True) -> list[tuple]:
                                   K.kv([K.kvrow("Quantity", str(r.get("qty"))), K.kvrow("Price", _rs(r.get("price"))), K.kvrow("Costs", _rs(r.get("cost_inr"))),
                                         K.kvrow("Opened", f"{r['gap_pct']:+.1f}% from the close" if isinstance(r.get("gap_pct"), (int, float)) else "—"),
                                         K.kvrow("Safety stop", _rs(r.get("stop")))]),
-                                  K.points([IS._tidy(r.get("why"))], title="Why"), K.trust("Paper only, at the NSE open.")],
+                                  K.points([IS._tidy(r.get("why"))], title="Why"),
+                                  K.points([("It stays in the paper book" + (f", with a safety stop at {_rs(r.get('stop'))}" if r.get("stop") else "") + ".") if r.get("side") == "BUY"
+                                            else "The money went back into the paper book's cash."], title="What happens next"),
+                                  _actions([_act(f"Why {'buy' if r.get('side') == 'BUY' else 'sell'} it?", "Ananta explains the reason", "ask",
+                                                 K.ask(f"In plain words, why did the managed book {'buy' if r.get('side') == 'BUY' else 'sell'} {nm} on {IS._dw(day)}?")),
+                                            _act("How is it doing now?", "Since this trade", "bars", K.ask(f"How has {nm} done since the managed book {'bought' if r.get('side') == 'BUY' else 'sold'} it on {IS._dw(day)}?")),
+                                            _act("Flag this trade", "Tell Ananta what looks wrong", "flag",
+                                                 K.ask(f"I want to flag a problem with the paper trade in {nm} on {IS._dw(day)}. Ask me what looks wrong before you file it."))]),
+                                  K.trust("Paper only, at the NSE open.")],
                          ask_q=f"Why did the managed book {'buy' if r.get('side') == 'BUY' else 'sell'} {nm} on {IS._dw(day)}, and how is it doing?")
             out.append((day, 2, K.row(f"{side} {nm}", sub, right=_rs(r.get("value_inr")), icon="up" if r.get("side") == "BUY" else "down", tag="trade", to=K.to_page(pg))))
         else:
@@ -212,8 +269,16 @@ def _events(full: bool = True) -> list[tuple]:
                                             K.kvrow("Lot", f"{opt.get('lot'):.0f}" if isinstance(opt.get("lot"), (int, float)) else "—"),
                                             K.kvrow("How it ended", ended),
                                             K.kvrow("Result", _rs(round(net)), tone=_tone(net), bold=True)]),
+                                      K.points(_option_story(r, name, what), title="What happened"),
                                       K.points([IS._tidy(str(r.get("late_why") or ""))], title="Scored late") if late and r.get("late_why") else None,
-                                      K.trust("Paper only. Graded after 20 sessions.")],
+                                      K.points(["One trade changes no rule. The options line is graded after 20 sessions on record."], title="What happens next"),
+                                      _actions([_act("Why this trade?", "What Ananta saw that morning", "ask",
+                                                     K.ask(f"In plain words, why did the options line buy a {what} on {IS._dw(day)}? What did it see that morning?")),
+                                                _act("What did it teach?", "The lesson, if any", "note", K.ask(f"What did the options trade on {name} on {IS._dw(day)} teach, and does it change anything?")),
+                                                _act("Flag this trade", "Tell Ananta what looks wrong", "flag",
+                                                     K.ask(f"I want to flag a problem with the options trade on {name} on {IS._dw(day)}. Ask me what looks wrong before you file it.")),
+                                                _act("All options trades", "The whole record", "list", K.place("options"))]),
+                                      K.trust("Paper only: no real money is involved.")],
                      ask_q=f"Tell me about the options trade on {name} on {IS._dw(day)}: why, how it ended, and what it taught.")
         out.append((day, 1.5, K.row(f"Options · {what}", "Bought, closed on paper" + (", scored late" if late else ""), right=_rs(round(net)), right_tone=_tone(net),
                                     icon="down" if net < 0 else "up", tag="trade", to=K.to_page(pg))))

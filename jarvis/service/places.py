@@ -145,9 +145,43 @@ def _item_sheet(j, it: dict, icon: str, today=None) -> dict:
                    key=key, answers=answers, status=parts["status"], label=f"{parts['label']} · {it.get('id')}", cards=parts["cards"])
 
 
+def _draft_rows(quiet: set) -> list[dict]:
+    """One row and one sheet per India research draft (14 Nov 2026, Madhav: the bundle's sheet had a title cut mid-word, a text that began
+    mid-sentence, said nothing of what the draft was, and offered no yes or skip). Each says what Ananta noticed and takes his answer."""
+    from jarvis.india import views as india_views
+    from jarvis.service import openlist
+
+    out = []
+    for d in (S._safe(india_views.drafts, default={}) or {}).get("drafts") or []:
+        key = f"draft:{d['key']}"
+        if key in quiet:
+            continue
+        w = india_views.draft_plain(d)
+        out.append(K.row(w["title"], f"Research idea · {S._dw(d.get('day'))}" if d.get("day") else "Research idea", right="Your yes", icon="you", tint="bronze", tag="you",
+                         to=K.sheet(w["title"], w["noticed"], advice=None, icon="you",
+                                    primary={"label": "Talk to Ananta about it", "to": K.ask(f"About the research draft '{w['title']}': {w['noticed']} What would the study test, and what happens after my yes or my skip?"),
+                                             "explain": "Opens Ask with this draft, so you can ask what the study would test before you answer."},
+                                    key=key, answers=openlist.answer_rows(key), status="It waits for your yes or skip. Nothing trades from it either way.",
+                                    label="Needs you · a research idea")))
+    return out
+
+
+def _sheet_title(line: str, short: str) -> tuple[str, str]:
+    """A sheet's title and text from an open-list line: a title never cut mid-word (the row's own short name may be), and the whole line
+    under it when the title was a cut of it (14 Nov 2026)."""
+    s = re.sub(r"\s+", " ", str(line or "")).strip()
+    if not short.endswith("…"):
+        return short, _rest(s, short)
+    first = re.split(r"(?<=[a-z0-9)])[.:;]\s+|\s+\(", s)[0].strip()
+    if 3 <= len(first.split()) <= 9 and len(first) <= 60:
+        return first, s
+    return "A question for you", s
+
+
 def you_rows(col: dict, market: str = "crypto") -> list[dict]:
     """The open list's "needs your yes" as rows; a tap opens a bottom sheet with the whole line, the advice and his answers (Yes, No, Not
-    now: 11 Nov 2026). What he cleared from his notifications is left out here (the bell, Home, Notices) and stays on the open list page."""
+    now, Postpone: 11 and 14 Nov 2026). What he cleared from his notifications is left out here (the bell, Home, Notices) and stays on the
+    open list page. India's research drafts come one row each (_draft_rows)."""
     from jarvis.service import openlist
 
     quiet = set(col.get("quiet") or [])
@@ -155,16 +189,23 @@ def you_rows(col: dict, market: str = "crypto") -> list[dict]:
     for it in col.get("you") or []:
         if it.get("market") not in (market, "both", None) or it.get("key") in quiet:
             continue
+        if it.get("key") == "india:drafts":
+            out += _draft_rows(quiet)
+            continue
         t, sub = K.title_sub(it.get("line") or "")
         adv = str(it.get("advice") or "")
         step = "step" in adv.lower() or "your step" in str(it.get("line") or "").lower()
         ans = openlist.answer_rows(it.get("key"), step, it.get("on_yes"))
         parts = item_sheet_parts(it)
+        st, text = _sheet_title(it.get("line") or "", t)
+        own_place = str(it.get("key") or "").split(":", 1)[0] not in ("ask", "needs")
         out.append(K.row(t, sub, right="Your step" if step else "Your yes", icon="you", tint="bronze", tag="you",
-                         to=K.sheet(t, _rest(it.get("line"), t), advice=(adv[:1].upper() + adv[1:]) if adv else None, icon="you",
+                         to=K.sheet(st, text, advice=(adv[:1].upper() + adv[1:]) if adv else None, icon="you",
                                     primary={"label": "Talk to Ananta about it", "to": K.ask(f"About {it.get('id')}: {t}. What do I need to do, and what happens after?"),
                                              "explain": "Opens Ask with this, so you can ask what it means and what happens after each answer."},
-                                    key=it.get("key"), answers=ans, status=parts["status"], label=f"{'Your step' if step else 'Needs you'} · {it.get('id')}",
+                                    key=it.get("key"), answers=ans,
+                                    status=("It waits for your answer. This one is answered by telling Ananta; you can put it off here." if own_place else parts["status"]),
+                                    label=f"{'Your step' if step else 'Needs you'} · {K.clip(str(it.get('id')), 5, 30)}",
                                     cards=parts["cards"])))
     return out
 
@@ -420,14 +461,77 @@ def _checked_points(text) -> list[str]:
     return out[:4]
 
 
+# 14 Nov 2026 (Madhav, with five screenshots: "what do you think of the language used ... what should we do to make it better and easy?").
+# A change page read like the builder's notebook: "Why" held who checked it ("the keen outside audit ... G-01 (S1)", "C1 to C5", a pinned
+# line's code name), his own yes quoted back, and sentences cut at a bracket. Now every page says, in this order: what changed, what was
+# wrong before (the reason), who asked for it, what happens next, and what he can do. Codes and audit names stay in the full record.
+JARGON = re.compile(r"\b[A-Z]{1,2}-?\d{1,3}\b|~/|\b[a-z0-9]+_[a-z0-9_]+\b|\.(?:py|md|json)\b|\bflag \d+|read model|\brepair \d|confirm check|"
+                    r"outside (?:check|read|audit)|\bcommit\b|\bsha\b", re.I)
+NEXT_WORDS = {"live": "It is live now. Nothing is needed from you.", "decided": "Decided. Ananta builds it next, and it shows here when it is live.",
+              "built": "Built and tested, not switched on yet.", "parked": "Parked. Nothing happens until it is opened again.",
+              "reverted": "Undone. Things work as they did before."}
+
+
+def _before_points(ch: dict, words: str) -> list[str]:
+    """What was wrong before the change, from the change's own words: the sentences between its headline and its "Now ...", told in the
+    past, without any that carry a code, a file or a check's name. A line with no "Now ..." sentence has no before to tell."""
+    ss = S._sentences(words)[1:]
+    if not any(re.match(r"\s*Now\b", x) for x in ss):
+        return []
+    out = []
+    for x in ss:
+        if re.match(r"\s*Now\b", x):
+            break
+        if JARGON.search(x) or len(x.split()) > 45 or x.count("(") != x.count(")") or re.search(r"\bnow\b", x, re.I):
+            continue
+        if not re.search(r"\b(was|were|said|counted|read|held|came|ran|showed|had|did|sold|spent|left|rounds?|could)\b", x):
+            continue
+        x = _calm(x).strip().rstrip(".")
+        out.append(x[:1].upper() + x[1:] + ".")
+    return out[:2]
+
+
+def _asked_points(why: str) -> list[str]:
+    """Who asked for the change, in one or two plain lines: a review that found it, and his own word for it with its day."""
+    why, out = str(why or ""), []
+    if re.search(r"audit|outside (?:check|read)|confirm", why, re.I):
+        out.append("Found in an outside review of Ananta's work.")
+    m = re.search(r"Madhav[^\"“]{0,60}?(\d{1,2} " + MONTHS + r")", why)
+    if m:
+        q = re.search(r'Madhav[^"“]{0,90}["“]([^"”]{2,400})["”]', why)
+        said = (q.group(1).strip().rstrip(".") if q else "")
+        tail = re.search(r"Madhav,?\s*(?:on\s+)?\d{1,2} " + MONTHS + r"[^:\"“]{0,30}:\s*([^\"“.;]{4,120})", why) if not q else None
+        if said and not re.match(r"(?i)yes\b", said) and len(said.split()) <= 24:
+            out.append(f"You asked for it on {m.group(1)}: \u201c{said}\u201d")
+        elif tail and not JARGON.search(tail.group(1)):
+            out.append(f"You said on {m.group(1)}: {tail.group(1).strip()}.")
+        else:
+            out.append(f"You approved it on {m.group(1)}.")
+    return out
+
+
+def change_actions(what: str, day: str, full: dict | None = None) -> dict:
+    """What he can do from a change's page (14 Nov 2026, Madhav: "why don't we have options on what to do with that")."""
+    return K.rows("What you can do", [
+        K.row("Ask why it was needed", "Ananta explains it in plain words", icon="ask", to=K.ask(f"In plain words, why was this change of {day} needed, and what does it change for me? {what}")),
+        K.row("Flag a problem with it", "Tell Ananta what looks wrong", icon="flag",
+              to=K.ask(f"I want to flag a problem with this change of {day}: {what} Ask me what looks wrong before you file it.")),
+        K.row("See the full record", "Every detail, word for word", icon="list", to=K.to_page(full)) if full else None])
+
+
 def change_page(ch: dict) -> dict:
-    """One change, the way Madhav asked on 11 Nov 2026 (07:51, "simple language, simple points ... or any other structures"): In short,
-    Before and after when a number or a screen changed, Why in his own words, and the full record one tap down."""
+    """One change, the way Madhav asked on 11 Nov 2026 (07:51, "simple language, simple points ... or any other structures") and again on
+    14 Nov: what changed, before and after when a number or a screen changed, what was wrong before, who asked, what happens next, what he
+    can do, and the full record one tap down."""
     words = _calm(S._plain(str(ch.get("words") or "")))
     title = str(ch.get("title") or AREA.get(ch.get("area"), "A change"))
     day = S._dw(ch.get("date"))
     ba = [K.barow(x.get("label"), x.get("before"), x.get("after")) for x in (ch.get("before_after") or []) if isinstance(x, dict)]
-    why = _why_points(ch.get("why"))
+    short = _in_short(ch, words)
+    before = _before_points(ch, words)
+    asked = _asked_points(ch.get("why"))
+    if not asked and not before:                           # an older line with a short why of its own keeps it, when it carries no code
+        asked = [x for x in _why_points(ch.get("why")) if not JARGON.search(x)][:2]
     commits = [str(c) for c in ch.get("commits") or [] if c]
     full = K.page("The full record", [
         K.heading(title),
@@ -439,12 +543,15 @@ def change_page(ch: dict) -> dict:
              title="The record"),
         K.trust("Word for word from the change book, the record Ananta reads about itself.")],
         ask_q=f"Tell me everything about this change of {day}: {K.clip(words, 16, 110)}")
+    nxt = NEXT_WORDS.get(str(ch.get("status")), "") + " On paper only: no real money is involved."
+    gist = short[0] if short else K.clip(words, 16, 110)
     return K.page(title, [K.pill(f"{STATUS.get(ch.get('status'), str(ch.get('status') or ''))} · {day}", icon="check"), K.heading(title),
-                          K.points([{"text": x, "icon": "dot"} for x in _in_short(ch, words)], title="In short"),
+                          K.points([{"text": x, "icon": "dot"} for x in short], title="What changed"),
                           K.ba(ba, title="Before and after") if ba else None,
-                          K.points([{"text": x, "icon": "person" if x.startswith(("You said", "Your yes", "You asked")) else "info"} for x in why],
-                                   title="Why") if why else None,
-                          K.link("The full record", K.to_page(full)),
+                          K.points([{"text": x, "icon": "info"} for x in before], title="What was wrong before") if before else None,
+                          K.points([{"text": x, "icon": "person" if x.startswith("You") else "info"} for x in asked], title="Who asked for it") if asked else None,
+                          K.points([{"text": nxt.strip(), "icon": "check"}], title="What happens next"),
+                          change_actions(gist, day, full),
                           K.trust(f"From the change book · {day}")],
                   ask_q=f"Tell me about this change of {day}: {K.clip(words, 16, 110)}")
 

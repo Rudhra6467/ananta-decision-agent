@@ -362,6 +362,13 @@ def answer_words(said: str, kind: str = "ask", on_yes: str | None = None, due: s
     any action, or ... have an explanation of the action"). kind: ask (a board item waiting for him), needs (a crypto card), item (an
     open-list item he marks done or postpones), drafts."""
     import datetime as dt
+    if kind == "draft" and said == "yes":
+        return "Ananta writes the study down first, then tests it on past years only. Nothing trades from it. Your yes is kept with the time."
+    if kind == "draft" and said == "no":
+        return "The draft closes as skipped and is not raised again. Your answer is kept with the time."
+    if said == "postpone" and kind != "item":
+        d = dt.date.fromisoformat(_postpone_to(due or "tomorrow", today))
+        return f"It leaves your notifications until {d:%a} {d.day} {d:%b}, then comes back. It stays on the open list. Nothing is lost."
     if said == "yes":
         if kind == "needs":
             return "Ananta does what the card asks, on paper, as if you had said yes in Ask. Your yes is kept with the time."
@@ -382,11 +389,23 @@ def answer_words(said: str, kind: str = "ask", on_yes: str | None = None, due: s
     return ""
 
 
-def answer_rows(key: str | None, step: bool = False, on_yes: str | None = None) -> list[dict]:
-    """A notification's answers as the sheet's rows: id, label, icon and what it does."""
+LATER_LABEL = ANSWER_LABEL["later"]
+DRAFT_LABEL = {"yes": "Yes, study it", "no": "Skip it"}
+
+
+def answer_rows(key: str | None, step: bool = False, on_yes: str | None = None, today=None) -> list[dict]:
+    """A notification's answers as the sheet's rows: id, label, icon and what it does. Postpone is one row per day (one tap does it)."""
     kind = str(key or "").split(":", 1)[0]
-    return [{"id": a, "label": ANSWER_LABEL[a], "icon": ANSWER_ICON[a], "explain": answer_words(a, kind=kind, on_yes=on_yes)}
-            for a in answers_for(key, step)]
+    rows = []
+    for a in answers_for(key, step):
+        if a == "postpone":
+            for o in postpone_options(today)[:2]:                       # tomorrow, next week
+                rows.append({"id": "postpone", "due": o["id"], "label": POSTPONE_ROW.get(o["id"], f"Postpone: {o['label']}"), "icon": "clock",
+                             "explain": answer_words("postpone", kind=kind, due=o["id"], today=today)})
+            continue
+        label = DRAFT_LABEL.get(a, ANSWER_LABEL[a]) if kind == "draft" else LATER_LABEL if a == "later" else ANSWER_LABEL[a]
+        rows.append({"id": a, "label": LATER_LABEL if a == "later" else label, "icon": ANSWER_ICON[a], "explain": answer_words(a, kind=kind, on_yes=on_yes)})
+    return rows
 
 
 def item_answers(today=None, after: str | None = None) -> list[dict]:
@@ -428,14 +447,18 @@ def quiet_keys(j, now: float | None = None) -> set:
 
 
 def answers_for(key: str | None, step: bool = False) -> list[str]:
-    """What the app's sheet offers for one waiting item: a board item takes yes (done for his own step), no and later; a crypto ladder card
-    takes yes and later; the rest (research drafts, a flag's fixes, a due-list decision) are answered in their own place, so only later."""
+    """What the app's sheet offers for one waiting item. 14 Nov 2026 (Madhav: "only 2 action items are shown here, isn't it minimising the
+    scope?"): every waiting item takes its full list. A board item: yes (done for his own step), no, later, postpone. A crypto ladder card:
+    yes, later, postpone. One research draft ("draft:<key>"): yes (study it), no (skip it), later, postpone. Anything else (a flag's fixes,
+    a due-list decision) is still answered in its own place, and can be put off here: later, postpone."""
     kind = str(key or "").split(":", 1)[0]
     if kind == "ask":
-        return ["done", "later"] if step else ["yes", "no", "later"]
+        return (["done", "later", "postpone"] if step else ["yes", "no", "later", "postpone"])
     if kind == "needs":
-        return ["yes", "later"]
-    return ["later"] if key else []
+        return ["yes", "later", "postpone"]
+    if kind == "draft":
+        return ["yes", "no", "later", "postpone"]
+    return ["later", "postpone"] if key else []
 
 
 def _when(now: float) -> str:
@@ -462,9 +485,21 @@ def answer(j, key: str, said: str, by: str = "Madhav", now: float | None = None,
     when = _when(now)
     kind, _, ref = str(key or "").partition(":")
     out = {"key": key, "said": said}
+    keep_quiet = False
     if said == "later":
         j.db.execute("INSERT OR REPLACE INTO notice_quiet VALUES (?,?,?,?)", (key, now + QUIET_DAYS * 86400, now, by))
         out["words"] = f"Cleared from your notifications for {QUIET_DAYS} days. It stays on your open list."
+    elif said == "postpone" and key and kind != "item":
+        import datetime as dt
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo("America/Toronto")
+        d = dt.date.fromisoformat(_postpone_to(due or "tomorrow", dt.datetime.fromtimestamp(now, tz).date()))
+        until = int(dt.datetime(d.year, d.month, d.day, 6, 0, tzinfo=tz).timestamp())
+        j.db.execute("INSERT OR REPLACE INTO notice_quiet VALUES (?,?,?,?)", (key, until, now, by))
+        out["words"] = f"Saved: it comes back on {d:%a} {d.day} {d:%b}. It stays on your open list until then."
+        out["due"] = d.isoformat()
+        keep_quiet = True
     elif kind == "ask" and ref.isdigit():
         num = int(ref)
         r = _get(j, num)
@@ -498,6 +533,15 @@ def answer(j, key: str, said: str, by: str = "Madhav", now: float | None = None,
             j.db.execute("UPDATE owner_requests SET note=?, updated_t=? WHERE id=?", (note[:400], now, r["id"]))
             out["words"] = f"Saved: postponed to {dd:%a} {dd.day} {dd:%b}. It stays on the open list and is due again that day."
             out["due"] = d
+    elif kind == "draft" and said in ("yes", "no"):
+        from jarvis.india import views as india_views
+
+        try:
+            india_views.decide_draft(ref, "APPROVED" if said == "yes" else "SKIPPED", "Madhav (owner)", "in the app, from the Needs-you sheet")
+        except KeyError as exc:
+            raise ValueError("that draft is already answered") from exc
+        out["words"] = ("Saved: yes. Ananta will write the study down and test it on past years. Nothing trades from it." if said == "yes"
+                        else "Saved: skipped. It is closed and will not be raised again.")
     elif kind == "needs" and said == "yes":
         from jarvis.service import needs
 
@@ -505,7 +549,8 @@ def answer(j, key: str, said: str, by: str = "Madhav", now: float | None = None,
         out["words"] = "Saved: you said yes."
     else:
         raise ValueError("this one is answered in its own place: tell Ananta, or open it")
-    j.db.execute("DELETE FROM notice_quiet WHERE key=? AND ?<>'later'", (key, said))
+    if not keep_quiet:
+        j.db.execute("DELETE FROM notice_quiet WHERE key=? AND ?<>'later'", (key, said))
     j.db.execute("INSERT INTO owner_answers VALUES (?,?,?,?,?)", (now, key, said, by, out["words"]))
     j.db.commit()
     return out

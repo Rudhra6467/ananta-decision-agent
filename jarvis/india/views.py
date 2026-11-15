@@ -821,6 +821,52 @@ def drafts() -> dict:
             "meaning": "Yes = register a study for it (written down before it runs, tested on 2000-2023 only); Skip = closed, not filed again."}
 
 
+DRAFT_TITLE = {"EXIT_LESSON": "Study a better exit rule?", "MISS_PATTERN": "Study an entry rule for a missed move?", "LEAGUE_GAP": "Study what other traders caught?",
+               "HELD_INTO_FALL": "Study a faster exit?", "CALL_DRIFT": "Re-check the daily call?", "ALLOC_WRONG": "Re-check the money-split rule?"}
+
+
+def draft_plain(d: dict) -> dict:
+    """One research draft in plain words for its sheet (14 Nov 2026, Madhav: the sheet's title was cut mid-word and its text began
+    mid-sentence, with nothing about what the draft was): a short question as the title, what Ananta noticed, and what a yes does."""
+    from jarvis.india import plain
+
+    w = re.sub(r"\s+", " ", str(d.get("words") or "")).strip()
+    seen = re.split(r"\s*(?:Question for|The \w+ study decides)\b", w)[0].strip()
+    m = re.match(r"(\d+) closed (.+?) trades in the last (\d+) sessions were tagged \w+: (.+?)(?: \((.+?)\))?\.?$", seen)
+    if m:
+        what = re.sub(r"of a risk unit", "of the amount risked", m.group(4))
+        what = re.sub(r"risk units?", "times the amount risked", what)
+        what = re.sub(r"^was up", "they were up", re.sub(r"^never got", "they never got", what))
+        seen = (f"In the last {m.group(3)} sessions, {m.group(1)} '{m.group(2)}' trades went the same way: {what}"
+                + (f". In short: {m.group(5)}" if m.group(5) else "")) + "."
+    else:
+        seen = re.sub(r"No family was positioned for", "No rule of Ananta's was ready for", seen)
+        seen = re.sub(r"\bfamily\b", "book", seen)
+        seen = re.sub(r"\s*\([a-z0-9_]+, pinned\)", "", seen)
+        seen = str(plain.scrub(seen))
+    return {"title": DRAFT_TITLE.get(d.get("type"), "Study this?"), "noticed": seen[:1].upper() + seen[1:],
+            "yes": "Yes: Ananta writes the study down first, then tests it on past years only. Nothing trades from it.",
+            "no": "Skip: it closes and is not raised again."}
+
+
+def decide_draft(key: str, decision: str, by: str, words: str = "") -> dict:
+    """Madhav's yes or skip on one research draft, written to the reconstruction's decisions (the one place both the Evidence screen and a
+    Needs-you sheet write to)."""
+    import datetime as _dt
+
+    dec = {"approve": "APPROVED", "approved": "APPROVED", "yes": "APPROVED", "skip": "SKIPPED", "skipped": "SKIPPED", "no": "SKIPPED"}.get(str(decision).lower(), str(decision).upper())
+    if dec not in ("APPROVED", "SKIPPED"):
+        raise ValueError("decision is APPROVED or SKIPPED")
+    if not any(r.get("key") == key and r.get("lane") == "DECISION" for r in _queue_rows()):
+        raise KeyError(key)
+    p = DATA / "paper" / "reconstruction" / "decisions.jsonl"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    row = {"key": key, "decision": dec, "by": by, "words": str(words)[:300], "at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")}
+    with p.open("a") as f:
+        f.write(json.dumps(row) + "\n")
+    return row
+
+
 def netnotes(day: str | None = None) -> list[dict]:
     d = day or (readmodel().get("data_through") or "")
     return _jsonl(DATA / "paper" / "reconstruction" / "netnotes" / f"{d}.jsonl")

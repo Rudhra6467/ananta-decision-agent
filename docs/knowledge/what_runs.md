@@ -1,6 +1,6 @@
 # What runs on the Mac, and why (15 Nov 2026)
 
-One page for "what is running, when, and what is it for". 42 launchd jobs: 11 always on, 31 on a clock. Times are Toronto winter
+One page for "what is running, when, and what is it for". 42 launchd jobs: 9 always on, 33 on a clock (the watchdog every 5 minutes). Times are Toronto winter
 time; the India jobs keep Indian time across clock changes (`jarvis/india/schedule.py`). Every job that runs by itself, with what proves
 it ran and did its work, is in `jarvis/service/runcheck_parts.py` (the lost-runs check reads it); this page is the plain map.
 
@@ -16,7 +16,7 @@ it ran and did its work, is in `jarvis/service/runcheck_parts.py` (the lost-runs
 | awake | keeps the Mac from sleeping |
 | watchdog (every 5 min) | the outside check: is Jarvis answering, are the sites up; heals a stuck service once an hour at most |
 
-## 2. Is it running? (four different jobs, not copies)
+## 2. Is it running? (five checks, each a different job, not copies)
 - **Health** (inside Jarvis, every 2 min): each part alive (Explorer, eye, jobs, candles, voice, Hands, tunnel, disk). Phone at once when a part goes quiet or comes back.
 - **Watchdog** (outside, every 5 min): Jarvis itself and the public sites. Phone at once.
 - **Lost runs** (`runcheck`, read by the self-check): did every scheduled part run AND do its work.
@@ -64,10 +64,10 @@ backup (03:40, the databases), mongoarchive (03:20), lake (Sundays 02:15, R2), r
 ## Changed on 15 Nov 2026
 - Routine notes now come in two digests (section 6).
 - The RX1 and RS trials run once a night (in india.paper), not twice.
-- 14 old work folders moved to `~/code/_archive-2026-11-15`; old job backups to `~/Library/LaunchAgents/archive-2026-11-15`. Nothing deleted.
+- 15 old work folders moved to `~/code/_archive-2026-11-15`; old job backups to `~/Library/LaunchAgents/archive-2026-11-15`. Nothing deleted.
 - SF1 (does strength flip in a falling market?) records one shadow row every evening.
 
 ## Looked at and kept as they are
-- The four "is it running" checks do different jobs (section 2).
+- The five "is it running" checks each do a different job (section 2).
 - The data checks (inventory, lineage, selection, data audit) take seconds, send nothing, and feed the read model.
 - The India exam was already weekly.

@@ -3,8 +3,8 @@
  "family": "strength_flip",
  "version": 1,
  "written": "2026-11-15",
- "asked_by": "Madhav, 15 Nov 2026 10:37 Toronto: \"yes, your recommendation sounds good\" (to: a one-hypothesis test of 'does strength flip in a falling market?', run forward as a shadow tag, not on the seen 2018+ years)",
- "status": "DRAFT: frozen only on Madhav's approval; nothing is built or recorded before it",
+ "asked_by": "Madhav, 15 Nov 2026 10:37 Toronto: \"yes, your recommendation sounds good\" (to: a one-hypothesis test of 'does strength flip in a falling market?', run forward as a shadow tag, not on the seen 2018+ years); approval to freeze, build and switch on: Madhav, 15 Nov 2026 11:01 Toronto: \"go with your best recommendations and continue to complete\"",
+ "status": "FROZEN 2026-11-15: forward shadow; the first recording is the evening run before the 2026-11-16 session",
  "title": "SF1: does a stock's strength flip when the market is falling? (forward shadow, Nifty 500, India only)",
  "why": "SP3 scored its situation features one at a time (ridge, main effects only), and almost every fit chose the heaviest shrinkage: the features added little alone. A descriptive look on SP3's development years 2010-2017 (15 Nov 2026) asked whether COMBINATIONS carry what main effects cannot see. Across all 210 feature pairs nothing passed a strict bar, but one story repeated in both halves (2010-13, 2014-17) and at both 20 and 60 sessions: with the Nifty below its 50- and 200-day averages, stocks that look strong (0-20% above their own 50-day, a high 20-session return, RETEST setups) did worse than random liquid stocks bought the same day, and beaten-down stocks did better; with the Nifty above both, beaten-down stocks kept lagging. It rests on about 13 falling spells of 10+ sessions, its month-level t values sit between 1.2 and 1.9, and it was picked after looking, so it is a lead, not a finding. It matters now because the managed book's replacements must be above both their own averages and within 8% of the 50-day, ranked by strength against the Nifty 500: in a falling market that is exactly the bucket the look flagged.",
  "origin": {
@@ -18,13 +18,27 @@
   "strong": "close above its own 50-day average by 0% to 20%, AND its 20-session return in the top third of that evening's universe",
   "weak": "close below its own 50-day average, AND its 20-session return in the bottom third of that evening's universe",
   "control": "50 symbols of that evening's universe, the lowest sha256('symbol|YYYY-MM-DD|SF1') first (fixed, not random at scoring time)",
-  "outcome": "adjusted return from the next session's official open to the close 20 sessions later; no stop; costs left out because they are the same for every bucket (a delivery round trip is reported beside the result)",
-  "excess": "bucket's equal-weight mean outcome minus the control's mean outcome, per recording evening"
+  "outcome": "adjusted return from the official open of the entry session (the session after the recording evening) to the close of the 20th session counting the entry session; no stop; a stock with no bar on the entry session is left out of that row (counted); one with no bar on the 20th session takes its last close before it; costs left out because they are the same for every bucket (a delivery round trip is reported beside the result)",
+  "excess": "bucket's equal-weight mean outcome minus the control's mean outcome, per recording evening",
+  "spell": "a run of consecutive recording evenings in the same regime; a falling spell counts toward the minimum and the bar only when it holds 10 or more evenings",
+  "start": "rows for entry sessions before 2026-11-16 are refused; a row is written once per entry session (a weekend re-run keeps the first row)"
  },
  "questions": {
-  "primary": {"id": "SF1-P", "statistic": "D = mean over FALLING evenings of (strong excess - weak excess)", "prediction": "D < 0 (in a falling market, strength does worse than weakness)"},
-  "secondary": {"id": "SF1-S", "statistic": "mean weak excess over RISING evenings", "prediction": "< 0 (laggards keep lagging in a rising market); reported, carries no verdict alone"},
-  "descriptive": {"id": "SF1-D", "statistic": "the managed book's actual replacement buys, tagged with the regime of their plan evening, and their +20-session excess over that evening's control", "prediction": "none; read beside P"}
+  "primary": {
+   "id": "SF1-P",
+   "statistic": "D = mean over FALLING evenings of (strong excess - weak excess)",
+   "prediction": "D < 0 (in a falling market, strength does worse than weakness)"
+  },
+  "secondary": {
+   "id": "SF1-S",
+   "statistic": "mean weak excess over RISING evenings",
+   "prediction": "< 0 (laggards keep lagging in a rising market); reported, carries no verdict alone"
+  },
+  "descriptive": {
+   "id": "SF1-D",
+   "statistic": "the managed book's actual replacement buys, tagged with the regime of their plan evening, and their +20-session excess over that evening's control",
+   "prediction": "none; read beside P"
+  }
  },
  "forward_review": {
   "recording": "each evening after the managed book's run: one row per evening to paper/shadow/sf1/rows.jsonl holding the regime, the strong, weak and control member lists and their entry-day reference; each row carries the sha of the row before it and is refused on or after 09:15 IST of the next session, so it is a forecast, never hindsight",
@@ -33,12 +47,17 @@
   "expected_wait": "falling evenings were about 21% of sessions in 2010-2017 and 48 of the last 120 sessions; the Nifty is above both averages today, so the primary may take many months to a few years. SF1-S and SF1-D accumulate meanwhile"
  },
  "bar": {
-  "supported": "D < 0 with a one-sided Newey-West t at or beyond 2.0 (19 lags for the overlapping 20-session windows) on the FALLING evenings, AND D < 0 inside at least two thirds of the separate falling spells. Then SF1-P is SUPPORTED_FORWARD",
+  "supported": "D < 0 with a one-sided Newey-West t at or beyond 2.0 (19 lags for the overlapping 20-session windows) on the FALLING evenings, AND D < 0 inside at least two thirds of the separate falling spells of 10+ evenings. Then SF1-P is SUPPORTED_FORWARD",
   "rejected": "D >= 0 once the minimum is reached: REJECTED_FORWARD, closed, kept on record",
   "otherwise": "INCONCLUSIVE until the minimum is reached again with 30 more falling evenings, read once more, then closed whatever it shows"
  },
  "what_changes": "nothing in any decision. SF1 is a shadow: no decision path imports it (a test proves it), no plan, cut, replacement, stop, rule, lock or the 60-session window is touched, and it is India only (no crypto data, never wakes the agent). If SF1-P is SUPPORTED_FORWARD, Claude writes one card proposing what the managed book's replacement ranking should do in a falling market; that card needs Madhav's own yes and then its own 20-session paper trial, like every rule",
- "limits": ["one market regime definition fixed now, not tuned later", "equal-weight buckets: a few names can move them, so the bucket sizes are printed with every score", "cross-sectional terciles of 20-session return each evening (SP3 used training-year terciles); a fixed choice made now", "the look that chose this hypothesis saw 2010-2017; forward rows from the first recording evening are the only evidence that counts"],
+ "limits": [
+  "one market regime definition fixed now, not tuned later",
+  "equal-weight buckets: a few names can move them, so the bucket sizes are printed with every score",
+  "cross-sectional terciles of 20-session return each evening (SP3 used training-year terciles); a fixed choice made now",
+  "the look that chose this hypothesis saw 2010-2017; forward rows from the first recording evening are the only evidence that counts"
+ ],
  "build_after_approval": "india/sf1.py (record, score, show) beside india/managed.py; added to the evening and nightly jobs after the managed run; tests: the sha chain, the 09:15 IST refusal, a scored row never rewritten, no decision module imports sf1; one outside check of the build, then live",
- "frozen_at": null
+ "frozen_at": "2026-11-15T11:10:00-05:00"
 }

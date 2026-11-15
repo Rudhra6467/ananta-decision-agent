@@ -162,6 +162,12 @@ def _leftovers(db: Path = CRYPTO_DB) -> list[dict]:
 
 
 BOOK500_START = 500.0          # the $500 book's starting cash in CAD (src/research/book500.START_CAD)
+# 15 Nov 2026 (audit repair 6, G-43): a money check that cannot look is a finding at the top severity, so it reaches the phone and the voices
+MONEY_CHECKS = ("book500", "india_book")
+
+
+def CANNOT_LOOK(market: str, source: str, what: str) -> dict:   # noqa: N802
+    return {"market": market, "severity": "high", "source": source, "what": what, "cannot_look": True}
 
 
 def _utc(stamp: str) -> int:
@@ -173,22 +179,36 @@ def _utc(stamp: str) -> int:
 def _book500(db: Path = CRYPTO_DB) -> list[dict]:
     """10 Nov 2026 (Madhav: "Yes to all"): the $500 book's trades and its holdings agree. Every coin's buys less its sells must be what the
     book holds; on 28 Oct 0.008315 ETH left the holdings without a sale and nothing noticed for 13 days. Read-only."""
+    if not Path(db).exists():                                 # no database here: no book to check (15 Nov)
+        return []
     try:
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2)
         fills = con.execute("SELECT coin, side, qty FROM book500_fills").fetchall()
         row = con.execute("SELECT v FROM book500 WHERE k='state'").fetchone()
         con.close()
-    except sqlite3.Error:
-        return []
+    except sqlite3.Error as exc:
+        # 15 Nov 2026 (audit repair 6, G-43): this said "nothing to report" when it could not look, and that night was counted clean.
+        # A database with no book in it yet is nothing to check; any other error is said, and alarms.
+        if "no such table" in str(exc):
+            return []
+        return [CANNOT_LOOK("crypto", "book check", f"the $500 book check could not read the book ({str(exc)[:60]}), so its cash and holdings are not checked")]
     try:
         state = json.loads(row[0]) if row else {}
         held = {c: float(p.get("qty") or 0) for c, p in (state.get("pos") or {}).items()}
     except (ValueError, TypeError, AttributeError):
-        return []
+        return [CANNOT_LOOK("crypto", "book check", "the $500 book check could not read the book's state, so its cash and holdings are not checked")]
     net: dict[str, float] = {}
     for coin, side, qty in fills:
         net[coin] = net.get(coin, 0.0) + (qty if side == "BUY" else -qty)
     out = []
+    # 15 Nov 2026 (audit repair 6, G-42): a night whose step never ran was silent. After 02:00 UTC the book should stand on last night's candle.
+    now = time.time()
+    if state.get("last_bar") and now % 86400 >= 7200 and int(state["last_bar"]) < int(now // 86400 * 86400) - 86400:
+        out.append({"market": "crypto", "severity": "high", "source": "book check",
+                    "what": f"the $500 book has not stepped on last night's candle: it stands on the {time.strftime('%Y-%m-%d', time.gmtime(int(state['last_bar'])))} close"})
+    for c, w in (state.get("sell_next") or {}).items():
+        out.append({"market": "crypto", "severity": "medium", "source": "book check",
+                    "what": f"the $500 book's sale of {c} ({w.get('why')}) waits for an NDAX quote since the {w.get('day')} close"})
     # the cash is the C$500 it began with, less every buy, plus every sale, fees counted; the value is that cash plus what is held
     try:
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2)
@@ -261,6 +281,62 @@ def _india_book() -> list[dict]:
     return selfparts.managed_book_check()
 
 
+def _india_scoring() -> list[dict]:
+    """15 Nov 2026 (audit repair 6, G-14 and G-22): read by the India-app module (the firewall's allowlist)."""
+    from jarvis.india import selfparts
+    return selfparts.scoring_and_feed_checks()
+
+
+def _fills_against_candles(db: Path = CRYPTO_DB, days: int = 3, band: float = 0.03) -> list[dict]:
+    """15 Nov 2026 (audit repair 6, G-44): scorecard line 4 ('every buy and sell inside the NDAX bid and ask of its minute') could not fail as
+    recorded: a fill's price is the bid or ask saved beside it by the same call. Marked here against another record, the 5-minute candle the
+    feed keeps for the coin (in US dollars, at the book's last Bank of Canada rate): a fill more than 3% outside its candle's range is said.
+    The worker Mac's minute record is the better yardstick; it has been out of reach since 8 Nov."""
+    bars = db.parent / "universe_bars.sqlite"
+    if not db.exists() or not bars.exists():
+        return []
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=2)
+        fills = con.execute("SELECT t, coin, side, px FROM book500_fills WHERE t >= ?", (int(time.time()) - days * 86400,)).fetchall()
+        r = con.execute("SELECT v FROM book500 WHERE k='fx_last'").fetchone()
+        con.close()
+        rate = float(json.loads(r[0])["rate"]) if r else None
+        if not fills or not rate:
+            return []
+        con = sqlite3.connect(f"file:{bars}?mode=ro", uri=True, timeout=2)
+        out = []
+        for t, coin, side, px in fills:
+            k = con.execute("SELECT l, h FROM m5 WHERE coin=? AND t <= ? AND t > ? ORDER BY t DESC LIMIT 1", (coin, t, t - 300)).fetchone()
+            if k and not (k[0] * rate * (1 - band) <= px <= k[1] * rate * (1 + band)):
+                out.append(f"{side.lower()} {coin} at C${px:,.4g} against C${k[0] * rate:,.4g} to C${k[1] * rate:,.4g}")
+        con.close()
+    except (sqlite3.Error, ValueError, KeyError, TypeError) as exc:
+        return [CANNOT_LOOK("crypto", "fills check", f"the fills check could not read the fills or the candles ({str(exc)[:60]})")]
+    if not out:
+        return []
+    return [{"market": "crypto", "severity": "medium", "source": "fills check",
+             "what": f"{len(out)} of the $500 book's fills in the last {days} days sit outside their 5-minute candle by more than 3%: " + "; ".join(out[:3])}]
+
+
+def _costs_all_coins() -> list[dict]:
+    """15 Nov 2026 (audit repair 6, G-49): the measuring books charge 43 of the 69 NDAX coins less per side than the worker measures, and the
+    cost check looked only at the ten lab coins. Every NDAX coin the books may trade is read here, from the worker's pulled days."""
+    from jarvis.service import ndax_spreads, registry
+
+    s = ndax_spreads.summary(14, cost_fn=registry.cost)
+    if not s.get("days_measured"):
+        return []
+    dear = list(s.get("dearer_than_assumed") or [])
+    if not dear:
+        return []
+    det = s.get("dear_detail") or {}
+    worst = sorted(dear, key=lambda c: -((float((det.get(c) or [0, 0])[0] or 0)) - float((det.get(c) or [0, 0])[1] or 0)))[:3]
+    return [{"market": "crypto", "severity": "medium", "source": "cost check",
+             "what": f"{len(dear)} NDAX coin{'s' if len(dear) != 1 else ''} cost more a side than the paper books charge (measured by the worker, "
+                     f"{s.get('days_measured')} days): " + ", ".join(f"{c} {(det.get(c) or ['?', '?'])[0]}% against {(det.get(c) or ['?', '?'])[1]}%" for c in worst)
+                     + "; the books against their random twins pay the same, so comparisons hold, but small coins' own results are flattered"}]
+
+
 def _restarts(now: float) -> list[dict]:
     out = []
     for f in sorted((HOME / "ananta_runs" / "stalls").glob("*_*.txt")) if (HOME / "ananta_runs" / "stalls").exists() else []:
@@ -316,6 +392,53 @@ def _mac(stats: dict | None = None) -> list[dict]:
     return [{"market": "both", "severity": "medium" if medium else "low", "source": "Mac load",
              "what": (f"the Mac is {'short of memory or overloaded' if medium else 'getting tight'} ({', '.join(b for b in bits if b)}): the voice "
                       "and the answers can be slow, and a service can be starved for a while, as the India service was at 19:34 on 5 Nov")}]
+
+
+MAC_HISTORY = Path(os.getenv("ANANTA_MAC_HISTORY", str(HOME / "ananta_data" / "mac_history.jsonl")))
+DISK_FLOOR_GB, DISK_LOW_GB = 30.0, 60.0
+
+
+def _disk_and_record(stats: dict | None = None, now: float | None = None, path: Path = MAC_HISTORY, disk: tuple | None = None) -> list[dict]:
+    """15 Nov 2026 (audit repair 6, G-70): nobody watched the Mac it all runs on. The disk was 93% full against a 30 GB floor read once a day
+    by an India job, and the 15-minute self-check read memory, swap and load and kept none of it. Now each check keeps one line (7 days)
+    and the free disk is a finding: high under 30 GB, medium under 60 GB."""
+    import shutil
+
+    now = now or time.time()
+    st = stats if stats is not None else mac_stats()
+    total, used, free = disk if disk is not None else shutil.disk_usage(str(HOME))
+    free_gb = round(free / 1e9, 1)
+    row = {"t": int(now), "free_gb": free_gb, "free_pct_mem": st.get("free_pct"), "swap_gb": st.get("swap_gb"), "load5": st.get("load5")}
+    try:
+        lines = path.read_text().splitlines() if path.exists() else []
+        lines = [x for x in lines if x.strip() and json.loads(x).get("t", 0) >= now - 7 * 86400] + [json.dumps(row)]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("\n".join(lines) + "\n")
+    except (OSError, ValueError):
+        pass
+    if free_gb >= DISK_LOW_GB:
+        return []
+    return [{"market": "both", "severity": "high" if free_gb < DISK_FLOOR_GB else "medium", "source": "Mac disk",
+             "what": f"the Mac's disk has {free_gb:.0f} GB free ({100 * free / total:.0f}% of it): under {DISK_FLOOR_GB:.0f} GB the nightly jobs and "
+                     "the backups can fail; test scratch is the usual cause (clean_test_scratch.py)"}]
+
+
+CHANGES = Path(__file__).resolve().parents[1] / "docs" / "knowledge" / "changes.jsonl"
+
+
+def _changes_name_commits(path: Path = CHANGES, since: str = "2026-11-12") -> list[dict]:
+    """15 Nov 2026 (audit repair 6, G-73): the change book stopped naming its commits on 6 Nov (102 of 113 lines), so a 'fixed' claim could
+    not be traced to what changed. A line set live from 12 Nov on must name its commit."""
+    try:
+        rows = [json.loads(x) for x in path.read_text().splitlines() if x.strip()]
+    except (OSError, ValueError):
+        return [CANNOT_LOOK("both", "change book", "the change book could not be read, so its lines are not checked")]
+    bare = [r for r in rows if r.get("status") == "live" and str(r.get("date") or "") >= since and not r.get("commits")]
+    if not bare:
+        return []
+    return [{"market": "both", "severity": "medium", "source": "change book",
+             "what": f"{len(bare)} change-book line{'s' if len(bare) != 1 else ''} set live since {since} name{'s' if len(bare) == 1 else ''} no commit, so "
+                     f"what changed cannot be traced (the first: {str(bare[0].get('words') or '')[:70]})"}]
 
 
 GATES = (("firewall", "the sealed-data firewall"), ("leakcheck", "the leak check"), ("integrity", "the data integrity check"))
@@ -519,12 +642,15 @@ def refresh(now: float | None = None, opener=None, write: bool = True, post=None
     items: list[dict] = []
     for name, fn in (("runs", lambda: _runs(now)), ("services", lambda: _services(opener)), ("answers", _answers),
                      ("leftovers", _leftovers), ("watchdog", lambda: _restarts(now)), ("credit", lambda: _credit(post)), ("mac", _mac), ("gates", _gates), ("rx_order", _rx_order),
+                     ("disk", lambda: _disk_and_record(now=now)), ("change_book", _changes_name_commits), ("india_scoring", _india_scoring),
+                     ("fills", _fills_against_candles), ("costs", _costs_all_coins),
                      ("agree", lambda: _agree(now)), ("book500", _book500), ("india_book", _india_book),
                      ("kite", lambda: _kite_refusals(now))):
         try:
             items += fn()
         except Exception as exc:  # noqa: BLE001  one check failing is itself a finding, never a crash
-            items.append({"market": "both", "severity": "low", "source": name, "what": f"the {name} check could not run ({type(exc).__name__})"})
+            items.append({"market": "both", "severity": "high" if name in MONEY_CHECKS else "medium", "source": name, "cannot_look": True,
+                          "what": f"the {name} check could not run ({type(exc).__name__}), so what it watches is not checked"})
     try:                                                   # 7 Nov: a sleeping Mac is one line, planned or not, never nine faults
         items = fold_sleep(items, asleep_windows(now), downtime_notes(now), now)
     except Exception:  # noqa: BLE001

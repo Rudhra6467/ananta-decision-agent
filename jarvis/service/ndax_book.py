@@ -64,6 +64,21 @@ def fx(get=None) -> float:
     return _CACHE["fx"]
 
 
+def fx_or_last(j, get=None) -> tuple[float, str | None]:
+    """15 Nov 2026 (audit repair 6, G-42; Madhav's yes of 14 Nov 09:59, through the lock's change door): a Bank of Canada outage stopped
+    the night's step, though the dial reads ratios and needs no rate; the fills are NDAX's own CAD prices. The last rate it had is used
+    instead, and the step says so. With no rate ever kept, it stops as before."""
+    try:
+        r = fx(get)
+        _put(j, "fx_last", {"rate": r, "t": int(time.time())})
+        return r, None
+    except Exception:  # noqa: BLE001
+        last = _get(j, "fx_last") or {}
+        if not last.get("rate"):
+            raise
+        return float(last["rate"]), f"the Bank of Canada could not be read; the rate of {time.strftime('%Y-%m-%d', time.gmtime(int(last.get('t') or 0)))} was used"
+
+
 def quote(coin: str, inst: dict, get=None) -> dict | None:
     """NDAX's best bid and ask in CAD now."""
     k = inst.get(coin)
@@ -197,7 +212,7 @@ def step(j, get=None, now: float | None = None) -> dict:
     _table(j)
     now = int(now or time.time())
     inst = instruments(get)
-    rate = fx(get)
+    rate, rate_note = fx_or_last(j, get)
     C, tier_a = _coins(j, inst, rate)
     if "BTC" not in C:
         return {"error": "no Bitcoin history"}
@@ -211,8 +226,8 @@ def step(j, get=None, now: float | None = None) -> dict:
     Q: dict = {}
 
     def q(c):
-        if c not in Q:
-            Q[c] = quote(c, inst, get)
+        if c not in Q:                                       # 15 Nov (G-42): a missing quote is asked once more before a sale waits
+            Q[c] = quote(c, inst, get) or quote(c, inst, get)
         return Q[c]
 
     def fill(c, side, sleeve, qty, why):
@@ -232,13 +247,18 @@ def step(j, get=None, now: float | None = None) -> dict:
         return round(v, 2)
 
     out: dict = {"bar": B._day(bar_t), "usdcad": rate, "sold": [], "bought": [], "skipped": []}
+    if rate_note:
+        out["usdcad_note"] = rate_note
     closed_pnls = []
+    waiting = s.setdefault("sell_next", {})                  # 15 Nov (G-42): sales that found no quote, sold first at the next step
 
     def sell(c, why):
         p = s["pos"][c]
         if not q(c):
-            out["skipped"].append(f"{c}: no NDAX quote to sell")
+            out["skipped"].append(f"{c}: no NDAX quote to sell; it is sold first at the next step")
+            waiting.setdefault(c, {"why": why, "day": B._day(bar_t)})
             return
+        waiting.pop(c, None)
         px, fee = fill(c, "SELL", p["sleeve"], p["qty"], why)
         got = p["qty"] * px - fee
         s["cash"] += got
@@ -251,6 +271,12 @@ def step(j, get=None, now: float | None = None) -> dict:
         out["sold"].append(f"{c} ({why})")
         del s["pos"][c]
 
+    # 0. a sale that waited for a quote goes first, for the reason it was decided (15 Nov, G-42)
+    for c, w in list(waiting.items()):
+        if c in s["pos"]:
+            sell(c, f"{w.get('why')} (decided on the {w.get('day')} close; NDAX had no quote then)")
+        else:
+            waiting.pop(c, None)
     # 1. exits
     for c in list(s["pos"]):
         p = s["pos"][c]

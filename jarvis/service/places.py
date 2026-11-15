@@ -661,7 +661,14 @@ def home_notices(j, c: dict) -> list[dict]:
             status=(str(run.get("checked") or "").capitalize() + ".") if run.get("checked") else None,
             actions=[K.act("status", "What runs, and when", K.place("proof"), "The clocks and checks behind Ananta, and when each runs.", icon="clock")],
             ask_q="Is everything running? What is down, since when, and what does it affect?")))
-    under = S.gap_words(S._safe(S.book_gap, j, c["b"], default=[]) or [])
+    gap = S.book_gap_checked(j, c["b"])                    # 12 Nov (G-43, audit repair 6): an error is said, never read as "no gap"
+    if gap is None:
+        nid = "gap:" + day
+        out.append(K.notice(nid, "The book's holdings could not be checked just now", K.notice_sheet(
+            "The book's holdings could not be checked just now", S.GAP_UNCHECKED + ".", nid,
+            actions=[K.act("coins", "See the coins it holds", K.place("coins"), "Each coin, how much, and what it is worth.", icon="bars")],
+            ask_q="Why could the book's holdings not be checked against its trades?")))
+    under = S.gap_words(gap) if gap else None
     if under:
         nid = "gap:" + day
         out.append(K.notice(nid, "The book's trades and its coins do not agree", K.notice_sheet(

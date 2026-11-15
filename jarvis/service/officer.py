@@ -346,10 +346,46 @@ def mark_clean_night(j, f: dict) -> dict:
 
     from jarvis import selfcheck
 
+    import calendar
+
     dial = f.get("dial") or {}
     why = []
     if not dial.get("candle") or dial.get("candle") != dial.get("book_stepped_on"):
         why.append(f"the note read the dial at {dial.get('candle')}, the book stepped on {dial.get('book_stepped_on')}")
+    # 15 Nov 2026 (audit repair 6, G-42): a night on which the day's candle never came read the same old candle twice and was still clean.
+    # The note is written on the UTC day after its candle, so a clean night is one that stepped on the day before the note's own day.
+    try:
+        want = time.strftime("%Y-%m-%d", time.gmtime(calendar.timegm(time.strptime(str(f["day"]), "%Y-%m-%d")) - 86400))
+    except (KeyError, ValueError):
+        want = None
+    if want and dial.get("book_stepped_on") and dial.get("book_stepped_on") != want:
+        why.append(f"the book stepped on the {dial.get('book_stepped_on')} candle, not last night's ({want}): the night's step did not run")
+    # 15 Nov 2026 (audit repair 6, G-33): the night test graded the note against facts from the same code, so a note that missed the night
+    # (G-25: no signals said, three raised) was marked right and the night clean. Counted again here by another road, the candle's own
+    # stamp, the note may not hold fewer signals or closes than the candle does.
+    bg = f.get("background") or {}
+    if want and isinstance(bg.get("signals_today_by_rule"), dict):
+        c0 = calendar.timegm(time.strptime(want, "%Y-%m-%d"))
+        books = "watch NOT LIKE 'RANDOM%' AND watch NOT LIKE 'JARVIS_RANDOM%'"
+        try:
+            sig = j.db.execute(f"SELECT COUNT(*) FROM evidence_trades WHERE signal_t=? AND {books}", (c0,)).fetchone()[0]
+            clo = j.db.execute(f"SELECT COUNT(*) FROM evidence_trades WHERE status='CLOSED' AND exit_t=? AND {books}", (c0,)).fetchone()[0]
+        except Exception:  # noqa: BLE001  no trades table (a fresh database): nothing to count
+            sig = clo = None
+        said_sig = sum(int(v or 0) for v in bg["signals_today_by_rule"].values())
+        said_clo = sum(int((v or {}).get("n") or 0) if isinstance(v, dict) else int(v or 0) for v in (bg.get("closed_today_by_rule") or {}).values())
+        if sig is not None and sig > said_sig:
+            why.append(f"the note counted {said_sig} rule signal{'s' if said_sig != 1 else ''} on the {want} candle, which holds {sig}")
+        if clo is not None and clo > said_clo:
+            why.append(f"the note counted {said_clo} closed measuring trade{'s' if said_clo != 1 else ''} on the {want} candle, which holds {clo}")
+    try:                                                     # 15 Nov (G-42): a sale that found no NDAX quote is still to be done
+        from jarvis.service import ndax_book
+
+        waiting = (ndax_book._get(j, "state") or {}).get("sell_next") or {}
+    except Exception:  # noqa: BLE001
+        waiting = {}
+    if waiting:
+        why.append("a sale is waiting for an NDAX quote: " + ", ".join(sorted(waiting)))
     try:
         db = [r[2] for r in j.db.execute("PRAGMA database_list").fetchall() if r[1] == "main"][0]
         found = selfcheck._book500(Path(db)) if db else []

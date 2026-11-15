@@ -818,13 +818,20 @@ def recent(j, days: int = 7) -> dict:
     for r in rows:
         r["class_why"] = MISS_CLASSES.get(r["miss_class"] or "", "")
     # 10 Nov 2026 (the outsider's review): a coin in two lists (your ten and the wide list) was counted twice in the all-lists figures
-    seen, once = set(), []
-    for r in sorted(rows, key=lambda r: r["tier"] == "UNIV"):       # the coin's own list first
+    # 15 Nov 2026 (audit repair 6, G-48): the lists label one coin-day apart (AVAX on 9 Nov: caught in your ten, seen in the wide list), so
+    # counted once it took whichever came first. Counted once it now takes the best label any list gave it (caught, then seen, then
+    # missed), and says which lists disagreed. The rows stay one per list: pre-registered review #38 reads each list's rows.
+    rank = {"CAUGHT": 0, "SEEN": 1, "MISSED": 2}
+    seen, once, labels = set(), [], {}
+    for r in rows:
+        labels.setdefault((r["day"], r["coin"]), {})[r["tier"]] = r["label"]
+    for r in sorted(rows, key=lambda r: (rank.get(r["label"], 3), r["tier"] == "UNIV")):   # the best label first, then the coin's own list
         if (r["day"], r["coin"]) not in seen:
             seen.add((r["day"], r["coin"]))
             once.append(r)
+    disagree = {f"{d} {c}": v for (d, c), v in labels.items() if len(set(v.values())) > 1}
     classes = {k: sum(1 for r in once if r["miss_class"] == k) for k in MISS_CLASSES}
-    catches = {"all_tiers": _catch_split(once),
+    catches = {"all_tiers": _catch_split(once), "lists_disagree": disagree,
                "meaning": "CAUGHT_TRADE_OK: a book allowed to trade was in the move; CAUGHT_MONITOR_ONLY: only watches that monitor were "
                           "(won't take again, random, parked or retired); CAUGHT_UNSCORED: not scored yet."}
     if show:

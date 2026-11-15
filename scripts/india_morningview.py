@@ -113,7 +113,22 @@ def _facts_for_prompt(f: dict) -> str:
 
 
 def _numbers(s: str) -> set[str]:
-    return {x.replace(",", "") for x in re.findall(r"\d[\d,]*\.?\d*", s)}
+    return {x.replace(",", "").rstrip(".") for x in re.findall(r"\d[\d,]*\.?\d*", s)}
+
+
+def stray_numbers(note: str, facts: dict) -> list[str]:
+    """15 Nov 2026 (audit repair 6, G-68): the check fired on every note (18 of 18), so nobody read it: a figure the note rounds (Rs 2,53,346
+    from 253346.12; 14.1% from 14.07) and a number ending a sentence ("100.") were taken for figures not in the facts. A figure counts as
+    found when a fact rounds to it."""
+    have = set()
+    for x in _numbers(json.dumps(facts, default=str)):
+        have.add(x)
+        try:
+            v = float(x)
+        except ValueError:
+            continue
+        have |= {str(round(v)), str(int(v)), f"{v:.1f}", f"{v:.2f}", f"{v / 1000:.1f}", f"{v / 100000:.2f}", f"{v / 10000000:.2f}"}
+    return [n for n in sorted(_numbers(note)) if n not in have and len(n.replace(".", "")) > 2]
 
 
 def _parse_review(raw: str) -> dict | None:
@@ -184,8 +199,7 @@ def morning() -> int:
     lessons = "\n".join(f"- {x}" for x in (f.get("lessons_for_writer") or [])) or "- none yet"
     note = claude(WRITER.format(lessons=lessons, facts=_facts_for_prompt(f)), MODEL)
     # a cheap honesty check by code before the reviewer: numbers in the note that appear nowhere in the facts are flagged in the log
-    fact_nums = _numbers(json.dumps(f, default=str))
-    stray = [n for n in _numbers(note) if n not in fact_nums and len(n) > 2]
+    stray = stray_numbers(note, f)
     if stray:
         print(f"morning view: numbers not in the facts: {stray[:8]}")
     review = {"corrections": [], "missing": [], "verdict": "", "scenarios": None, "basis": ""}
@@ -213,7 +227,9 @@ def morning() -> int:
         sc = None
     review_text = ((review.get("verdict") or "") + (" Corrections: " + "; ".join(review["corrections"][:4]) if review.get("corrections") else "")
                    + (" Missing: " + "; ".join(review["missing"][:3]) if review.get("missing") else "")
-                   + (f" The reviewer's own odds: up {100 * sc['bull']:.0f}%, down {100 * sc['bear']:.0f}%, flat {100 * sc['neutral']:.0f}% ({review.get('basis', '')})." if sc else "")).strip()
+                   + (f" The reviewer's own odds: up {100 * sc['bull']:.0f}%, down {100 * sc['bear']:.0f}%, flat {100 * sc['neutral']:.0f}% ({review.get('basis', '')})." if sc else "")
+                   # 15 Nov 2026 (G-68): a figure the facts do not hold is said where the note is read, not only in a log nobody reads
+                   + (" Figures in the note that the facts do not hold: " + ", ".join(stray[:5]) + "." if stray else "")).strip()
     res = _post(INDIA + "/v3/morning/words", {"session": session, "words": note, "review": review_text, "reviewer_scenarios": sc, "reviewer_basis": review.get("basis", "")})
     print(f"morning view {session}: {len(note.split())} words; reviewer odds {sc}; ledger {res.get('reviewer_scenarios', {}).get('written') if res.get('reviewer_scenarios') else 'none'}")
     head = (f.get("lines") or {}).get("headline") or ""

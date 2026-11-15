@@ -301,7 +301,17 @@ def book_gap(j, b: dict) -> list[dict]:
     return out
 
 
-def gap_words(gap: list[dict]) -> str | None:
+GAP_UNCHECKED = "The book's holdings could not be checked against its trades just now, so the value shown is not checked"
+
+
+def book_gap_checked(j, b: dict) -> list[dict] | None:
+    """book_gap, or None when it could not run. 12 Nov 2026 (the keen audit, G-43): every screen read an error as 'no gap'."""
+    return _safe(book_gap, j, b, default=None)
+
+
+def gap_words(gap: list[dict] | None) -> str | None:
+    if gap is None:
+        return GAP_UNCHECKED + "."
     if not gap:
         return None
     bits = [f"{g['qty']:.4g} {g['coin']}" + (f" bought on {_dw(g['day'])} for {_cad(g['paid_cad'])}" if g.get("day") else "") for g in gap]
@@ -347,7 +357,7 @@ def _account_points(j, b: dict, pos: list[dict], brake: str | None, gap: list[di
     coins = sum(p["value"] or 0 for p in pos)
     pts = [f"{_cad(value)}, all in cash: no coins held" if not pos
            else f"{_cad(value)}: {_cad(coins)} in {len(pos)} coin{'s' if len(pos) != 1 else ''}, {_cad(cash)} in cash"]
-    if gap:                                                 # said second, so it shows without "Show more": the value above is not the whole story
+    if gap is None or gap:                                  # said second, so it shows without "Show more": the value above is not the whole story
         pts.append(gap_words(gap).rstrip("."))
     if isinstance(ret, (int, float)):
         pts.append(f"{'Down' if ret < 0 else 'Up'} {abs(ret):.1f}% since it started with {_cad(_start_cad(), 0)} on {_dw(b.get('started'))}")
@@ -497,7 +507,7 @@ def today(j) -> dict:
     why = dial.get("why") or []
     nums = _dial_numbers(dial)
     closes = _safe(feed.last_closes, j, default={}) or {}
-    gap = _safe(book_gap, j, b, default=[]) or []
+    gap = book_gap_checked(j, b)
     is_open = (dial.get("dial") or 0) > 0
     # 10 Nov (Madhav): every card is short points in simple words; the screen shows two and "Show more" opens the rest. "text" stays for
     # older app builds. Each card's kind is unique: the app keys on it.
@@ -597,7 +607,7 @@ def money(j) -> dict:
               if closed_dial else f"Buying is on. The core (the Bitcoin and Ethereum part) aims for {cp.get('words') or 'its targets'}.")
              + (f" {brake[0].upper() + brake[1:]}." if brake else "")
              + (" The coins held stay until their own rules sell." if pos else ""))
-    under = gap_words(_safe(book_gap, j, b, default=[]) or [])
+    under = gap_words(book_gap_checked(j, b))
     closed = [{"coin": c.get("coin"), "in": _dw(c.get("in")), "out": _dw(c.get("out")), "pnl_words": _cad(c.get("pnl_cad")), "pnl": c.get("pnl_cad"),
                "pct": c.get("pct"), "why": _why(c.get("why"))} for c in (b.get("closed") or [])][::-1]
     return {"ready": True, "paper": True, "market": "crypto", "ccy": "CAD",
@@ -908,8 +918,8 @@ def account_chart(j) -> dict:
              + (f"Over the same weeks Bitcoin just held is {pct(hold[-1])} and the hurdle (Bitcoin held only above its 50-day exponential average) is {pct(hurdle[-1])}, "
                 f"both counted from {_dw(exposure.START)}. " if hold[-1] is not None else "")
              + f"Drawn from {len(dates) - 1} recorded night{'s' if len(dates) != 2 else ''} and the start.")
-    gap = _safe(book_gap, j, b, default=[]) or []
-    if gap:
+    gap = book_gap_checked(j, b)
+    if gap is None or gap:
         words += " " + gap_words(gap)
     for r in fixes:                                          # a correction is said: the nights before it were recorded without that money
         words += (f" Corrected on {_dw(r.get('day'))}: {_cad(r.get('cash_added'))} from a trade whose sale had not been recorded; "

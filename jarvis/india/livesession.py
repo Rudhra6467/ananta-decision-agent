@@ -176,7 +176,50 @@ def index_bars(key: str, interval: str, start: dt.date, end: dt.date, fetch=None
     _BARS[ck] = (time.time(), rows)
     while len(_BARS) > 64:
         _BARS.pop(next(iter(_BARS)))
+    try:                                          # 15 Nov 2026 (audit repair 6, G-22): a thin last quarter-hour is noticed, never drawn as fact
+        for day, frm in thin_close(rows).items():
+            record_thin_close(key, day, frm)
+    except Exception:  # noqa: BLE001  noticing never stops a chart
+        pass
     return rows
+
+
+THIN_FILE = DATA / "manifests" / "thin_close.jsonl"
+
+
+def thin_close(rows: list[list], min_flat: int = 8) -> dict[str, str]:
+    """15 Nov 2026 (audit repair 6, G-22): the Nifty and Bank Nifty day charts held one price from 15:15 and then jumped to the official close in
+    the last bar (the feed's thin prints at the close; nothing noticed). Per IST day: the time a run of at least `min_flat` one-price bars
+    after 15:10 began, when the day's last bar then differs from it."""
+    by: dict[str, list] = {}
+    for r in rows:
+        t = dt.datetime.fromtimestamp(r[0], IST)
+        if (t.hour, t.minute) >= (15, 10):
+            by.setdefault(t.strftime("%Y-%m-%d"), []).append((t, r[4]))
+    out = {}
+    for day, bars in by.items():
+        if len(bars) < min_flat + 1:
+            continue
+        body, last = bars[:-1], bars[-1]
+        run = 1
+        for i in range(len(body) - 1, 0, -1):
+            if body[i][1] == body[i - 1][1]:
+                run += 1
+            else:
+                break
+        if run >= min_flat and last[1] != body[-1][1]:
+            out[day] = body[len(body) - run][0].strftime("%H:%M")
+    return out
+
+
+def record_thin_close(key: str, day: str, frm: str, path: Path | None = None) -> None:
+    path = path or THIN_FILE
+    seen = [json.loads(x) for x in path.read_text().splitlines() if x.strip()] if path.exists() else []
+    if any(x.get("index") == key and x.get("day") == day for x in seen):
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as f:
+        f.write(json.dumps({"index": key, "day": day, "flat_from": frm, "seen_at": int(time.time())}) + "\n")
 
 
 def quotes(symbols: list[str], fetch=None) -> dict:

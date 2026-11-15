@@ -317,6 +317,16 @@ def status(j) -> dict:
             "errors": STATE.get("errors"), "source": "Binance public market data (spot, against USDT)"}
 
 
+def _waiting_for_btc(j, now: float) -> bool:
+    """Bitcoin's candle of the UTC day just ended is not stored yet (15 Nov 2026, G-42)."""
+    con = _con(j)
+    try:
+        t = con.execute("SELECT MAX(t) FROM d1 WHERE coin='BTC'").fetchone()[0]
+    finally:
+        con.close()
+    return (t or 0) < int(now // DAY * DAY) - DAY
+
+
 def cycle(j, now: float | None = None, on_daily: Callable | None = None) -> dict:
     """One 5-minute round: registry + daily candles after the UTC close, then 5-minute candles for every coin."""
     from jarvis.service import registry
@@ -324,6 +334,28 @@ def cycle(j, now: float | None = None, on_daily: Callable | None = None) -> dict
     now = now or time.time()
     out: dict = {}
     reg = registry.load(j)
+    if reg.get("built_at") and int(reg["built_at"] // DAY) >= int(now // DAY) and now % DAY >= 300 and _waiting_for_btc(j, now):
+        # 15 Nov 2026 (audit repair 6, G-42): the daily pull ran once a UTC day, so a night whose Bitcoin candle never came was skipped
+        # in silence. Until it is in, Bitcoin and Ether are pulled again every 15 minutes; when it lands, the night's work runs again
+        # (run_daily: every step catches up on its own).
+        con = _con(j)
+        try:
+            last_try = float(_meta(con, "daily_retry") or 0)
+        finally:
+            con.close()
+        if now - last_try >= 900:
+            con = _con(j)
+            try:
+                _meta(con, "daily_retry", str(int(now)))
+                con.commit()
+            finally:
+                con.close()
+            out["daily_retry"] = pull_daily(j, ["BTC", "ETH"], now)
+            if not _waiting_for_btc(j, now) and on_daily:
+                try:
+                    out["on_daily"] = on_daily(j)
+                except Exception as exc:  # noqa: BLE001
+                    out["on_daily_error"] = str(exc)[:200]
     if not reg.get("built_at") or int(reg["built_at"] // DAY) < int(now // DAY) and now % DAY >= 300:
         if not reg.get("built_at"):
             out["registry"] = registry.build(j)                        # first time: membership, then tiers once history is in

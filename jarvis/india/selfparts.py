@@ -170,6 +170,10 @@ def managed_book_check(paper: Path | None = None) -> list[dict]:
     base = (paper or INDIA / "paper") / "managed"
     st, view = _json(base / "state.json"), _json(base / "view.json")
     if not isinstance(st, dict):
+        # 15 Nov 2026 (audit repair 6, G-43): a book that exists but cannot be read is said, and alarms; no book yet is nothing to check
+        if base.exists() and (base / "state.json").exists():
+            return [{"market": "india", "severity": "high", "source": "India book check", "cannot_look": True,
+                     "what": "the India book check could not read the managed book's state, so its value and holdings are not checked"}]
         return []
     out = []
     item = lambda w, sev="high": {"market": "india", "severity": sev, "source": "India book check", "what": w}   # noqa: E731
@@ -205,4 +209,50 @@ def managed_book_check(paper: Path | None = None) -> list[dict]:
     for sym, n in net.items():
         if n > 0 and sym not in pos and not any(t.get("symbol") == sym and t.get("side") == "SELL" for t in trades):
             out.append(item(f"the managed book bought {n} {sym} and never sold them, yet does not hold them"))
+    return out
+
+
+def scoring_and_feed_checks(now: float | None = None, paper: Path | None = None, manifests: Path | None = None) -> list[dict]:
+    """15 Nov 2026 (audit repair 6): two kinds the keen audit named get their automatic check. G-14: for the options line's trades decided at
+    the open, the scored entry stood 109 to 199 index points from the decision row's own entry (harsher than the decision, so a check, not a
+    fault). G-22: the day charts held one price from 15:15 and jumped to the close. Read-only; findings of the last 7 days."""
+    now = now or time.time()
+    out = []
+    sp1 = (paper or INDIA / "paper") / "sp1"
+    try:
+        dec = {}
+        for x in (sp1 / "decisions.jsonl").read_text().splitlines():
+            if x.strip():
+                d = json.loads(x)
+                dec[d.get("hash")] = d
+        far = []
+        for x in (sp1 / "outcomes.jsonl").read_text().splitlines():
+            if not x.strip():
+                continue
+            o = json.loads(x)
+            d, e = dec.get(o.get("decision_hash")) or {}, (o.get("index_proxy") or {}).get("entry")
+            est = d.get("entry_estimate")
+            try:
+                at = time.mktime(time.strptime(str(o.get("scored_at"))[:19], "%Y-%m-%dT%H:%M:%S"))
+            except ValueError:
+                at = 0
+            if isinstance(e, (int, float)) and isinstance(est, (int, float)) and est and at >= now - 7 * 86400 and abs(e / est - 1) > 0.001:
+                far.append((abs(e - est), o.get("date"), o.get("index"), est, e))
+        if far:
+            gap, day, ix, est, e = max(far)
+            out.append({"market": "india", "severity": "medium", "source": "options scoring",
+                        "what": f"{len(far)} options trade{'s' if len(far) != 1 else ''} scored this week at an entry more than 0.1% from the decision's own "
+                                f"(the widest: {ix} on {day}, decided at {est:,.2f}, scored at {e:,.2f}, {gap:,.0f} points apart)"})
+    except (OSError, ValueError):
+        pass
+    try:
+        for x in ((manifests or INDIA / "manifests") / "thin_close.jsonl").read_text().splitlines():
+            r = json.loads(x) if x.strip() else {}
+            if r and float(r.get("seen_at") or 0) >= now - 7 * 86400:
+                name = {"NIFTY 50": "Nifty", "NIFTY BANK": "Bank Nifty"}.get(r.get("index"), r.get("index"))
+                out.append({"market": "india", "severity": "low", "source": "index feed",
+                            "what": f"the {name} day chart of {r.get('day')} held one price from {r.get('flat_from')} IST and jumped to the close in the last "
+                                    "bar: the feed's prints were thin at the close, so its last quarter-hour is not a true path"})
+    except (OSError, ValueError):
+        pass
     return out

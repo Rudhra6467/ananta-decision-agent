@@ -550,12 +550,13 @@ def test_clean_nights_count_in_a_row_and_start_again_after_a_bad_night(tmp_path)
 
     j = JJ()
     j.db.execute("CREATE TABLE engine_state (k TEXT PRIMARY KEY, v TEXT)")
-    ok = {"dial": {"candle": "2026-11-11", "book_stepped_on": "2026-11-11"}}
+    # 15 Nov 2026 (audit repair 6, G-42): the note is written on the UTC day after its candle, as on every real night
+    ok = {"dial": {"candle": "2026-11-10", "book_stepped_on": "2026-11-10"}}
     assert officer.mark_clean_night(j, {**ok, "day": "2026-11-11"})["clean"]
-    bad = officer.mark_clean_night(j, {"day": "2026-11-12", "dial": {"candle": "2026-11-11", "book_stepped_on": "2026-11-12"}})
-    assert not bad["clean"] and "stepped on 2026-11-12" in bad["why"][0]
-    for d in ("2026-11-13", "2026-11-14"):
-        assert officer.mark_clean_night(j, {"day": d, "dial": {"candle": d, "book_stepped_on": d}})["clean"]
+    bad = officer.mark_clean_night(j, {"day": "2026-11-12", "dial": {"candle": "2026-11-10", "book_stepped_on": "2026-11-11"}})
+    assert not bad["clean"] and "stepped on 2026-11-11" in bad["why"][0]
+    for d, c in (("2026-11-13", "2026-11-12"), ("2026-11-14", "2026-11-13")):
+        assert officer.mark_clean_night(j, {"day": d, "dial": {"candle": c, "book_stepped_on": c}})["clean"]
     j.db.execute("INSERT INTO engine_state VALUES ('clean_night:2026-11-09', ?)", (_j.dumps({"clean": True}),))     # before the freeze: not counted
     cn = officer.clean_nights(j)
     assert cn["in_a_row"] == 2 and cn["need"] == 30 and cn["nights_marked"] == 4 and cn["last_break"]["day"] == "2026-11-12"

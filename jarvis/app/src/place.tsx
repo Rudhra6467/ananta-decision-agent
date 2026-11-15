@@ -807,14 +807,20 @@ function Counts({ p }: { p: any }) {
 // ---------------------------------------------------------------------------------------------------- 9 · notice card (closable; this device remembers)
 const DKEY = "ananta_notices_closed";
 let closed: string[] | null = null;
+const closedSubs = new Set<(v: string[]) => void>();
+export function closeNotice(id: string) {
+  closed = [...(closed ?? []), id].slice(-80);
+  closedSubs.forEach((f) => f(closed!));
+  SecureStore.setItemAsync(DKEY, JSON.stringify(closed)).catch(() => {});
+}
 function useClosed(): [string[], (id: string) => void] {
   const [v, setV] = useState<string[]>(closed ?? []);
   useEffect(() => {
-    if (closed) return;
-    SecureStore.getItemAsync(DKEY).then((s) => { closed = s ? JSON.parse(s) : []; setV(closed!); }).catch(() => { closed = []; });
+    closedSubs.add(setV);
+    if (!closed) SecureStore.getItemAsync(DKEY).then((s) => { closed = s ? JSON.parse(s) : []; setV(closed!); }).catch(() => { closed = []; });
+    return () => { closedSubs.delete(setV); };
   }, []);
-  const add = (id: string) => { closed = [...(closed ?? []), id].slice(-80); setV(closed); SecureStore.setItemAsync(DKEY, JSON.stringify(closed)).catch(() => {}); };
-  return [v, add];
+  return [v, closeNotice];
 }
 function Notices({ p }: { p: any }) {
   const [gone, close] = useClosed();
@@ -822,10 +828,16 @@ function Notices({ p }: { p: any }) {
   if (!items.length) return null;
   return (
     <View style={{ gap: 8, marginTop: 4 }}>
+      {/* 14 Nov 2026 (Madhav: "aren't these notifications? ... we need a box for it"): a titled section */}
+      {p.title ? <Text accessibilityRole="header" style={[T.section, { color: C.text, paddingTop: 4, paddingBottom: 4 }]}>{p.title}</Text> : null}
       {items.map((n: any) => (
         <View key={n.id} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 16, paddingRight: 6, paddingVertical: 6, borderRadius: 16, backgroundColor: C.card, borderWidth: 1, borderColor: C.line }}>
           <Pressable onPress={() => go(n.to)} accessibilityRole="button" style={{ flex: 1, minHeight: 32, justifyContent: "center" }}>
-            <Text style={{ color: C.text, fontSize: 14, lineHeight: 20, fontWeight: "500" }}>{n.line}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <Icon name="info" size={18} color={C.gold} />
+              <Text style={{ flex: 1, color: C.text, fontSize: 14, lineHeight: 20, fontWeight: "500" }}>{n.line}</Text>
+              {n.to ? <Icon name="chev" size={18} /> : null}
+            </View>
           </Pressable>
           <Pressable onPress={() => close(n.id)} accessibilityRole="button" accessibilityLabel="Close this notice" style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
             <Icon name="close" size={18} />
@@ -1165,7 +1177,8 @@ function ItemSheet({ s }: { s: any }) {
 // towards the end". So each choice is a full-width row: tap the row to do it; tap the arrow at its end to read, in a few plain words, what
 // it does (nothing happens until the row itself is tapped). Asking Ananta is the last row. An open-list item's postpone days are rows too.
 function AnswerList({ s, onDone }: { s: any; onDone?: () => void }) {
-  const ans: any[] = s.key && Array.isArray(s.answers) ? s.answers : [];
+  // 14 Nov 2026: a Heads-up sheet's rows go somewhere ("to") or hide the notice ("close_notice"); they need no key
+  const ans: any[] = Array.isArray(s.answers) && (s.key || s.answers.every((a: any) => a.to || a.close_notice)) ? s.answers : [];
   const talk = s.primary ? [{ id: "talk", label: s.primary.label, icon: "ask", to: s.primary.to,
                               explain: s.primary.explain || "Opens Ask with this, so you can ask what it means and what happens next." }] : [];
   const rows: any[] = [...ans, ...talk];
@@ -1177,6 +1190,8 @@ function AnswerList({ s, onDone }: { s: any; onDone?: () => void }) {
   const act = async (a: any) => {
     if (busy || said) return;
     if (a.id === "talk") { const t = a.to; closeSheet(); go(t); return; }
+    if (a.to && !s.key) { const t = a.to; closeSheet(); go(t); return; }                 // 14 Nov 2026: a Heads-up row that goes somewhere
+    if (a.close_notice) { closeNotice(a.close_notice); tap(); closeSheet(); showToast("Hidden from Home"); return; }
     setBusy(rid(a));
     setErr(null);
     try {
@@ -1307,7 +1322,7 @@ export function Parts({ data, needs }: { data: any; needs?: any }) {
   const chipPart = raw.find((p) => p.t === "chips");
   const [order, setOrder] = useState<string>(chipPart?.sort?.[0]?.id || "recent");
   const parts: any[] = ordered(raw, chipPart, order);
-  const [on, setOn] = useState<string>(chipPart?.items?.[0]?.id || "all");
+  const [on, setOn] = useState<string>(chipPart?.on || chipPart?.items?.[0]?.id || "all");   // 14 Nov 2026: Activity opens on Trades
   const first = chipPart?.items?.[0]?.id || "all";
   const shown = (p: any) => {
     if (!chipPart || p.t === "chips") return true;

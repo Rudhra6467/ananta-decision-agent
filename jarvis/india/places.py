@@ -303,7 +303,7 @@ def _events(full: bool = True) -> list[tuple]:
 def activity(full: bool = True) -> dict:
     ev = _events(full)
     parts = [K.chips([{"id": "all", "label": "All"}, {"id": "trade", "label": "Trades"}, {"id": "change", "label": "Changes"}, {"id": "note", "label": "Plans"},
-                      {"id": "fix", "label": "Fixes"}, {"id": "you", "label": "For you"}], sort=K.SORT_DATED),   # 14 Nov (Madhav): Recents ⌄
+                      {"id": "fix", "label": "Fixes"}, {"id": "you", "label": "For you"}], sort=K.SORT_DATED, on="trade" if any(r.get("tag") == "trade" for _d, _o, r in ev) else None),   # 14 Nov (Madhav): Recents ⌄; opens on Trades when there are any
              {"t": "needs", "title": "Waiting for you", "tags": ["you"]}]
     days: dict[str, list] = {}
     for d, _o, r in ev:
@@ -351,19 +351,84 @@ def _options_caption(t: dict, m: dict) -> str:
     return K.clip(p.get("sub") or ("No open trade" if not ob.get("open") else f"{len(ob['open'])} open"), 6, 30)
 
 
+def _toronto(day: str, hhmm: str = "09:15") -> str:
+    """An India-time moment as Toronto reads it ('Sun 10:45 pm')."""
+    try:
+        from zoneinfo import ZoneInfo
+        h, mi = (int(x) for x in hhmm.split(":"))
+        d = dt.date.fromisoformat(str(day)[:10])
+        at = dt.datetime(d.year, d.month, d.day, h, mi, tzinfo=ZoneInfo("Asia/Kolkata")).astimezone(ZoneInfo("America/Toronto"))
+        return f"{at:%a} {at.hour % 12 or 12}:{at:%M} {'am' if at.hour < 12 else 'pm'}"
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _down_story(t: dict) -> tuple[str, str, str]:
+    """What is down, in plain words: (title, story, when it was checked). The Zerodha sign-in gets its own story (14 Nov 2026: the notice
+    said only '1 part down')."""
+    run = t.get("running") or {}
+    try:
+        jobs = (views.readmodel().get("jobs") or {}).get("jobs") or []
+    except Exception:  # noqa: BLE001
+        jobs = []
+    bad = [x for x in jobs if not x.get("ok")]
+    probs = " ".join("; ".join(x.get("problems") or []) for x in bad)
+    checked = str(run.get("checked") or "")
+    if re.search(r"token|sign-in|signin|NeedLogin", probs, re.I):
+        nxt = re.search(r"next sign-in automatic at ([^;(]+?)(?:\s*\(|;|$)", probs)
+        story = ("A job that saves the evening's market data found the Zerodha sign-in expired, so it saved nothing that run. "
+                 + "On a day with no market, nothing is lost. "
+                 + (f"Ananta signs in to Zerodha again by itself ({nxt.group(1).strip()}). " if nxt else "Ananta signs in to Zerodha again by itself before the next session. ")
+                 + "You only need to sign in by hand if that fails, and Ananta will tell you.")
+        return "Zerodha sign-in: one job missed", story, checked
+    names = ", ".join(str(x.get("label") or "a job").replace("_", " ") for x in bad[:3])
+    story = (f"{run.get('words') or 'A part is down'}. " + (f"The job{'s' if len(bad) != 1 else ''} affected: {names}. " if names else "")
+             + "Ananta's own check found it; it says so here until the job runs cleanly again.")
+    return str(run.get("words") or "A part is down"), story, checked
+
+
 def home_notices(t: dict, m: dict, clk: dict) -> list[dict]:
+    """Home's Heads-up (14 Nov 2026, Madhav: "aren't these notifications? ... we need a box for it ... when I click on them, only option
+    I have is ask Ananta"): each notice opens a sheet with the whole story and what he can do from it."""
     out = []
     run = t.get("running") or {}
     if not run.get("ok"):
-        out.append(K.notice("run:" + dt.date.today().isoformat(), K.clip(run.get("words"), 10, 70), K.ask("Is everything running? What is down, since when, and what does it affect?")))
+        nid = "run:" + dt.date.today().isoformat()
+        title, story, checked = _down_story(t)
+        out.append(K.notice(nid, K.clip(title, 10, 70), K.notice_sheet(
+            title, story, nid, status=(checked[:1].upper() + checked[1:] + ".") if checked else None,
+            actions=[K.act("status", "What runs, and when", K.place("proof"), "The clocks and checks behind Ananta, and when each runs.", icon="clock")],
+            ask_q="Is everything running? What is down, since when, what does it affect, and do I need to do anything?")))
     nxt = clk.get("next_session")
     if clk.get("state") in ("closed", "no_session") and nxt:
         today_in = clk.get("today_india")
         hol = today_in and dt.date.fromisoformat(today_in).weekday() < 5 and clk.get("state") == "no_session"
-        out.append(K.notice("next:" + nxt, ("Market holiday today. " if hol else "") + f"Next session {IS._dw(nxt).split(' ')[0]}, 09:15 India time", K.place("plan")))
+        nid = "next:" + nxt
+        tor = _toronto(nxt)
+        plan = (m.get("plan") or {})
+        brief = str(plan.get("brief") or "").split(" (")[0].rstrip(".").split(": ", 1)[-1]
+        story = (("The market is closed today for a holiday. " if hol else "")
+                 + f"The Indian market opens {IS._dw(nxt)} at 09:15 India time" + (f", which is {tor} in Toronto" if tor else "") + ". "
+                 + (f"The plan for that session: {brief[:1].lower() + brief[1:]}." if brief else "The plan for that session is written the evening before."))
+        out.append(K.notice(nid, ("Market holiday today. " if hol else "") + f"Next session {IS._dw(nxt).split(' ')[0]}, 09:15 India time", K.notice_sheet(
+            f"Next session: {IS._dw(nxt)}", story, nid,
+            actions=[K.act("plan", "See the plan", K.place("plan"), "What the managed book will do that session, and why.", icon="check"),
+                     K.act("morning", "See the morning view", K.place("morning"), "The market before the open: trend, the fear gauge, what to watch.", icon="sun")],
+            ask_q=f"What should I know before the session on {IS._dw(nxt)}?")))
     hs = [h for h in m.get("holdings") or [] if str(h.get("action") or "").lower() not in ("hold", "watch", "")]
     if hs:
-        out.append(K.notice("hs:" + str(t.get("session")), f"{len(hs)} suggestions on your holdings", K.place("holdings")))
+        nid = "hs:" + str(t.get("session"))
+        from collections import Counter
+        cnt = Counter(str(h.get("action") or "").lower() for h in hs)
+        words = {"add": "Add", "tidy": "Tidy up", "trim": "Trim", "reduce": "Reduce"}
+        cards = [{"label": words.get(k, k.title()), "value": str(n), "sub": "holding" if n == 1 else "holdings"} for k, n in cnt.most_common()]
+        top = sorted(hs, key=lambda h: {"reduce": 0, "trim": 1, "add": 2, "tidy": 3}.get(str(h.get("action")).lower(), 9))[:3]
+        story = ("Ananta graded each of your Zerodha holdings and has a suggestion for these. They are suggestions only: nothing is bought or sold "
+                 "in your real account. First in line: " + "; ".join(f"{_name(h.get('symbol'))}, {words.get(str(h.get('action')).lower(), h.get('action')).lower()}" for h in top) + ".")
+        out.append(K.notice(nid, f"{len(hs)} suggestions on your holdings", K.notice_sheet(
+            f"{len(hs)} suggestions on your holdings", story, nid, cards=cards,
+            actions=[K.act("holdings", "See every suggestion", K.place("holdings"), "Each holding with its grade, the suggestion and why.", icon="bars")],
+            ask_q="Of the suggestions on my holdings, which should I act on first, and why?")))
     return out[:3]
 
 
@@ -447,8 +512,9 @@ def home(full: bool = True) -> dict:
              # cash line under the big number, then the plan card
              K.today(label, line, sub, to=K.place("plan")),
              {"t": "needs", "title": "Needs you", "badge": True, "more": K.place("notices")},
-             K.rows("What Ananta did", top, more=K.tab("activity")) if top else None,
-             K.notices(home_notices(t, m, clk))]
+             # 14 Nov 2026 (Madhav): the notices are a titled section, after what needs him and before what Ananta did
+             K.notices(home_notices(t, m, clk), title="Heads-up"),
+             K.rows("What Ananta did", top, more=K.tab("activity")) if top else None]
     return K.surface("home", "india", parts, title="Home")
 
 

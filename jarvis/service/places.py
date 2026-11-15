@@ -350,7 +350,15 @@ def receipt(cl: dict, fills: list[dict]) -> dict:
           K.kvrow("Why sold", _sell_why(cl.get("why")))]
     parts = [K.hero(f"Sold {name} · {S._dw(sday)}", S._cad(pnl), change=(S._pct(pct, 2) if isinstance(pct, (int, float)) else None), tone=tone, since="on paper"),
              K.kv(g1), K.kv(g2),
-             K.link("Why did the dial close?", K.place("why")) if S._why(cl.get("why")) == "the dial closed" else None,
+             K.points([f"Ananta bought {name} because: {_buy_why(buys[-1]).lower()}." if buys else f"Ananta bought {name} on {S._dw(bday)}.",
+                       f"It sold because: {_sell_why(cl.get('why')).lower()}.",
+                       f"Result: {S._cad(pnl)} after fees, on paper." if isinstance(pnl, (int, float)) else "The result is not known yet."], title="What happened"),
+             K.points(["One trade changes no rule. The book is judged over its whole evidence window."], title="What happens next"),
+             K.rows("What you can do", [
+                 K.row("Why this trade?", "What Ananta saw then", icon="ask", to=K.ask(f"In plain words, why did the $500 book buy {name}, and why did it sell it on {S._dw(sday)}?")),
+                 K.row("What did it teach?", "The lesson, if any", icon="note", to=K.ask(f"What did the {name} trade closed on {S._dw(sday)} teach, and does it change anything?")),
+                 K.row("Flag this trade", "Tell Ananta what looks wrong", icon="flag", to=K.ask(f"I want to flag a problem with the {name} trade closed on {S._dw(sday)}. Ask me what looks wrong before you file it.")),
+                 K.row("Why did the dial close?", "What closed it", icon="info", to=K.place("why")) if S._why(cl.get("why")) == "the dial closed" else None]),
              K.trust("Paper only, at real NDAX prices.")]
     return K.page("Trade", parts, ask_q=f"Tell me about the {name} trade the $500 book closed on {S._dw(sday)}: why it was bought, why it was sold, and what it taught.")
 
@@ -613,7 +621,7 @@ def activity(j, c: dict | None = None) -> dict:
     ev = _events(j, c)
     you = you_rows(c["list"])
     parts = [K.chips([{"id": "all", "label": "All"}, {"id": "trade", "label": "Trades"}, {"id": "change", "label": "Changes"}, {"id": "note", "label": "Notes"},
-                      {"id": "fix", "label": "Fixes"}, {"id": "you", "label": "For you", "count": len(you) or None}], sort=K.SORT_DATED)]   # 14 Nov (Madhav): Recents ⌄
+                      {"id": "fix", "label": "Fixes"}, {"id": "you", "label": "For you", "count": len(you) or None}], sort=K.SORT_DATED, on="trade" if any(r.get("tag") == "trade" for _d, _o, r in ev) else None)]   # 14 Nov (Madhav): Recents ⌄; opens on Trades when there are any
     if you:
         parts.append(K.rows("Waiting for you", you, tags=["you"]))
     days: dict[str, list] = {}
@@ -641,26 +649,59 @@ def _headline(c: dict) -> tuple[str, str]:
 
 
 def home_notices(j, c: dict) -> list[dict]:
+    """Home's Heads-up, each notice opening a sheet with its story and what he can do (14 Nov 2026, Madhav, the same as India's)."""
     from jarvis.service import nightcheck
     out = []
+    day = c["now"].strftime("%Y-%m-%d")
     run = S._running(c["health"])
     if not run.get("ok"):
-        out.append(K.notice("run:" + c["now"].strftime("%Y-%m-%d"), K.clip(run.get("words"), 10, 70), K.ask("Is everything running? What is down, since when, and what does it affect?")))
+        nid = "run:" + day
+        out.append(K.notice(nid, K.clip(run.get("words"), 10, 70), K.notice_sheet(
+            K.clip(run.get("words"), 10, 70), f"{run.get('words')}. Ananta's own check found it; it says so here until it runs cleanly again.", nid,
+            status=(str(run.get("checked") or "").capitalize() + ".") if run.get("checked") else None,
+            actions=[K.act("status", "What runs, and when", K.place("proof"), "The clocks and checks behind Ananta, and when each runs.", icon="clock")],
+            ask_q="Is everything running? What is down, since when, and what does it affect?")))
     under = S.gap_words(S._safe(S.book_gap, j, c["b"], default=[]) or [])
     if under:
-        out.append(K.notice("gap:" + c["now"].strftime("%Y-%m-%d"), "The book's trades and its coins do not agree", K.ask("The book's trades and holdings do not agree. What is the difference?")))
+        nid = "gap:" + day
+        out.append(K.notice(nid, "The book's trades and its coins do not agree", K.notice_sheet(
+            "The book's trades and its coins do not agree", f"{under[:1].upper() + under[1:]}" if isinstance(under, str) else "The coins the book holds and the trades it made do not add up.", nid,
+            actions=[K.act("coins", "See the coins it holds", K.place("coins"), "Each coin, how much, and what it is worth.", icon="bars")],
+            ask_q="The book's trades and holdings do not agree. What is the difference, and does it matter?")))
     nt = S._safe(nightcheck.latest, default=None)
     if nt and nt.get("asked"):
-        out.append(K.notice("nt:" + str(nt.get("day")), f"Night test: {nt.get('right')} of {nt.get('asked')} answers right", K.tab("activity")))
+        nid = "nt:" + str(nt.get("day"))
+        wrong = len(nt.get("wrong") or [])
+        out.append(K.notice(nid, f"Night test: {nt.get('right')} of {nt.get('asked')} answers right", K.notice_sheet(
+            f"Night test: {nt.get('right')} of {nt.get('asked')} right",
+            "Each night Ananta asks itself questions about its own book and checks the answers against the record. "
+            + ("It got every one right." if not wrong else f"It got {wrong} wrong; each wrong answer is looked at the next day."), nid,
+            actions=[K.act("activity", "See the test in Activity", K.tab("activity"), "The questions, the answers and what was wrong.", icon="moon")],
+            ask_q="What did last night's test ask you, and what did you get wrong?")))
     else:
-        out.append(K.notice("nt:first", f"Night test: first run tonight, after {S._next_close_words(c['now']).replace(' Toronto', '')}", K.place("proof")))
+        nid = "nt:first"
+        when = S._next_close_words(c["now"]).replace(" Toronto", "")
+        out.append(K.notice(nid, f"Night test: first run tonight, after {when}", K.notice_sheet(
+            "Night test: the first run is tonight", f"After {when} Toronto, Ananta asks itself questions about its own book and checks the answers against the record. "
+            "The result shows here in the morning.", nid,
+            actions=[K.act("proof", "See how Ananta is checked", K.place("proof"), "Every test Ananta runs on itself.", icon="exam")])))
     note = S._officer_note(j)
     late = [r for r in (S._safe(S._repairs, j, default=[]) or []) if note and str(r.get("day") or "") >= str(note["day"])]
     if late:
-        out.append(K.notice("fix:" + str(note["day"]), "A figure in last night's note was corrected", K.tab("activity")))
+        nid = "fix:" + str(note["day"])
+        out.append(K.notice(nid, "A figure in last night's note was corrected", K.notice_sheet(
+            "A figure in last night's note was corrected", "A number in Ananta's nightly note was wrong when it was written and has been corrected. "
+            "The note in Activity now says the right figure.", nid,
+            actions=[K.act("activity", "See the corrected note", K.tab("activity"), "The note with the corrected figure beside it.", icon="note")],
+            ask_q="Which figure in last night's note was corrected, and why was it wrong?")))
     fails = [x for x in (c["plan"].get("checks") or []) if x.get("state") == "FAIL"]
     if fails:
-        out.append(K.notice("chk:" + c["now"].strftime("%Y-%m-%d"), f"{len(fails)} check{'s' if len(fails) != 1 else ''} fail{'' if len(fails) != 1 else 's'} tonight", K.ask("Which of your checks fail today, and why?")))
+        nid = "chk:" + day
+        out.append(K.notice(nid, f"{len(fails)} check{'s' if len(fails) != 1 else ''} fail{'' if len(fails) != 1 else 's'} tonight", K.notice_sheet(
+            f"{len(fails)} check{'s' if len(fails) != 1 else ''} fail{'' if len(fails) != 1 else 's'} tonight",
+            "Before the book can act, its own checks must pass. These fail tonight: " + "; ".join(K.clip(str(x.get("name") or x.get("words") or "a check"), 8, 60) for x in fails[:3]) + ".", nid,
+            actions=[K.act("why", "Why Ananta waits", K.place("why"), "What the book is waiting for, check by check.", icon="list")],
+            ask_q="Which of your checks fail today, and why?")))
     return out[:3]
 
 
@@ -706,8 +747,8 @@ def home(j) -> dict:
              # 14 Nov 2026 (Madhav): the two boxes first, under the big number; the Today card second
              K.today("Today", line, sub, to=K.place("why")),
              K.rows("Needs you", you[:3], count=len(you), badge=True, more=K.place("notices")) if you else None,
-             K.rows("What Ananta did", did, more=K.tab("activity")) if did else None,
-             K.notices(home_notices(j, c))]
+             K.notices(home_notices(j, c), title="Heads-up"),            # 14 Nov 2026: a titled section, as India's
+             K.rows("What Ananta did", did, more=K.tab("activity")) if did else None]
     return K.surface("home", "crypto", parts, bell=len(you), title="Home")
 
 

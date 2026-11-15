@@ -134,10 +134,11 @@ def rows(title, items, count=None, more=None, foot=None, badge=False, sub=None, 
                   "sub": sub, "tags": tags, "plain": plain or None})
 
 
-def chips(items, sort=None) -> dict:
+def chips(items, sort=None, on=None) -> dict:
     """sort (14 Nov 2026, Madhav's YouTube screenshot "Recents ⌄"): [{"id", "label"}], the orders a dated list can be read in; the app draws
     a chip with the first label and a down arrow ahead of the filters, and a sheet with a tick to pick another. The first is the default."""
-    return _drop({"t": "chips", "items": [_drop(x) for x in items], "sort": [_drop(x) for x in sort] if sort else None})
+    # on (14 Nov 2026, Madhav: "the default selected in Activity is Trades; the user can see others if he needs"): the chip selected first
+    return _drop({"t": "chips", "items": [_drop(x) for x in items], "sort": [_drop(x) for x in sort] if sort else None, "on": on})
 
 
 SORT_DATED = [{"id": "recent", "label": "Recents"}, {"id": "oldest", "label": "Oldest first"}, {"id": "az", "label": "A-Z"}, {"id": "za", "label": "Z-A"}]
@@ -179,8 +180,25 @@ def kv(items, title=None, foot=None) -> dict:
     return _drop({"t": "kv", "title": title, "rows": [x for x in items if x], "foot": foot})
 
 
-def notices(items) -> dict:
-    return {"t": "notices", "items": [_drop(x) for x in items if x]}
+def notice_sheet(title: str, text: str, nid: str, actions: list | None = None, status: str | None = None, cards: list | None = None,
+                 ask_q: str | None = None, label: str = "Heads-up") -> dict:
+    """What a Heads-up notice opens (14 Nov 2026, Madhav: "when I click on them, only option I have is ask Ananta about it; do you think
+    that's enough?"): the whole story, then what he can do: each action a row that goes somewhere ({"id", "label", "icon", "to",
+    "explain"}), Hide this (it leaves Home until something new comes up), and Ask Ananta last."""
+    rows = [_drop(a) for a in actions or [] if a]
+    rows.append({"id": "hide", "label": "Hide this", "icon": "close", "close_notice": nid, "explain": "It leaves Home. A new heads-up still shows when something changes."})
+    return sheet(title, text, icon="info", status=status, label=label, cards=cards or None, answers=rows,
+                 primary={"label": "Ask Ananta about it", "to": ask(ask_q or f"Tell me about this: {title}. {text}"),
+                          "explain": "Opens Ask with this, so you can ask what it means and what to do."} )
+
+
+def act(aid: str, label: str, to: dict, explain: str, icon: str = "chev") -> dict:
+    """One action row in a sheet that goes somewhere (a place, a page, a question for Ask)."""
+    return {"id": aid, "label": label, "icon": icon, "to": to, "explain": explain}
+
+
+def notices(items, title=None) -> dict:
+    return _drop({"t": "notices", "items": [_drop(x) for x in items if x], "title": title})
 
 
 def notice(nid, text, to=None) -> dict:

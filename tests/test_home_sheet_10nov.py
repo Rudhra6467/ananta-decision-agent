@@ -49,7 +49,7 @@ def test_leaving_the_sheet_closes_it():
 def test_he_answers_in_the_needs_you_sheet_and_can_clear_notifications():
     # Madhav, 10 Nov 22:33: a Yes in the sheet ("get approved straight away"), and a way to clear notifications that keeps the item on the list
     assert "function AnswerList(" in PLACE and '"/v3/openlist/answer", a.due ? { key: s.key, answer: a.id, due: a.due } : { key: s.key, answer: a.id }' in PLACE
-    assert "const talk = s.primary ? [" in PLACE and "s.key && Array.isArray(s.answers) ? s.answers : []" in PLACE, "a sheet with no answers still offers Ask"
+    assert "const talk = s.primary ? [" in PLACE and "Array.isArray(s.answers) && (s.key || s.answers.every((a: any) => a.to || a.close_notice)) ? s.answers : []" in PLACE, "a sheet with no answers still offers Ask"
     assert 'if (to.action === "clear_needs") { clearNeeds(); return; }' in PLACE and '{ key: "all", answer: "later" }' in PLACE
     assert "refreshPlaces();" in PLACE, "the bell and the places read again after an answer"
     assert '"/v3/openlist"' in (APP / "src" / "api.ts").read_text(), "the open list lives with the sign-in service for both markets"

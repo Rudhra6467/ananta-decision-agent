@@ -286,6 +286,14 @@ def _ntfy(title: str, body: str) -> None:
     """The phone, the same way the watchdog reaches it (ntfy topic from the agent .env)."""
     if os.environ.get("ANANTA_NTFY_TOPIC") == "":      # 12 Nov (audit G-57): set and empty means off (the tests' switch); this read the
         return                                         # topic straight from the .env file, whatever the switch said
+    try:                                               # 15 Nov 2026: a routine night note waits for the twice-daily digest
+        from src.intelligence import digest
+
+        if digest.enabled() and digest.is_routine(title):
+            digest.queue(title, body)
+            return
+    except Exception:  # noqa: BLE001  the digest never stops the note: it falls back to the old direct push
+        pass
     env = {}
     try:
         for line in Path(ask.ENV_FILE).read_text().splitlines():

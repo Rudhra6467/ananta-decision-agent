@@ -1476,7 +1476,8 @@
     "jarvis/service/sayshow.py",
     "scripts/jarvis_watchdog.py",
     "jarvis/selfcheck.py",
-    "jarvis/selfscan.py"
+    "jarvis/selfscan.py",
+    "src/intelligence/digest.py"
    ]
   },
   {

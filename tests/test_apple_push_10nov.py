@@ -53,6 +53,7 @@ def test_a_note_reaches_the_app(phone):
 def test_the_phone_path_sends_to_the_app_even_without_ntfy(phone, monkeypatch):
     sent, _ = phone
     monkeypatch.setenv("ANANTA_NTFY_TOPIC", "")
+    monkeypatch.setenv("ANANTA_DIGEST", "0")      # 15 Nov: a routine title waits for the digest; this test is about the phone path itself
     assert w.push_phone("Pre-open · 11-11", "No change.", level="EVENT") == "sent" and len(sent) == 1
     assert w.push_phone("routine", "x", level="INFO") == "off" and len(sent) == 1        # routine noise stays off the phone
 

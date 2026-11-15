@@ -186,3 +186,14 @@ def india_reference(monkeypatch):
     monkeypatch.setitem(askwords._NAMES, "v", {"TATAPOWER": "Tata Power", "JIOFIN": "Jio Financial", "ETERNAL": "Eternal", "LICI": "LIC of India",
                                                "IEX": "Indian Energy Exchange", "IDEA": "Vodafone Idea"})
 
+
+
+@pytest.fixture(autouse=True)
+def _digest_in_tmp(tmp_path, monkeypatch):
+    """15 Nov 2026 (the twice-daily digest): a routine note in a test is queued into the test's own folder, never the real
+    ~/ananta_runs/digest_queue.jsonl."""
+    from src.intelligence import digest
+
+    monkeypatch.setattr(digest, "QUEUE", tmp_path / "digest_queue.jsonl")
+    monkeypatch.setattr(digest, "SENT", tmp_path / "digest_sent.jsonl")
+    monkeypatch.setattr(digest, "DIGESTS", tmp_path / "digests")

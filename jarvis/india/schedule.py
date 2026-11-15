@@ -41,7 +41,8 @@ TARGETS: dict[str, tuple[list[str], tuple[int, ...] | None]] = {
     # The rest of the evening run follows once they are in.
     "com.ananta.india.evening_zerodha": (["06:30"], None),
     "com.ananta.india.evening": (["06:50"], None),
-    # 3 Nov (the Map's change 8): the studies and write-ups (trials, the tilt book, RX1 and RS trials, write-ups, the knowledge map) in their own job
+    # 3 Nov (the Map's change 8): the studies and write-ups (trials, the tilt book, write-ups, the knowledge map) in their own job; 15 Nov: the RX1
+    # and RS trials run only in the 08:00 paper job, after the universe files they read (they ran here too, an hour early, on yesterday's files)
     "com.ananta.india.studies": (["07:05"], None),
     "com.ananta.india.sp1paper": (["07:30"], None),
     "com.ananta.india.paper": (["08:00"], None),
@@ -56,6 +57,9 @@ TARGETS: dict[str, tuple[list[str], tuple[int, ...] | None]] = {
     "com.ananta.india.postclose": (["15:50"], WEEKDAYS),
     # 2 Nov: the fact map at three moments - mid-session, after the close before the day's file, after the nightly build
     "com.ananta.india.factmap": (["00:05", "11:00", "16:10"], None),
+    # 15 Nov 2026 (Madhav: "sort this out beautifully without missing on anything important"): the night digest of routine notes from both
+    # markets, after the pre-open read (09:09) and before the 09:15 open (src/intelligence/digest.py). The morning digest is on Toronto time.
+    "com.ananta.digest.night": (["09:12"], None),
 }
 
 
@@ -136,6 +140,7 @@ DAY = [   # (job, what it brings), in the order of Madhav's evening and night
     ("com.ananta.india.evening_zerodha", "the Zerodha part of the evening: the account snapshot, the options recorder's second fetch, the options line's replay check and the index bars"),
     ("com.ananta.india.evening", "the evening run: FII/DII flows and big deals, the managed book's fills and its next plan, the teachers' forward checks"),
     ("com.ananta.india.studies", "the studies: the paper trials' clocks, the long-term tilt book, the write-ups and the knowledge map"),
+    ("com.ananta.digest.night", "the night digest: the day's routine notes from both markets in one phone note, just before the open"),
     ("com.ananta.india.sp1paper", "the options line's plan for the session"),
     ("com.ananta.india.paper", "the practice book's picks for the session, the daily call, the missed moves, the comparison traders and the reconstruction (the coach's replay)"),
     ("com.ananta.india.morningview", "the morning view, written once on the session's own morning: your holdings' filings, GIFT Nifty's indicated open, the options line's plan, levels and events to watch, honest chances"),

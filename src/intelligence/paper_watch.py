@@ -93,6 +93,29 @@ def push_phone(title: str, body: str, *, level: str = "INFO", post: Callable[...
     topic = _ntfy_topic()
     levels = {x.strip().upper() for x in os.getenv("ANANTA_NTFY_LEVELS", PHONE_LEVELS_DEFAULT).split(",") if x.strip()}
     wanted = level.upper() in levels or level.upper() == "TEST"
+    if wanted and post is None:
+        # 15 Nov 2026 (Madhav: "sort this out beautifully without missing on anything important"): routine notes wait for the
+        # twice-daily digest (src/intelligence/digest.py); anything not on its routine list, and every WARN/ERROR/TEST, goes now.
+        from src.intelligence import digest
+
+        if digest.enabled() and digest.is_routine(title, level) and _reachable(topic):
+            return digest.queue(title, body, level, flush=lambda t, b: _send_now(t, b, level, topic, None))
+    return _send_now(title, body, level, topic, post, wanted)
+
+
+def _reachable(topic: str) -> bool:
+    """A phone path exists (ntfy topic, or Apple push on with a token); without one nothing is queued, exactly as nothing was sent."""
+    if topic:
+        return True
+    if os.getenv("ANANTA_APPLE_PUSH", "1") == "0":
+        return False
+    try:
+        return any(str(t).startswith("ExponentPushToken[") for t in json.loads(_expo_tokens_file().read_text()))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _send_now(title: str, body: str, level: str, topic: str, post: Callable[..., Any] | None, wanted: bool = True) -> str:
     apple = apple_push(title, body, level=level) if wanted and post is None else "off"
     if not topic:
         return apple

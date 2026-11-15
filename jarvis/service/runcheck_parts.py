@@ -309,6 +309,19 @@ PARTS: list[dict] = [
      "proof": {"log": "{runs}/kite_autologin.log", "regex": r"^(?P<t>\d{4}-\d\d-\d\dT\d\d:\d\d)[^ ]* auto sign-in (?P<err>FAILED.{0,120})?",
                "time_format": "%Y-%m-%dT%H:%M", "tz": "UTC", "before_first": "no dated sign-in record yet; the first run writes it"}},
 
+    # ---------------------------------------------------------------- the twice-daily digest (15 Nov 2026; src/intelligence/digest.py)
+    {"id": "digest_morning", "name": "Morning digest of routine notes (09:15 Toronto)", "job": "com.ananta.digest.morning", "area": "crypto",
+     "severity": "medium", "since": "2026-11-16", "cadence": {"daily": "09:15", "tz": TOR, "grace": 2 * 3600},
+     "proof": {"log": "{runs}/digest_sent.jsonl", "time_format": "%Y-%m-%dT%H:%M", "tz": "UTC",
+               "regex": r'"ts": "(?P<t>\d{4}-\d\d-\d\dT\d\d:\d\d)[^"]*", "slot": "morning"'}},
+    {"id": "digest_night", "name": "Night digest of routine notes (09:12 IST, before the India open)", "job": "com.ananta.digest.night", "area": "crypto",
+     "severity": "medium", "since": "2026-11-16", "cadence": {"daily": "09:12", "tz": IST, "grace": 2 * 3600},
+     "proof": {"log": "{runs}/digest_sent.jsonl", "time_format": "%Y-%m-%dT%H:%M", "tz": "UTC",
+               "regex": r'"ts": "(?P<t>\d{4}-\d\d-\d\dT\d\d:\d\d)[^"]*", "slot": "night"'}},
+    # 15 Nov 2026: SF1, the strength-flip shadow (records india/sf1.py), one sealed row per entry session from the evening run
+    {"id": "india_sf1", "name": "India SF1 shadow: the next session's row recorded (evening run)", "job": "com.ananta.india.evening", "area": "india",
+     "severity": "low", "since": "2026-11-16", "cadence": {"daily": "06:50", "tz": IST, "days": "01234", "holidays": True, "grace": 3 * 3600},
+     "proof": {"log": "{india}/paper/shadow/sf1/rows.jsonl", "regex": r'"entry_session": "(?P<d>\d{4}-\d\d-\d\d)"', "tz": IST}},
     # ---------------------------------------------------------------- India (read-only; each job's latest run)
     # 5 Nov 2026 evening (Madhav's yes to the audit's recommendations): the one scheduled job the self-check did not watch
     {"id": "india_kite_fill", "name": "India Kite fill (Saturdays): the week's minute bars pulled and the intraday store rebuilt",

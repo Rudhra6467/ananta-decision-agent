@@ -741,7 +741,8 @@ def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, o
         words += (f"{len(kept)} holding{'s' if len(kept) != 1 else ''} had no close on {day} and stay{'s' if len(kept) == 1 else ''} at an older price ("
                   + "; ".join(f"{s}, last marked {d}" if d else f"{s}, from before {day}" for s, d in sorted(kept.items())) + "). ")
     counted = options_words(book["options_inr"], ol, book["start_day"])
-    words += counted + " " + OPEN_LOT + " "
+    parts = split(book, day, ol)
+    words += parts["words"] + " " + counted + " " + OPEN_LOT + " "
     if plan and not plan.get("error"):
         words += plan["words"]
     elif plan:
@@ -756,7 +757,7 @@ def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, o
             "return_pct": round(100 * (value / start - 1), 2), "stocks_inr": round(sum(v["qty"] * v["last"] for v in book["positions"].values())), "cash_inr": round(book["cash_inr"]),
             "options_inr": round(book["options_inr"]), "options_result_inr": round(ol["result_inr"]), "options_trades": ol["trades"],
             "options_value_inr": round(book["options_inr"] + ol["result_inr"]), "options_counted": counted, "options_left_out": ol["left_out"],
-            "positions": len(book["positions"]), "holdings": own, "marks": _jsonl(_dir() / "marks.jsonl"),
+            "split": parts, "positions": len(book["positions"]), "holdings": own, "marks": _jsonl(_dir() / "marks.jsonl"),
             "replacements": sorted(reps, key=lambda r: -r["value_inr"]), "filled_today": filled,
             "plan": plan, "trades_count": len(book["trades"]), "costs_inr": round(book["costs_inr"], 2), "clock": clock, "chain": chain, "chain_ok": ok, "rules": c["version"], "words": words}
 
@@ -793,14 +794,83 @@ def score(day: str | None = None) -> dict:
                 cut = by.get((r["plan"], r["for_cut"]))
                 if cut and h in (cut.get("scored") or {}) and h in (r.get("scored") or {}):
                     r["scored"][h]["minus_cut_pct"] = round(r["scored"][h]["ret_pct"] - cut["scored"][h]["ret_pct"], 2)
+    # 14 Nov 2026 (Madhav's decision of 13 Nov, "a cut is graded against the market over the same sessions", built after the 2 Nov
+    # cuts went 0 of 10 into the rally; his yes of 14 Nov 22:17): every scored leg also carries the Nifty 500 over the same window, from
+    # the close before its fill to the close of its scoring day, and the verdict against the market. A cut is right against the market
+    # when it then did worse than the Nifty 500; a replacement when it did better. The old absolute verdict stays beside it.
+    n500 = _n500()
+    for r in led:
+        for h in ("+5", "+20"):
+            sc = (r.get("scored") or {}).get(h)
+            if not sc or "vs_market_pct" in sc or n500 is None:
+                continue
+            mk = _market_ret(n500, r["for_session"], sc["day"])
+            if mk is None:
+                continue
+            rel = sc["ret_pct"] - mk
+            sc.update({"market_pct": round(mk, 2), "vs_market_pct": round(rel, 2),
+                       "verdict_vs_market": ("right against the market" if rel < 0 else "early against the market") if r["side"] == "SELL"
+                       else ("beat the market" if rel > 0 else "lagged the market")})
     _write_jsonl(_dir() / "ledger.jsonl", led)
     rows = [r for r in led if r.get("filled")]
+
+    def _vm(side: str, h: str, good) -> tuple[int, int]:
+        xs = [(r.get("scored") or {}).get(h, {}).get("vs_market_pct") for r in rows if r["side"] == side]
+        xs = [x for x in xs if x is not None]
+        return sum(1 for x in xs if good(x)), len(xs)
+    vm = {f"cuts_right_vs_market_{h[1:]}": _vm("SELL", h, lambda x: x < 0) for h in ("+5", "+20")}
+    vm.update({f"replacements_beat_market_{h[1:]}": _vm("BUY", h, lambda x: x > 0) for h in ("+5", "+20")})
     out = {"scored_at": _now(), "day": day, "fills": len(rows), "new_scores": n_new,
+           **{k: {"right" if "cuts" in k else "beat": a, "scored": b} for k, (a, b) in vm.items()},
            "cuts_right_5": sum(1 for r in rows if r["side"] == "SELL" and (r.get("scored") or {}).get("+5", {}).get("ret_pct", 0) < 0),
            "cuts_scored_5": sum(1 for r in rows if r["side"] == "SELL" and "+5" in (r.get("scored") or {})),
            "replacements_up_20": sum(1 for r in rows if r["side"] == "BUY" and (r.get("scored") or {}).get("+20", {}).get("ret_pct", 0) > 0),
            "replacements_scored_20": sum(1 for r in rows if r["side"] == "BUY" and "+20" in (r.get("scored") or {}))}
     (_dir() / "score.json").write_text(json.dumps(out, indent=1))
+    return out
+
+
+def _n500() -> pd.Series | None:
+    """The Nifty 500's daily closes over the book's life (the paper's own context read; None when it cannot be read)."""
+    try:
+        from india import sealed
+        ix = sealed.read_index("paper_context", (dt.date.today() - dt.timedelta(days=400)).isoformat(), ["NIFTY 500"])
+        s = ix.assign(date=pd.to_datetime(ix["date"])).sort_values("date").set_index("date")["close"].astype(float)
+        return s[~s.index.duplicated(keep="last")]
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _market_ret(n500: pd.Series, for_session: str, upto: str) -> float | None:
+    """Nifty 500 in percent from the last close before `for_session` (the book fills at that session's open) to the close of `upto`."""
+    a = n500[n500.index < pd.Timestamp(for_session)]
+    b = n500[n500.index <= pd.Timestamp(upto)]
+    if not len(a) or not len(b) or b.index[-1] < pd.Timestamp(for_session):
+        return None
+    return 100 * (float(b.iloc[-1]) / float(a.iloc[-1]) - 1)
+
+
+def split(book: dict, day: str, ol: dict, n500: pd.Series | None = None) -> dict:
+    """14 Nov 2026 (Madhav's yes, 22:17): the headline in three parts, so the options line's result cannot hide the stock book's.
+    Stocks and cash are counted with the money moved into options from cash (2 Nov) added back, so a move between sleeves is no result."""
+    moved_in = sum(float(m["inr"]) * (1 if m.get("to") == "options" else -1) for m in book.get("sleeve_moves") or [])
+    opt_start = float(book["options_inr"]) - moved_in
+    sc_start = float(book["start_inr"]) - opt_start
+    sc_now = sum(v["qty"] * v["last"] for v in book["positions"].values()) + float(book["cash_inr"]) + moved_in
+    sc_pct = 100 * (sc_now / sc_start - 1) if sc_start else None
+    n500 = _n500() if n500 is None else n500
+    mk = _market_ret(n500, next_session(dt.date.fromisoformat(book["start_day"])).isoformat(), day) if n500 is not None and day > book["start_day"] else None
+    out = {"stocks_cash_start_inr": round(sc_start), "stocks_cash_now_inr": round(sc_now), "stocks_cash_inr": round(sc_now - sc_start),
+           "stocks_cash_pct": None if sc_pct is None else round(sc_pct, 2), "options_inr": round(float(ol.get("result_inr") or 0)),
+           "market_pct": None if mk is None else round(mk, 2), "stocks_vs_market_pct": None if sc_pct is None or mk is None else round(sc_pct - mk, 2),
+           "cash_inr": round(float(book["cash_inr"])), "cash_share_pct": round(100 * float(book["cash_inr"]) / sc_now, 1) if sc_now else None}
+    def _s(x):
+        return f"{'+' if x >= 0 else '−'}{abs(x):.1f}%"
+    w = f"Stocks and cash {_s(sc_pct)} (₹{sc_now - sc_start:+,.0f})" if sc_pct is not None else "Stocks and cash: not counted"
+    w += f", options {'+' if out['options_inr'] >= 0 else '−'}₹{abs(out['options_inr']):,.0f}"
+    if mk is not None:
+        w += f", the Nifty 500 {_s(mk)} over the same sessions"
+    out["words"] = w + "."
     return out
 
 
@@ -819,5 +889,10 @@ if __name__ == "__main__":
         show()
     elif cmd == "score":
         print(json.dumps(score(), indent=1))
+        try:                                           # 14 Nov 2026 (Madhav, 22:17): the decision audit after every score
+            from india import managed_audit
+            print(managed_audit.main()["words"])
+        except Exception as e:  # noqa: BLE001
+            print(f"managed audit failed: {type(e).__name__}: {e}", file=sys.stderr)
     else:
         show()

@@ -214,3 +214,15 @@ def test_check8_an_old_question_failing_for_a_new_reason_is_new():
     a = {"source": "bank", "text": "q", "problems": [{"code": "STALE"}]}
     b = {"source": "bank", "text": "q", "problems": [{"code": "WRONG_DAY"}]}
     assert replay._fkey(a) != replay._fkey(b) and replay._fkey(a) == replay._fkey(dict(a))
+
+
+def test_check5b_an_india_answers_usage_carries_its_one_hour_cache_writes():
+    from jarvis.india import ask
+
+    reply = {"content": [{"type": "text", "text": "{}"}], "stop_reason": "end_turn",
+             "usage": {"input_tokens": 10, "output_tokens": 5, "cache_creation_input_tokens": 100, "cache_creation": {"ephemeral_1h_input_tokens": 100}}}
+    import pytest
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(ask, "_load_env_key", lambda: "test-key")
+        _text, u = ask._claude("s", [], "u", post=lambda url, headers, body: reply)
+    assert u.get("cache_write_1h") == 100

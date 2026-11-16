@@ -995,7 +995,8 @@ def _claude_stream(key: str, body: dict, on_text) -> tuple[str, dict]:
             elif t == "error":
                 raise RuntimeError(str((ev.get("error") or {}).get("message", "stream error"))[:160])
     return "".join(parts), {"in": usage.get("input_tokens", 0), "out": usage.get("output_tokens", 0), "cache_read": usage.get("cache_read_input_tokens", 0) or 0,
-                            "cache_write": usage.get("cache_creation_input_tokens", 0) or 0, "model": MODEL, "stop": stop, "streamed": True}
+                            "cache_write": usage.get("cache_creation_input_tokens", 0) or 0,
+                            "cache_write_1h": ((usage.get("cache_creation") or {}).get("ephemeral_1h_input_tokens")) or 0, "model": MODEL, "stop": stop, "streamed": True}
 
 
 from jarvis.voice.answertap import AnswerTap  # noqa: E402,F401  (5 Nov: shared with the crypto Ask)
@@ -1061,7 +1062,7 @@ def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: 
     text = "".join(c.get("text", "") for c in (r.get("content") or []) if c.get("type") == "text")
     u = r.get("usage") or {}
     return text, {"in": u.get("input_tokens", 0), "out": u.get("output_tokens", 0), "cache_read": u.get("cache_read_input_tokens", 0) or 0,
-                  "cache_write": u.get("cache_creation_input_tokens", 0) or 0, "model": MODEL, "stop": r.get("stop_reason")}
+                  "cache_write": u.get("cache_creation_input_tokens", 0) or 0, "cache_write_1h": ((u.get("cache_creation") or {}).get("ephemeral_1h_input_tokens")) or 0, "model": MODEL, "stop": r.get("stop_reason")}
 
 
 def _answer_cost(usage: dict) -> float:
@@ -1890,7 +1891,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 r2 = _parse(raw2)
                 if not str(r2.get("answer") or "").strip() and r2.get("breakdown"):
                     r2["answer"] = "\n".join(str(x) for x in r2["breakdown"] if x)
-                usage = {**usage2, **{k: usage.get(k, 0) + usage2.get(k, 0) for k in ("in", "out", "cache_read", "cache_write")}, "retried": True}
+                usage = {**usage2, **{k: usage.get(k, 0) + usage2.get(k, 0) for k in ("in", "out", "cache_read", "cache_write", "cache_write_1h")}, "retried": True}
                 reply = r2 if str(r2.get("answer") or "").strip() else {**reply, "answer": EMPTY_FALLBACK}
             # the model may move the app and light Home while it talks; only real places and spots pass (flags 96/97, 25 Oct)
             reply["ui"] = appmap.valid_ui(reply.get("ui"))
@@ -1928,7 +1929,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 left = chk(str(reply2.get("answer") or ""))
                 if str(reply2.get("answer") or "").strip() and not left:
                     reply = {**reply, **reply2}
-                    usage = {**usage2, **{k: usage.get(k, 0) + usage2.get(k, 0) for k in ("in", "out", "cache_read", "cache_write")},
+                    usage = {**usage2, **{k: usage.get(k, 0) + usage2.get(k, 0) for k in ("in", "out", "cache_read", "cache_write", "cache_write_1h")},
                              "guard": "re-answered"}                  # both calls are paid for (repair 7's check)
                 else:
                     base = str((reply2.get("answer") if str(reply2.get("answer") or "").strip() else reply.get("answer")) or "")

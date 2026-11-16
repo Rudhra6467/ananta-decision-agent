@@ -300,12 +300,12 @@ PARTS: list[dict] = [
     # 3 Nov (Madhav: "Yes for all", the Map's change 8): the evening run moved to 06:50 IST (8:20 pm Toronto in winter, 9:20 pm in summer: the
     # grace covers both) and its Zerodha steps to their own job at 06:30 IST, after the 06:05 sign-in
     {"id": "india_report", "name": "India evening portfolio report", "job": "com.ananta.india.evening", "area": "india", "severity": "low",
-     "since": "2026-10-19", "cadence": {"daily": "20:20", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},
+     "since": "2026-10-19", "cadence": {"daily": "20:45", "tz": TOR, "days": "01234", "holidays": True, "grace": 3 * 3600},   # 15 Nov: was 20:20 (the evening run moved to 07:12 IST)
      "proof": {"files": "{india}/reports/portfolio_{date}.md", "min_bytes": 200}},
     # 2 Nov independent audit: was "21:40 Toronto, Sun-Thu" (summer time); the job keeps 06:05 IST (jarvis/india/schedule.py), so check it in IST
-    {"id": "india_autologin", "name": "India Kite auto sign-in (06:05 IST, retries 06:20 and 07:10)", "job": "com.ananta.india.autologin",
+    {"id": "india_autologin", "name": "India Kite auto sign-in (06:40 IST, retries 06:50 and 07:10)", "job": "com.ananta.india.autologin",
      "area": "india", "severity": "high", "since": "2026-10-23", "from_first": True, "retry_ok": True,  # 3 Nov: a FAILED line its own retry fixed is not a miss
-     "cadence": {"daily": "06:05", "tz": IST, "days": "01234", "grace": 3 * 3600}, "min_work": 1,
+     "cadence": {"daily": "06:40", "tz": IST, "days": "01234", "grace": 3 * 3600}, "min_work": 1,
      "proof": {"log": "{runs}/kite_autologin.log", "regex": r"^(?P<t>\d{4}-\d\d-\d\dT\d\d:\d\d)[^ ]* auto sign-in (?P<err>FAILED.{0,120})?",
                "time_format": "%Y-%m-%dT%H:%M", "tz": "UTC", "before_first": "no dated sign-in record yet; the first run writes it"}},
 
@@ -341,7 +341,7 @@ PARTS: list[dict] = [
      "latest_only": True, "proof": {"mtime": "{runs}/india_evening.log", "err_file": "{runs}/india_evening.err"}},
     {"id": "india_evening_zerodha", "name": "India evening, Zerodha part (account snapshot, recorder, SP1 replay, index bars; after the sign-in)",
      "job": "com.ananta.india.evening_zerodha", "area": "india", "severity": "medium", "since": "2026-11-03",
-     "cadence": {"daily": "20:00", "tz": TOR, "grace": 2 * 3600},
+     "cadence": {"daily": "20:25", "tz": TOR, "grace": 2 * 3600},      # 15 Nov: was 20:00 (06:55 IST now)
      "latest_only": True, "proof": {"mtime": "{runs}/india_evening_zerodha.log", "err_file": "{runs}/india_evening_zerodha.err"}},
     {"id": "india_studies", "name": "India studies and write-ups (trials, tilt book, write-ups, knowledge map; 07:05 IST)", "job": "com.ananta.india.studies",
      "area": "india", "severity": "low", "since": "2026-11-03", "cadence": {"daily": "20:35", "tz": TOR, "grace": 3 * 3600},

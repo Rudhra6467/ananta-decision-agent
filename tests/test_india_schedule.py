@@ -33,9 +33,9 @@ def test_evening_zerodha_steps_run_after_the_sign_in():
     # 3 Nov (the Map's change 8): on 2 Nov the evening run's Zerodha calls ran at 05:30 IST on a lapsing token and failed
     signin = S.TARGETS["com.ananta.india.autologin"][0]
     z, ev = S.TARGETS["com.ananta.india.evening_zerodha"][0][0], S.TARGETS["com.ananta.india.evening"][0][0]
-    assert signin[0] < "06:30" and signin[1] < z < ev < S.TARGETS["com.ananta.india.sp1paper"][0][0]
-    assert S.wanted("com.ananta.india.evening_zerodha", dt.date(2026, 11, 3)) == [{"Hour": 20, "Minute": 0}]     # winter: 8:00 pm Toronto
-    assert S.wanted("com.ananta.india.evening", dt.date(2027, 4, 1)) == [{"Hour": 21, "Minute": 20}]            # summer: 9:20 pm Toronto
+    assert signin[0] < "07:00" and signin[1] < z < ev < S.TARGETS["com.ananta.india.sp1paper"][0][0]
+    assert S.wanted("com.ananta.india.evening_zerodha", dt.date(2026, 11, 3)) == [{"Hour": 20, "Minute": 25}]     # winter: 8:25 pm Toronto (06:55 IST; 15 Nov: after the refusal window)
+    assert S.wanted("com.ananta.india.evening", dt.date(2027, 4, 1)) == [{"Hour": 21, "Minute": 42}]            # summer: 9:42 pm Toronto (07:12 IST)
     order = [j for j, _ in S.DAY]
     assert order.index("com.ananta.india.autologin") < order.index("com.ananta.india.evening_zerodha") < order.index("com.ananta.india.evening")
 

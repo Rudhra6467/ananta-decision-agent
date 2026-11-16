@@ -224,7 +224,7 @@ def ist_in_toronto(on: dt.date | None = None) -> dict:
     ist, tor = ZoneInfo("Asia/Kolkata"), ZoneInfo("America/Toronto")
     on = on or dt.date.today() + dt.timedelta(days=1)
     out = {}
-    for hhmm in ("06:05", "06:30", "06:50", "07:05", "07:30", "08:00", "08:30", "09:00", "09:15", "09:30", "09:45", "10:15", "10:20", "15:30", "15:50", "22:15", "23:15"):
+    for hhmm in ("06:05", "06:30", "06:40", "06:50", "06:55", "07:05", "07:12", "07:20", "07:30", "08:00", "08:30", "09:00", "09:15", "09:30", "09:45", "10:15", "10:20", "15:30", "15:50", "22:15", "23:15"):
         h, m = map(int, hhmm.split(":"))
         t = dt.datetime.combine(on, dt.time(h, m), ist).astimezone(tor)
         out[f"{hhmm} IST"] = t.strftime("%-I:%M %p").lower() + " Toronto" + ("" if t.date() == on else " (the evening before)")

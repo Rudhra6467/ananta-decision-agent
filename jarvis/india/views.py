@@ -240,9 +240,27 @@ def _day_words(d) -> str:
         return str(d or "")
 
 
+def _signed_in_since(rm: dict) -> bool:
+    """15 Nov 2026 (Madhav: the Zerodha notice stayed after the sign-in was sorted): a job that missed because the Zerodha token was dead is
+    a record of a moment. When a sign-in has succeeded since that record was built, the cause is gone, so the notice must not wait for the
+    job's next run (a day later). Any doubt (no stored time, no status) leaves the notice as it was."""
+    try:
+        from src.india import kite_auth
+        st = kite_auth.status()
+        if not st.get("connected"):
+            return False
+        built = dt.datetime.fromisoformat(rm["built_at"])
+        login = dt.datetime.fromisoformat(st["login_time"])
+        return login > built
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def _health(rm: dict) -> dict:
     j = rm.get("jobs") or {}
     jobs = j.get("jobs") or []
+    if _signed_in_since(rm):      # a failure that only says "the Zerodha token was dead" is over once a later sign-in worked
+        jobs = [x for x in jobs if x.get("ok") or not re.search(r"token dead|token rejected|token expired|NeedLogin", " ".join(x.get("problems") or []), re.I)]
     down = [x["label"] for x in jobs if not x.get("ok")]
     signin = [x["label"] for x in jobs if not x.get("ok") and (x["label"] in ("autologin", "evening", "evening_zerodha") or any(w in "; ".join(x.get("problems") or []).lower() for w in ("token", "sign-in", "kite", "depth snapshots", "recorder")))]
     if signin and len(signin) == len(down):

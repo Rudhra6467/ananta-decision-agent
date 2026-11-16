@@ -35,15 +35,18 @@ WEEKDAYS = (0, 1, 2, 3, 4)          # Mon-Fri in India (Python weekday numbers)
 TARGETS: dict[str, tuple[list[str], tuple[int, ...] | None]] = {
     # 2 Nov (Madhav: "yes"): the sign-in lapses at 06:00 IST; signing in at 06:05 closes the evening gap (7:30-8:40 pm Toronto) when live
     # prices failed. 06:20 retries; 07:10 is the old time, kept as a backup (the job skips when the token is still valid)
-    "com.ananta.india.autologin": (["06:05", "06:20", "07:10"], None),
+    # 15 Nov 2026 (Madhav: the notice came back every evening): a token issued at 06:05 or 06:20 IST was refused from about 06:30 (the 06:30
+    # Zerodha job found it dead, and a sign-in at 06:39 to 07:05 then held). So the sign-ins moved after the refusal window: 06:40, a retry
+    # at 06:50 and the 07:10 backup (the job skips while the token is still valid). The Zerodha job and the evening run follow them.
+    "com.ananta.india.autologin": (["06:40", "06:50", "07:10"], None),
     # 3 Nov (Madhav: "Yes for all", the Map's change 8): the 47-step evening run is split. Its Zerodha steps (the account snapshot, the
     # options recorder, the SP1 replay, the index bars) run after the 06:05 sign-in; on 2 Nov they ran at 05:30 IST on a lapsing token and failed.
     # The rest of the evening run follows once they are in.
-    "com.ananta.india.evening_zerodha": (["06:30"], None),
-    "com.ananta.india.evening": (["06:50"], None),
+    "com.ananta.india.evening_zerodha": (["06:55"], None),      # was 06:30 (15 Nov: after the sign-in moved to 06:40)
+    "com.ananta.india.evening": (["07:12"], None),               # was 06:50
     # 3 Nov (the Map's change 8): the studies and write-ups (trials, the tilt book, write-ups, the knowledge map) in their own job; 15 Nov: the RX1
     # and RS trials run only in the 08:00 paper job, after the universe files they read (they ran here too, an hour early, on yesterday's files)
-    "com.ananta.india.studies": (["07:05"], None),
+    "com.ananta.india.studies": (["07:20"], None),      # was 07:05 (15 Nov: after the evening run, which moved to 07:12)
     "com.ananta.india.sp1paper": (["07:30"], None),
     "com.ananta.india.paper": (["08:00"], None),
     "com.ananta.india.spreads": (["08:05"], WEEKDAYS),

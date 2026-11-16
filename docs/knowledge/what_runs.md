@@ -31,10 +31,10 @@ it ran and did its work, is in `jarvis/service/runcheck_parts.py` (the lost-runs
 | 07:20 | india.morning | morning checks, read model |
 | 12:30 Mon-Fri | india.recorder_noon | option minutes, ledger snapshot |
 | 12:45 Mon-Fri, 02:30 | india.nightly | the official day file, technicals, quote book, desk; 02:30 is the heal run |
-| 19:35-20:40 | india.autologin | Zerodha sign-in |
-| 20:00 | india.evening_zerodha | account snapshot, recorder, SP1 replay check |
-| 20:20 | india.evening | flows, deals, filings, evidence and leak checks, the allocator, **the managed book** (fills, plan, score, audit), the account twin, SF1 |
-| 20:35 | india.studies | trials' clocks, tilt book, write-ups, knowledge map, data audit |
+| 20:10, 20:20, 20:40 | india.autologin | Zerodha sign-in (moved from 19:35 and 19:50 on 15 Nov: a token issued before about 20:10 was refused from about 20:00) |
+| 20:25 | india.evening_zerodha | account snapshot, recorder, SP1 replay check |
+| 20:42 | india.evening | flows, deals, filings, evidence and leak checks, the allocator, **the managed book** (fills, plan, score, audit), the account twin, SF1 |
+| 20:50 | india.studies | trials' clocks, tilt book, write-ups, knowledge map, data audit |
 | 21:00 | india.sp1paper | the options line's plan (shadow) |
 | 21:30 | india.paper | practice book, RX1 and RS trials, missed movers, reference traders, reconstruction, read model |
 | 21:35 Mon-Fri | india.spreads | spread samples |

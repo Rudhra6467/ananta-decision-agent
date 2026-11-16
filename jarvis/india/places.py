@@ -766,7 +766,7 @@ def index_candles(key: str, rng: str | None = None, tf: str | None = None, fetch
         closes = list(zip(panel.get("dates") or [], panel.get("closes") or []))
         n = max(6, CK.SESSIONS[r] + 1)
         bars = [[CK.day_t(d, 15, 330), c, c, c, c] for d, c in closes[-n:] if isinstance(c, (int, float))]
-        words = ("Zerodha's feed is signed out until the morning sign-in (06:05 India time)" if ("403" in why or "Login" in why or "token" in why.lower())
+        words = ("Zerodha's feed is signed out until the morning sign-in (06:40 India time)" if ("403" in why or "Login" in why or "token" in why.lower())
                  else "Zerodha's feed did not answer just now")
         out = CK.shape(name, "india", r, "1D", ok, bars, kind="line", tz_min=330, ranges=CK.RANGES, note="The daily closes on file, from Zerodha's daily candles.",
                        fell_back=words + (", so these are the daily closes on file." if bars else "; no closes on file for this one yet."))

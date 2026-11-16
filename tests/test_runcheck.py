@@ -494,8 +494,8 @@ def test_a_sign_in_failure_fixed_by_its_own_retry_is_not_a_miss(tmp_path):
     lines = []
     for d in range(8):
         day = D0 - d * DAY
-        stamp = _t.strftime("%Y-%m-%dT00:36:07+00:00", _t.gmtime(day))
-        if d == 4:                                                                # Oct 16: failed, then the retry worked
+        stamp = _t.strftime("%Y-%m-%dT01:10:07+00:00", _t.gmtime(day))
+        if d == 4:                                                                # Oct 16 (15 Nov: sign-in is 06:40 IST = 01:10 UTC now): failed, then the retry worked
             lines += [f"{stamp} auto sign-in FAILED: HTTPSConnectionPool(host='kite.zerodha.com', port=443): Read timed out.",
                       stamp.replace(":07+", ":09+") + " auto sign-in ok: user X until next day 06:00 IST"]
         elif d == 5:                                                              # Oct 15: failed and stayed failed

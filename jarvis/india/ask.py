@@ -1071,7 +1071,7 @@ def _answer_cost(usage: dict) -> float:
 
     if usage.get("model") in ("rule", "none", None):
         return 0.0
-    costlog.record("answer", str(usage.get("model")), usage)
+    costlog.record("replay answer" if DRY_RUN else "answer", str(usage.get("model")), usage)   # a dry replay is not his question
     return round(costlog.price(str(usage.get("model")), usage), 5)
 
 
@@ -1890,7 +1890,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 r2 = _parse(raw2)
                 if not str(r2.get("answer") or "").strip() and r2.get("breakdown"):
                     r2["answer"] = "\n".join(str(x) for x in r2["breakdown"] if x)
-                usage = {**usage2, "in": usage.get("in", 0) + usage2.get("in", 0), "out": usage.get("out", 0) + usage2.get("out", 0), "retried": True}
+                usage = {**usage2, **{k: usage.get(k, 0) + usage2.get(k, 0) for k in ("in", "out", "cache_read", "cache_write")}, "retried": True}
                 reply = r2 if str(r2.get("answer") or "").strip() else {**reply, "answer": EMPTY_FALLBACK}
             # the model may move the app and light Home while it talks; only real places and spots pass (flags 96/97, 25 Oct)
             reply["ui"] = appmap.valid_ui(reply.get("ui"))
@@ -1928,7 +1928,8 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
                 left = chk(str(reply2.get("answer") or ""))
                 if str(reply2.get("answer") or "").strip() and not left:
                     reply = {**reply, **reply2}
-                    usage = {**usage2, "guard": "re-answered"}
+                    usage = {**usage2, **{k: usage.get(k, 0) + usage2.get(k, 0) for k in ("in", "out", "cache_read", "cache_write")},
+                             "guard": "re-answered"}                  # both calls are paid for (repair 7's check)
                 else:
                     base = str((reply2.get("answer") if str(reply2.get("answer") or "").strip() else reply.get("answer")) or "")
                     reply["answer"] = _nc.scrub(_ls.scrub(base, live), _nc.figures(left if str(reply2.get("answer") or "").strip() else probs))
@@ -2105,6 +2106,11 @@ def write_note(text: str, thread: str, post=None) -> dict:
         user = (f"HIS REQUEST: {text}\n\nRECENT CONVERSATION:\n{convo}\n\nFACTS (India read model, data through {f.get('data_through')}):\n"
                 f"{json.dumps(f, default=str)}\n\nReply with the JSON object only.")
         raw, usage = _claude(NOTE_SYSTEM, [], user, post=post)
+        try:                                                   # repair 7's check: the note's call keeps its cost line too
+            from jarvis.india import costlog
+            costlog.record("flag note", str(usage.get("model")), usage)
+        except Exception:  # noqa: BLE001
+            pass
         m = re.search(r"\{.*\}", raw, re.S)
         d = json.loads(m.group(0)) if m else {}
         if d.get("title") and d.get("note"):

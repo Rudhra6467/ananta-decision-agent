@@ -67,7 +67,8 @@ PARTS: list[dict] = [
      "severity": "medium", "since": "2026-10-04", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 27 * 3600}, "min_work": 1,
      "zero_means": "empty", "proof": {"sql": J, "query": "SELECT t, 1 FROM brain_decisions WHERE action != 'ERROR' AND t >= :t0"},
      # 16 Nov 2026 (G-65): judged only on a day something woke the brain; brain_wakes watches that moments reach its queue
-     "expected_if": {"sql": J, "query": "SELECT t, 1 FROM brain_queue WHERE t >= :t0"}},
+     "expected_if": {"sql": J, "query": "SELECT t, 1 FROM brain_queue WHERE t >= :t0 AND COALESCE(state, '') NOT LIKE 'DROPPED%' "
+                                       "AND COALESCE(state, '') NOT LIKE 'NOT_REVIEWED%'"}},   # its outside check: only wakes that reached it
     {"id": "brain_wakes", "name": "Brain: moments reach its queue", "job": "eye, Explorer, daily watches -> brain.wake",
      "severity": "high", "since": "2026-10-04", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 27 * 3600}, "min_work": 10,
      "proof": {"sql": J, "query": "SELECT t, 1 FROM brain_queue WHERE t >= :t0"}},

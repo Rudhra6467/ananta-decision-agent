@@ -77,8 +77,9 @@ def test_g66_a_quiet_days_brief_is_one_line_by_code(tmp_path):
     a = Alerts(db, now=lambda: 1794730000.0)
     db.execute("CREATE TABLE book500 (k TEXT PRIMARY KEY, v TEXT)")
     db.execute("CREATE TABLE book500_fills (t INTEGER)")
-    db.execute("INSERT INTO book500 VALUES ('state', ?)", (json.dumps({"cash": 487.2, "value": 487.2, "pos": {}}),))
-    db.execute("INSERT INTO briefings VALUES ('B1', 1794700000, 'evening', '2026-11-15', 'x', '{}')")
+    db.execute("CREATE TABLE owner_requests (num INTEGER, waits TEXT, status TEXT)")
+    db.execute("INSERT INTO book500 VALUES ('state', ?)", (json.dumps({"cash": 487.2, "value": 487.2, "pos": {}, "dial": False}),))
+    db.execute("INSERT INTO briefings VALUES ('B1', 1794700000, 'evening', '2026-11-15', 'x', ?)", (json.dumps({"dial_at_brief": False}),))
     db.commit()
     asked = []
     r = a.write_brief("morning", lambda q: asked.append(q) or {"kind": "answer", "answer": "x"})
@@ -134,3 +135,82 @@ def test_flag97_a_note_the_ananta_app_received_goes_nowhere_else(monkeypatch):
     assert W._send_now("t", "b", "EVENT", "topic", None) == "sent" and not ntfy     # it went to both
     monkeypatch.setattr(W, "apple_push", lambda *a, **k: "failed: no token")
     assert W._send_now("t", "b", "EVENT", "topic", None) == "sent" and len(ntfy) == 1   # ntfy when the app did not get it
+
+
+# ---------------------------------------------------------------- its outside check's finds (~/ananta_runs/keen_audit/recheck/pkg7_check.md)
+def test_check1_only_wakes_that_reached_the_brain_count(tmp_path):
+    from jarvis.service import runcheck, runcheck_parts
+
+    db = tmp_path / "j.sqlite"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE brain_decisions (t INTEGER, action TEXT)")
+    con.execute("CREATE TABLE brain_queue (t INTEGER, state TEXT)")
+    day = (int(time.time()) // 86400 - 3) * 86400
+    con.executemany("INSERT INTO brain_queue VALUES (?, ?)", [(day + 60 * k, "DROPPED: monitoring only") for k in range(50)]
+                    + [(day + 86400 + 60, "NOT_REVIEWED: monitoring only")] + [(day + 2 * 86400 + 60, "DONE")])
+    con.commit()
+    con.close()
+    part = next(p for p in runcheck_parts.PARTS if p["id"] == "brain_decides")
+    part = {**part, "proof": {**part["proof"], "sql": str(db)}, "expected_if": {**part["expected_if"], "sql": str(db)}}
+    res = runcheck.judge(part, {}, day + 4 * 86400, 4 * 86400)
+    assert [m["t"] for m in res["misses"]] == [day + 2 * 86400], res["misses"]       # only the day a wake reached the brain
+
+
+def test_check2_rows_with_the_same_title_open_their_own_sheet():
+    from jarvis import placekit as K
+
+    days = {f"2026-11-{d:02d}": [{"title": "Rules", "tag": "change", "to": {"page": {"title": f"sheet {d}-{i}"}}} for i in range(3)]
+            for d in (15, 14, 13)}
+    lazy = K.lazy_days(days)
+    links = [r["to"]["place"] for r in lazy["2026-11-13"]]
+    assert len(set(links)) == 3
+    assert [K.find_sheet(days, x.split(":", 1)[1])["title"] for x in links] == ["sheet 13-0", "sheet 13-1", "sheet 13-2"]
+
+
+def test_check3_a_warning_keeps_both_roads(monkeypatch):
+    from src.intelligence import paper_watch as W
+
+    ntfy = []
+    monkeypatch.setattr(W, "_ntfy_send", lambda *a, **k: ntfy.append(a[3]) or "sent")
+    monkeypatch.setattr(W, "apple_push", lambda *a, **k: "sent")
+    for lv in ("EVENT", "WARN", "ERROR"):
+        W._send_now("t", "b", lv, "topic", None)
+    assert ntfy == ["WARN", "ERROR"]
+
+
+def test_check4_a_dial_change_or_an_item_for_his_yes_is_no_quiet_day(tmp_path):
+    from jarvis.service.alerts import Alerts
+
+    db = sqlite3.connect(tmp_path / "j.sqlite")
+    a = Alerts(db, now=lambda: 1794730000.0)
+    db.execute("CREATE TABLE book500 (k TEXT PRIMARY KEY, v TEXT)")
+    db.execute("CREATE TABLE book500_fills (t INTEGER)")
+    db.execute("CREATE TABLE owner_requests (num INTEGER, waits TEXT, status TEXT)")
+    db.execute("INSERT INTO book500 VALUES ('state', ?)", (json.dumps({"cash": 487.2, "value": 487.2, "pos": {}, "dial": False}),))
+    db.execute("INSERT INTO briefings VALUES ('B1', 1794700000, 'evening', '2026-11-15', 'x', ?)", (json.dumps({"dial_at_brief": False}),))
+    db.commit()
+    assert a.quiet_day()
+    db.execute("UPDATE book500 SET v=? WHERE k='state'", (json.dumps({"cash": 487.2, "value": 487.2, "pos": {}, "dial": True}),))
+    db.commit()
+    assert a.quiet_day() is None                                                   # the dial opened since the last brief
+    db.execute("UPDATE book500 SET v=? WHERE k='state'", (json.dumps({"cash": 487.2, "value": 487.2, "pos": {}, "dial": False}),))
+    db.execute("INSERT INTO owner_requests VALUES (1, 'YOU', 'OPEN')")
+    db.commit()
+    assert a.quiet_day() is None                                                   # something waits for his yes
+
+
+def test_check5_a_one_hour_cache_write_is_priced_at_twice_the_input():
+    from jarvis.india import costlog
+
+    five = costlog.price("claude-sonnet-5-5", {"usage": {"cache_creation_input_tokens": 1_000_000}})
+    hour = costlog.price("claude-sonnet-5-5", {"usage": {"cache_creation_input_tokens": 1_000_000,
+                                                         "cache_creation": {"ephemeral_1h_input_tokens": 1_000_000}}})
+    assert round(hour / five, 2) == 1.6                                            # 2.0 x against 1.25 x
+
+
+def test_check8_an_old_question_failing_for_a_new_reason_is_new():
+    from jarvis.india import replay
+
+    a = {"source": "bank", "text": "q", "problems": [{"code": "STALE"}]}
+    b = {"source": "bank", "text": "q", "problems": [{"code": "WRONG_DAY"}]}
+    assert replay._fkey(a) != replay._fkey(b) and replay._fkey(a) == replay._fkey(dict(a))

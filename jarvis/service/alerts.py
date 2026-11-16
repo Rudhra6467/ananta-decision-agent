@@ -189,9 +189,16 @@ class Alerts:
             st = json.loads(row[0]) if row else None
             fills = self.db.execute("SELECT COUNT(*) FROM book500_fills WHERE t > ?", (last,)).fetchone()[0]
             fired = self.db.execute("SELECT COUNT(*) FROM alerts WHERE fired_t > ?", (last,)).fetchone()[0]
+            prev = self.db.execute("SELECT reply FROM briefings ORDER BY t DESC LIMIT 1").fetchone()
+            was = (json.loads(prev[0] or "{}") or {}).get("dial_at_brief") if prev else None
+            # its outside check: "Nothing needs you" was said with an item waiting for his yes, and a dial or brake change was called quiet
+            waiting = self.db.execute("SELECT COUNT(*) FROM owner_requests WHERE COALESCE(waits, '')='YOU' AND status IN ('OPEN', 'PLANNED')").fetchone()[0]
         except Exception:  # noqa: BLE001
             return None
-        if not last or not st or st.get("pos") or fills or fired or not isinstance(st.get("value"), (int, float)):
+        br = (st or {}).get("brakes") or {}
+        braked = br.get("paused") or float(br.get("block_until") or 0) > self.now()
+        if (not last or not st or st.get("pos") or fills or fired or waiting or braked or was is None or was != st.get("dial")
+                or not isinstance(st.get("value"), (int, float))):
             return None
         return (f"Your $500 account is {_cad(st['value'])}, all in cash; nothing was bought or sold and no alert fired since the last brief. "
                 "Nothing needs you. (A quiet day: written by Ananta's own code, no model asked.)")
@@ -225,6 +232,11 @@ class Alerts:
             r = {"kind": "answer", "no_brief_why": r["backup_withheld_why"],
                  "answer": f"No {kind} brief today: {why} when it was due, and Ananta has no backup model. Ask me for a brief when you want one."}
         r = three_sentences(r)
+        try:                                                  # the dial this brief was written at, for the next brief's quiet check
+            row = self.db.execute("SELECT v FROM book500 WHERE k='state'").fetchone()
+            r["dial_at_brief"] = (json.loads(row[0]) or {}).get("dial") if row else None
+        except Exception:  # noqa: BLE001
+            pass
         bid = "B" + uuid.uuid4().hex[:9]
         self.db.execute("INSERT INTO briefings VALUES (?,?,?,?,?,?)", (bid, int(self.now()), kind, day, r.get("answer", ""), json.dumps(r, default=str)))
         self.db.commit()

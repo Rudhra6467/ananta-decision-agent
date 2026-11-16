@@ -398,10 +398,12 @@ def problems(name: str, payload: dict, _depth: int = 0) -> list[str]:
 LAZY_AFTER_DAYS = 2
 
 
-def row_key(day: str, r: dict) -> str:
+def row_key(day: str, r: dict, i: int = 0) -> str:
+    """Its outside check: many rows of a day share a title ('Rules', 'Self-check'), so the key carries the row's place in its day and its
+    words. An older day's rows do not move; a row that did opens nothing rather than another row's sheet."""
     import hashlib
 
-    return hashlib.sha1(f"{day}|{r.get('title')}|{r.get('tag')}".encode()).hexdigest()[:12]
+    return hashlib.sha1(f"{day}|{i}|{r.get('title')}|{r.get('sub')}|{r.get('tag')}".encode()).hexdigest()[:12]
 
 
 def lazy_days(days: dict, keep: int = LAZY_AFTER_DAYS) -> dict:
@@ -411,14 +413,15 @@ def lazy_days(days: dict, keep: int = LAZY_AFTER_DAYS) -> dict:
         if i < keep:
             out[d] = rows
             continue
-        out[d] = [({**r, "to": place("activity:" + row_key(d, r))} if isinstance(r.get("to"), dict) and "page" in r["to"] else r) for r in rows]
+        out[d] = [({**r, "to": place("activity:" + row_key(d, r, i))} if isinstance(r.get("to"), dict) and "page" in r["to"] else r)
+                  for i, r in enumerate(rows)]
     return out
 
 
 def find_sheet(days: dict, key: str) -> dict:
     """The sheet behind an Activity row, by its key; KeyError when it has gone (the row aged out of the three weeks)."""
     for d, rows in days.items():
-        for r in rows:
-            if row_key(d, r) == key and isinstance(r.get("to"), dict) and "page" in r["to"]:
+        for i, r in enumerate(rows):
+            if row_key(d, r, i) == key and isinstance(r.get("to"), dict) and "page" in r["to"]:
                 return r["to"]["page"]
     raise KeyError("activity:" + key)

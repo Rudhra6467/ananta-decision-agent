@@ -216,6 +216,11 @@ def seed() -> int:
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------- run
+def _fkey(f: dict) -> tuple:
+    """A failure by its question and its reasons (the codes), so an old question failing for a new reason is new (repair 7's check)."""
+    return (f.get("source"), f.get("text"), tuple(sorted(str((p or {}).get("code")) for p in (f.get("problems") or []))))
+
+
 def run(hours: float = 24.0, use_bank: bool = True, notify=None) -> dict:
     night = dt.date.today().isoformat()
     real_dir = ask.ASK_DIR
@@ -278,10 +283,10 @@ def run(hours: float = 24.0, use_bank: bool = True, notify=None) -> dict:
     # 16 Nov 2026 (audit repair 7, G-64): the check failed every night since 4 Nov on the same regression-bank items and sent a phone note
     # each time. A note goes when a failure is new since the last night; the same failures again are in the report and the app, not pushed.
     try:
-        before = {(f.get("source"), f.get("text")) for f in json.loads((OUT / "latest.json").read_text()).get("failures") or []}
+        before = {_fkey(f) for f in json.loads((OUT / "latest.json").read_text()).get("failures") or []}
     except (OSError, ValueError):
         before = set()
-    new = [r for r in results if not r["pass"] and (r.get("source"), r.get("text")) not in before]
+    new = [r for r in results if not r["pass"] and _fkey(r) not in before]
     summary["new_failures"] = len(new)
     rep = {"summary": summary, "failures": [{k: r.get(k) for k in ("source", "text", "answer", "problems", "error")} for r in results if not r["pass"]],
            "results": [{k: r.get(k) for k in ("source", "text", "answer", "pass", "problems", "ms")} for r in results]}

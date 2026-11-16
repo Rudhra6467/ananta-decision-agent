@@ -34,14 +34,16 @@ def usage_of(r: dict) -> dict:
     u = (r or {}).get("usage") if isinstance(r, dict) and "usage" in r else r or {}
     return {"in": int(u.get("input_tokens", u.get("in", 0)) or 0), "out": int(u.get("output_tokens", u.get("out", 0)) or 0),
             "cache_read": int(u.get("cache_read_input_tokens", u.get("cache_read", 0)) or 0),
-            "cache_write": int(u.get("cache_creation_input_tokens", u.get("cache_write", 0)) or 0)}
+            "cache_write": int(u.get("cache_creation_input_tokens", u.get("cache_write", 0)) or 0),
+            "cache_write_1h": int(((u.get("cache_creation") or {}).get("ephemeral_1h_input_tokens")) or u.get("cache_write_1h", 0) or 0)}
 
 
 def price(model: str, usage: dict) -> float:
     """Dollars for one call: fresh input, cache writes at 1.25 x input, cache reads at the model's cache share, output."""
     pin, pout, cache = _rates(model)
     u = usage_of(usage)
-    return round((u["in"] * pin + u["cache_write"] * pin * 1.25 + u["cache_read"] * pin * cache + u["out"] * pout) / 1e6, 6)
+    w5 = max(0, u["cache_write"] - u["cache_write_1h"])        # a one-hour cache write is priced at 2 x input, as the crypto Ask does
+    return round((u["in"] * pin + w5 * pin * 1.25 + u["cache_write_1h"] * pin * 2.0 + u["cache_read"] * pin * cache + u["out"] * pout) / 1e6, 6)
 
 
 def record(job: str, model: str, reply_or_usage: dict, log: Path | None = None, now: float | None = None) -> float:

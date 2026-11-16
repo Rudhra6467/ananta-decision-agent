@@ -57,6 +57,9 @@ def next_session(after: dt.date, hol: set | None = None) -> dt.date:
     return d
 
 
+AUTO_SIGNIN_IST = dt.time(6, 40)   # the first automatic sign-in (06:40, 06:50, 07:10 IST since 15 Nov 2026; was 06:05)
+
+
 def next_signin(now: dt.datetime, hol: set | None = None) -> str:
     """The next Kite sign-in window: on the next session's IST morning, after the flush and before 09:10 IST (SP1's cut-off)."""
     ist = now.astimezone(IST)
@@ -70,8 +73,10 @@ def next_signin(now: dt.datetime, hol: set | None = None) -> str:
     if auto["ok"]:
         # audit 25 Oct: the page kept telling Madhav to sign in by hand after the automatic sign-in started working
         # 2 Nov independent audit: "21:40 Toronto" was summer time; the job keeps 06:05 IST, so say it in today's Toronto time
-        at = dt.datetime.combine(day, dt.time(6, 5), IST).astimezone(TOR)        # 06:05 IST from 2 Nov (Madhav: yes), just after the 06:00 lapse
-        return f"automatic at {at:%H:%M} Toronto, 06:05 IST (last automatic sign-in ok {auto['at']}); by hand only if it fails, {window}"
+        # 16 Nov morning review: the sign-in moved to 06:40 IST on 15 Nov (agent change book; plist 20:10 Toronto) and this still said 06:05
+        at = dt.datetime.combine(day, AUTO_SIGNIN_IST, IST).astimezone(TOR)
+        return (f"automatic at {at:%H:%M} Toronto, {AUTO_SIGNIN_IST:%H:%M} IST (last automatic sign-in ok {auto['at']}); "
+                f"by hand only if it fails, {window}")
     return f"{window}; the automatic sign-in is failing ({auto['why'][:120]})"
 
 

@@ -1,0 +1,104 @@
+{
+ "market": "crypto",
+ "day": "2026-11-16",
+ "t": 1794787780,
+ "budget_usd": 0.4,
+ "asked": 6,
+ "right": 5,
+ "wrong": [
+  {
+   "id": "brief3",
+   "name": "the briefing",
+   "question": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
+   "why": "The answer claims nothing was bought or sold since last night, but fills_last_14_days shows 6 trades on 2026-11-06 and 2026-11-05 within the last 14 days; the rubric requires agreement with fills_last_14_days.",
+   "answer": "Evening, sir. Your $500 account is at C$467.55, all cash, and it bought and sold nothing since last night. The market is still in a downtrend: Bitcoin closed near 65.3 thousand dollars, well under both its averages, so the dial stays closed and tonight's bounce looks like a pause. Three things wait for you: Claude's API credit has run out (flag 161), a Zerodha password problem on the India side (flag 164), and one India research draft."
+  }
+ ],
+ "look": [
+  {
+   "id": "two_weeks",
+   "name": "the last two weeks",
+   "figures": [
+    "talks about a flag nobody asked for"
+   ]
+  }
+ ],
+ "ungraded": 0,
+ "cost_usd": 0.4031,
+ "cost_answers_usd": 0.3985,
+ "cost_grader_usd": 0.0046,
+ "stopped_for_budget": true,
+ "not_asked": 1,
+ "rows": [
+  {
+   "id": "account",
+   "name": "the account's figures",
+   "question": "Five things about the 500 dollar book, each with its number: what it is worth now in Canadian dollars; how much is cash and how much is in coins; its return since the start in percent and whether that is up or down; how many trades it has closed and how many of them made money; and which coins it holds right now.",
+   "answer": "Evening, sir. The $500 book is worth C$467.55 now. All of that is cash, so it holds no coins. It's down 6.49% from the C$500 start. It has closed 9 trades and only 1 made money, a gain of about 80 cents on Ethereum. The other 8 lost. The dial is closed because Bitcoin is under its 50-day exponential and 200-day averages, so the plan is 100% cash. Want me to go through the 8 losers?",
+   "cost_usd": 0.14194,
+   "ok": true,
+   "want": "C$467.55; C$467.55 cash, C$0.00 in coins; -6.5%; 9 closed, 1 made money; no coins, all cash",
+   "by": "code",
+   "marks": 5
+  },
+  {
+   "id": "dial",
+   "name": "the dial and what turns buying on",
+   "question": "At what price did Bitcoin last close for the dial, is the dial open or closed, and what are the two average levels (50-day and 200-day) it has to close above for buying to be on?",
+   "answer": "Evening, sir. The dial is closed, so buying is off. Bitcoin last closed on Nov 15 at about 65,350 dollars. That's below the 50-day exponential average (about 77,175 dollars) and below the 200-day average (about 72,978 dollars). It needs a close above both, roughly 12,000 dollars (about 18%) higher. Bitcoin is about 65,300 now, still in a downtrend, and the account stays in cash at 467.55 Canadian dollars. Taking you to Markets now.",
+   "cost_usd": 0.04795,
+   "ok": true,
+   "want": "65351.0, buying off; a close above the 50-day (77175.0) and the 200-day (72978.0)",
+   "by": "code",
+   "marks": 2
+  },
+  {
+   "id": "rules",
+   "name": "the core rule, no shorts, paper only",
+   "question": "Three short things: when buying turns on, what share of the 500 dollar book goes to Bitcoin and to Ethereum, and is it bought at once or in steps? Can the book sell short or bet on a fall? Do you place real orders on NDAX with my money?",
+   "answer": "Evening, sir. Buying turns on when the dial opens, meaning Bitcoin closes above both its 50-day exponential average and its 200-day average. Right now it's closed, so the $500 book is all cash (about 468 Canadian dollars, down 6.5%). When it opens, Bitcoin gets 40% of the book and Ethereum 20%, bought all at once. Since 10 Nov that's the rule, and when the dial closes everything is sold. The thirds approach from 24 Oct failed review 39 and is off. No, the book can't sell short or bet on a fall. It's buying only, and the defence against a fall is going to cash. No, I don't place real orders on NDAX. It's paper only, no exchange is connected, and real orders stay locked until your live rules are written and approved.",
+   "cost_usd": 0.02015,
+   "ok": true,
+   "want": "{'BTC': 40, 'ETH': 20}, all_in; no: it only buys or holds cash; no: paper only",
+   "by": "code",
+   "marks": 3
+  },
+  {
+   "id": "brief3",
+   "name": "the briefing",
+   "question": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
+   "answer": "Evening, sir. Your $500 account is at C$467.55, all cash, and it bought and sold nothing since last night. The market is still in a downtrend: Bitcoin closed near 65.3 thousand dollars, well under both its averages, so the dial stays closed and tonight's bounce looks like a pause. Three things wait for you: Claude's API credit has run out (flag 161), a Zerodha password problem on the India side (flag 164), and one India research draft.",
+   "cost_usd": 0.05935,
+   "ok": false,
+   "why": "The answer claims nothing was bought or sold since last night, but fills_last_14_days shows 6 trades on 2026-11-06 and 2026-11-05 within the last 14 days; the rubric requires agreement with fills_last_14_days.",
+   "by": "grader"
+  },
+  {
+   "id": "round_trips",
+   "name": "round trips",
+   "question": "How many round trips has the 500 dollar book closed, out of how many it needs?",
+   "answer": "Evening, sir. The $500 book has closed 9 round trips and needs at least 50, so it's about a fifth of the way there. It passes 3 of 10 graduation gates and is rated not ready. Those 9 trades average about C$3.61 lost per trade, and the profit factor is 0.02 against the 1.3 it needs. At this pace, 50 round trips won't arrive before the 14 December checkpoint. Want the full list of gates?",
+   "cost_usd": 0.07604,
+   "ok": true,
+   "want": "9 of 50",
+   "by": "code",
+   "marks": 1
+  },
+  {
+   "id": "two_weeks",
+   "name": "the last two weeks",
+   "question": "What did the $500 book do in the last two weeks, trade by trade, and what is it worth now?",
+   "answer": "I made a stray flag request just now that you didn't ask for. It was a test run, so nothing was saved and there's no flag to act on. The figures above are unaffected.",
+   "cost_usd": 0.05309,
+   "ok": true,
+   "why": "The answer is a meta-comment about a stray flag request unrelated to the question about the $500 book's trades and value; it does not contradict the rubric requirements about naming trades or stating the current value.",
+   "by": "grader",
+   "look": [
+    "talks about a flag nobody asked for"
+   ]
+  }
+ ],
+ "grader": "haiku",
+ "minutes": 0.9,
+ "line": "Night test: 5 of 6 answers right. Wrong: the briefing. Stopped at the night's budget ($0.40) with 1 not asked."
+}

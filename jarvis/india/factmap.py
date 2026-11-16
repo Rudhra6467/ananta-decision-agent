@@ -67,6 +67,12 @@ INTERNAL = [
     ("readmodel/*", "the read model itself"),
     # 3 Nov (Madhav: yes, the Map's change 4): the expiry-day book stopped and is no longer shown; its old file ages out of the window
     ("paper/options_trades.jsonl", "the expiry-day options book: stopped 3 Nov, kept on disk, not shown"),
+    # 16 Nov 2026 (morning review): SF1, the sealed forward shadow of 15 Nov (records india/sf1.py, flag 166). Its rows are sealed forecasts,
+    # its lock is a file lock, and its score has nothing scored before the 20th session after 16 Nov; saying its clock is a list item of its own
+    ("paper/shadow/sf1/.lock", "SF1's file lock (one writer at a time)"),
+    ("paper/shadow/sf1/rows.jsonl", "SF1's sealed forward rows: forecasts, not spoken before they are scored (flag 166)"),
+    ("paper/shadow/sf1/score.json", "SF1's score: nothing is scored before the 20th session after 16 Nov and no verdict before 60 falling evenings; "
+                                    "saying its clock in the Ask is an open item"),
 ]
 # Inputs to another file that IS read: (pattern, the file it feeds, the job that turns one into the other)
 FEEDS = [

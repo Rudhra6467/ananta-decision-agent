@@ -54,3 +54,13 @@ def test_a_summary_built_before_its_inputs_fails(tmp_path):
     rows = {r["check"]: r for r in factmap.stale_summaries(tmp_path)}
     assert rows["fresh: manifests/market_context.json"]["state"] == "FAIL" and "valuation.jsonl" in rows["fresh: manifests/market_context.json"]["words"]
     assert rows["fresh: manifests/quotebook.json"]["state"] == "PASS"
+
+
+def test_sf1_shadow_files_are_internal_with_a_reason(tmp_path, monkeypatch):
+    """16 Nov 2026 morning review: SF1's sealed shadow (records india/sf1.py) wrote three files with no route, and the fact map failed."""
+    monkeypatch.setattr(factmap, "DATA", tmp_path)
+    for n in (".lock", "rows.jsonl", "score.json"):
+        _make(tmp_path, f"paper/shadow/sf1/{n}")
+    rows = {r["pattern"]: r for r in factmap.routes(factmap.producers(time.time()))}
+    for n in (".lock", "rows.jsonl", "score.json"):
+        assert rows[f"paper/shadow/sf1/{n}"]["route"] == "internal"

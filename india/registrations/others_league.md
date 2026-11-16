@@ -6,7 +6,7 @@ picks over the same horizon. Coverage counts, among the best 20 rises per horizo
 a family fired but did not hold (PASSED), or nothing fired (NOT_COVERED). INFORMED hit rates score each participant's index-futures stance and that
 day's change on the next session's Nifty move; Ananta's daily call is scored the same way. Ratings are decision quality, not rupees.
 
-## League, trailing 20 review sessions (through 2026-11-14; 19 sessions)
+## League, trailing 20 review sessions (through 2026-11-15; 19 sessions)
 
 | H | sessions | HINDSIGHT | MARKET | RANDOM (median) | ANANTA | Ananta pct vs random | TAKEN | CONTROL | PASSED | NOT_COVERED | had a rule | took |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -45,3 +45,4 @@ day's change on the next session's Nifty move; Ananta's daily call is scored the
 | 2026-11-12 | ok | +5.18% / +0.40% / +0.74% | +14.46% / +3.62% / +1.96% |  | 4 | 2 |
 | 2026-11-13 | ok | +3.60% / -0.75% / -0.53% | +11.10% / +1.74% / +0.98% |  | 3 | 0 |
 | 2026-11-14 | no session (weekend) | | | | | |
+| 2026-11-15 | no session (weekend) | | | | | |

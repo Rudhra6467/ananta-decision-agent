@@ -1,4 +1,4 @@
-# Reconstruction, session 2026-11-13 (rules rx-in-v2-2026-11-06, built 2026-11-15T02:30Z)
+# Reconstruction, session 2026-11-13 (rules rx-in-v2-2026-11-06, built 2026-11-16T02:30Z)
 
 13 Nov: Nifty in an uptrend. Ananta picked 2 stocks; of the day's 24 biggest rises it held 16 and missed 2 that no rule was watching, and it held 19 of the 27 biggest falls. 3 closed trades reviewed (1 lost small, 2 never worked). Nothing went to the repair shop; no new idea tonight; 1 draft waits for your yes or skip. Value since 22 Oct: 0 findings changed a rule; 21 approved and 2 skipped drafts started 4 studies (RX1, RX2, RX3, K02-R1); in a paper trial: falls under the 200-day (RX1) 11/20; relative strength (RS) 8/20.
 

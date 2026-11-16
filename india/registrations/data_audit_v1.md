@@ -19,13 +19,13 @@ Madhav asked for this before any new research (flag 63): how wide and how good e
 | silver/fo_calendar | 4,489 | - | - |
 | silver/fo_greeks | 3,402,929 | 2001-2023 | 2026-11-13 |
 | silver/ipo | 681 | - | - |
-| silver/kite_5m | 83,656,639 | 2015-2023 | 2026-11-06 |
+| silver/kite_5m | 83,656,639 | 2015-2023 | 2026-11-13 |
 | silver/kite_day | 1,533,700 | 2003-2023 | 2026-10-16 |
 | silver/kite_index/5minute | 1,029,458 | 2015-2023 | 2026-11-13 |
 | silver/kite_index/day | 230,382 | 2003-2023 | 2026-11-13 |
 | silver/kite_index/minute | 5,146,641 | 2015-2023 | 2026-11-13 |
 | silver/macro | 85,056 | 1990-2026 | - |
-| silver/pr | 8,746,016 | 2010-2023 | 2026-11-12 |
+| silver/pr | 8,746,016 | 2010-2023 | 2026-11-13 |
 | silver/reference | 759 | - | - |
 | silver/security_master | 14,878 | - | - |
 | silver/valuation | 17,486 | 1999-2023 | 2026-11-13 |

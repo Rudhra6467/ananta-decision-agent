@@ -624,14 +624,25 @@ def activity(j, c: dict | None = None) -> dict:
                       {"id": "fix", "label": "Fixes"}, {"id": "you", "label": "For you", "count": len(you) or None}], sort=K.SORT_DATED, on="trade" if any(r.get("tag") == "trade" for _d, _o, r in ev) else None)]   # 14 Nov (Madhav): Recents ⌄; opens on Trades when there are any
     if you:
         parts.append(K.rows("Waiting for you", you, tags=["you"]))
-    days: dict[str, list] = {}
-    for d, _o, r in ev:
-        days.setdefault(d, []).append(r)
-    for d in list(days)[:14]:
-        parts.append(K.rows(S._dw(d), days[d][:25]))
+    days = _activity_days(ev)
+    for d, rows in K.lazy_days(days).items():                 # 16 Nov (G-74): an older row's sheet is fetched when it is tapped
+        parts.append(K.rows(S._dw(d), rows))
     if not ev:
         parts.append(K.line("Nothing has happened in the last three weeks."))
     return K.surface("activity", "crypto", parts, bell=len(you), title="Activity")
+
+
+def _activity_days(ev: list[tuple]) -> dict:
+    days: dict[str, list] = {}
+    for d, _o, r in ev:
+        days.setdefault(d, []).append(r)
+    return {d: days[d][:25] for d in list(days)[:14]}
+
+
+def activity_sheet(j, key: str) -> dict:
+    """The sheet behind an older Activity row (16 Nov 2026, G-74)."""
+    c = _ctx(j)
+    return K.find_sheet(_activity_days(_events(j, c)), key)
 
 
 # ------------------------------------------------------------------------------------------------ Home
@@ -1099,6 +1110,8 @@ def get(j, name: str, is_owner: bool = True, market: str = "crypto") -> dict:
         return notices(j, market)
     if name == "openlist":
         return openlist_page(j, None, market)
+    if name.startswith("activity:"):
+        return activity_sheet(j, name.split(":", 1)[1])
     if name.startswith("coin:"):
         coin = name.split(":", 1)[1].upper()
         if coin not in S.COIN_NAME:

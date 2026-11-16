@@ -137,6 +137,9 @@ class Explorer:
         self.hands = hands or Hands()
         self.now = now
         self.alert = alert or _phone
+        # 16 Nov 2026 (audit repair 7, G-62): the Explorer, a measuring book, sent its paper buys and exits to the phone by its own route
+        # (334 in 30 days, some in the night). They are kept, not pushed: its trades are in the app, and its daily report still comes.
+        self.quiet = (lambda title, body, level: None) if alert else _kept
         self.store = Store(self.base)
         self.state_path = self.base / "explorer_state.pkl"
         self.decisions = self.base / "explorer_decisions.jsonl"
@@ -179,12 +182,12 @@ class Explorer:
             d = int((e.get("t") or self.now()) // 86400)
             self.st["entries_by_day"][d] = self.st["entries_by_day"].get(d, 0) + 1
         elif k == "FILLED":
-            self.alert("Ananta Explorer: paper buy", f"{e['coin']} {e['setup']} {e['type']} at {e['entry']:.6g}, stop {e['stop']:.6g}"
+            self.quiet("Ananta Explorer: paper buy", f"{e['coin']} {e['setup']} {e['type']} at {e['entry']:.6g}, stop {e['stop']:.6g}"
                        + (f", target {e['target']:.6g}" if e.get("target") else ""), "EVENT")
         elif k == "CLOSED":
-            self.alert("Ananta Explorer: paper exit", f"{e['coin']} {e['setup']} {e['type']} {e['bell']} net ${e['net_usd']:+.2f}", "EVENT")
+            self.quiet("Ananta Explorer: paper exit", f"{e['coin']} {e['setup']} {e['type']} {e['bell']} net ${e['net_usd']:+.2f}", "EVENT")
         elif k == "MISSED":
-            self.alert("Ananta Explorer: missed entry", f"{e['coin']} {e['setup']} {e['type']} limit not filled; following it as a shadow", "INFO")
+            self.quiet("Ananta Explorer: missed entry", f"{e['coin']} {e['setup']} {e['type']} limit not filled; following it as a shadow", "INFO")
 
     def _attach(self, eng: xe.CoinEngine) -> None:
         eng.attach(btc_ctx=self._btc_ctx, slot_ok=self._slot_ok, on_event=self._on_event)
@@ -579,6 +582,18 @@ def reconstruct(base: Path | str = ".") -> dict:
 
 
 # ---------------------------------------------------------------------------
+KEPT = Path.home() / "ananta_runs" / "explorer_events.jsonl"
+
+
+def _kept(title: str, body: str, level: str) -> None:
+    """A measuring book's own trade, written down, never pushed (16 Nov 2026, G-62)."""
+    try:
+        with KEPT.open("a") as f:
+            f.write(json.dumps({"t": int(time.time()), "title": title, "body": body, "level": level}) + "\n")
+    except OSError:
+        pass
+
+
 def _phone(title: str, body: str, level: str) -> None:
     from src.intelligence.paper_watch import notify
 

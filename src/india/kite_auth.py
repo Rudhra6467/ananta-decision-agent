@@ -14,6 +14,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -241,6 +242,29 @@ def _log(line: str) -> None:
         pass
 
 
+FAIL_NOTE_STAMP = Path(os.path.expanduser("~/ananta_runs/kite_fail_note_stamp.json"))
+FAIL_NOTE_EVERY = 30 * 60
+
+
+def failed_note_due(now: float | None = None, stamp: Path | None = None) -> bool:
+    """16 Nov 2026 (audit repair 7, flag 130; the second outside check of audit repair 1, N9): the 'sign-in failed' note had no limit, so the
+    two retries 15 minutes apart sent it twice. Due once in 30 minutes; the log keeps every failure."""
+    now = now or time.time()
+    p = stamp or FAIL_NOTE_STAMP
+    try:
+        last = float(json.loads(p.read_text()).get("t", 0))
+    except (OSError, ValueError):
+        last = 0.0
+    if now - last < FAIL_NOTE_EVERY:
+        return False
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"t": int(now)}))
+    except OSError:
+        pass
+    return True
+
+
 def _ntfy(text: str) -> None:
     """Phone nudge through the same ntfy topic the Jarvis alerts use (name read from the agent .env; never a secret)."""
     if os.environ.get("ANANTA_NTFY_TOPIC") == "":      # 12 Nov (audit G-57): set and empty means off (the tests' switch); it used to fall
@@ -377,7 +401,8 @@ if __name__ == "__main__":
         except Exception as e:   # noqa: BLE001 - every reason goes to the log and the phone, never a secret
             why = str(e)[:300]
             _log(f"{'on-demand' if '--on-demand' in sys.argv else 'auto'} sign-in FAILED: {why}")     # 12 Nov (N5): see auto()
-            _ntfy(f"Kite auto sign-in failed: {why}. Sign in by hand before 23:40 Toronto (09:10 IST) or the next NSE session is lost: open http://127.0.0.1:8100/kite/login on the Mac.")
+            if failed_note_due():                                                # 16 Nov (audit repair 7, flag 130): once in 30 minutes
+                _ntfy(f"Kite auto sign-in failed: {why}. Sign in by hand before 23:40 Toronto (09:10 IST) or the next NSE session is lost: open http://127.0.0.1:8100/kite/login on the Mac.")
             print(json.dumps({"ok": False, "why": why}))
             sys.exit(1)
     else:

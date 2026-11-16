@@ -173,6 +173,12 @@ def _sentence(r: dict) -> str:
     return s + (f": {r['note']}" if r.get("note") else ".")
 
 
+def own_item(r: dict) -> bool:
+    """An item the builder or Ananta itself filed ('claude', 'ananta-auto', 'exam', 'morning review'), not Madhav ('owner') (16 Nov, G-61)."""
+    by = str(r.get("by") or "").strip().lower()
+    return not (by == "owner" or by.startswith("madhav"))
+
+
 def notify(j, push=None) -> list[dict]:
     """Phone notes for status changes not pushed yet (called by the 15-minute job)."""
     rows = _select(j, "WHERE COALESCE(pushed, 1)=0 AND status IN ('PLANNED','DONE','WONT')")
@@ -180,7 +186,10 @@ def notify(j, push=None) -> list[dict]:
     for r in rows:
         title = {"DONE": f"Fixed: {label(r['num'])}", "PLANNED": f"Planned: {label(r['num'])}", "WONT": f"Closed: {label(r['num'])}"}[r["status"]]
         try:
-            if push:
+            # 16 Nov 2026 (audit repair 7, G-61): the builder's own to-do items pinged his phone (36 of 45 notes in 17 hours were
+            # "Fixed / Planned: flag N", 41 of the 44 items filed by the builder). A status change reaches the phone only for an item he
+            # filed himself; the builder's own stay on the open list and in the app, and are marked as told by the phone.
+            if push and not own_item(r):
                 push(title, _sentence(r))
             j.db.execute("UPDATE owner_requests SET pushed=1 WHERE id=?", (r["id"],))
             out.append({"num": r["num"], "status": r["status"]})

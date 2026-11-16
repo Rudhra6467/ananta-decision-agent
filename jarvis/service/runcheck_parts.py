@@ -65,7 +65,9 @@ PARTS: list[dict] = [
     # the day 3 hours in (every morning's 24-hour list said "empty UTC day <today>"). They are judged 3 hours after the day closes.
     {"id": "brain_decides", "name": "Brain: at least one decision a day", "job": "com.ananta.jarvis (brain worker)",
      "severity": "medium", "since": "2026-10-04", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 27 * 3600}, "min_work": 1,
-     "zero_means": "empty", "proof": {"sql": J, "query": "SELECT t, 1 FROM brain_decisions WHERE action != 'ERROR' AND t >= :t0"}},
+     "zero_means": "empty", "proof": {"sql": J, "query": "SELECT t, 1 FROM brain_decisions WHERE action != 'ERROR' AND t >= :t0"},
+     # 16 Nov 2026 (G-65): judged only on a day something woke the brain; brain_wakes watches that moments reach its queue
+     "expected_if": {"sql": J, "query": "SELECT t, 1 FROM brain_queue WHERE t >= :t0"}},
     {"id": "brain_wakes", "name": "Brain: moments reach its queue", "job": "eye, Explorer, daily watches -> brain.wake",
      "severity": "high", "since": "2026-10-04", "cadence": {"daily": "00:00", "tz": "UTC", "grace": 27 * 3600}, "min_work": 10,
      "proof": {"sql": J, "query": "SELECT t, 1 FROM brain_queue WHERE t >= :t0"}},

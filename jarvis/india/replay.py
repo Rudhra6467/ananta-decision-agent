@@ -138,6 +138,11 @@ def judge(history: list[dict], turn: dict, post=None) -> dict:
     post = post or (lambda url, headers, b: requests.post(url, headers=headers, json=b, timeout=90).json())
     try:
         r = post("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body)
+        try:                                                   # 16 Nov 2026 (audit repair 7, G-67): every India AI call keeps its cost
+            from jarvis.india import costlog
+            costlog.record("nightly replay grader", JUDGE_MODEL, r)
+        except Exception:  # noqa: BLE001
+            pass
         text = "".join(c.get("text", "") for c in (r.get("content") or []) if c.get("type") == "text")
         m = re.search(r"\{.*\}", text, re.S)
         v = json.loads(m.group(0)) if m else {}
@@ -270,13 +275,21 @@ def run(hours: float = 24.0, use_bank: bool = True, notify=None) -> dict:
     summary["exam"] = exam_line()
     summary["words"] += " " + summary["exam"]["words"]
     OUT.mkdir(parents=True, exist_ok=True)
+    # 16 Nov 2026 (audit repair 7, G-64): the check failed every night since 4 Nov on the same regression-bank items and sent a phone note
+    # each time. A note goes when a failure is new since the last night; the same failures again are in the report and the app, not pushed.
+    try:
+        before = {(f.get("source"), f.get("text")) for f in json.loads((OUT / "latest.json").read_text()).get("failures") or []}
+    except (OSError, ValueError):
+        before = set()
+    new = [r for r in results if not r["pass"] and (r.get("source"), r.get("text")) not in before]
+    summary["new_failures"] = len(new)
     rep = {"summary": summary, "failures": [{k: r.get(k) for k in ("source", "text", "answer", "problems", "error")} for r in results if not r["pass"]],
            "results": [{k: r.get(k) for k in ("source", "text", "answer", "pass", "problems", "ms")} for r in results]}
     (OUT / f"{night}.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False))
     (OUT / "latest.json").write_text(json.dumps(rep, indent=1, ensure_ascii=False))
-    if notify and (summary["today_failed"] or summary["bank_failed"] or summary["never_again_failed"]):
+    if notify and new:
         try:
-            notify("Ananta nightly check", summary["words"])
+            notify("Ananta nightly check", f"{len(new)} new since last night. " + summary["words"])
         except Exception:  # noqa: BLE001
             pass
     return summary

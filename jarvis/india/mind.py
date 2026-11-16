@@ -58,6 +58,11 @@ def split(text: str, last_answer: str = "", key: str = "", post=None) -> list[di
     post = post or (lambda url, headers, b: requests.post(url, headers=headers, json=b, timeout=20).json())
     try:
         r = post("https://api.anthropic.com/v1/messages", {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}, body)
+        try:                                                   # 16 Nov 2026 (audit repair 7, G-67): every India AI call keeps its cost
+            from jarvis.india import costlog
+            costlog.record("mind (split)", SPLIT_MODEL, r)
+        except Exception:  # noqa: BLE001
+            pass
         raw = "".join(c.get("text", "") for c in (r.get("content") or []) if c.get("type") == "text")
         m = re.search(r"\{.*\}", raw, re.S)
         parts = (json.loads(m.group(0)) if m else {}).get("parts") or []

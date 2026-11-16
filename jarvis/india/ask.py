@@ -1064,6 +1064,17 @@ def _claude(system: str, history: list[dict], user: str, post=None, max_tokens: 
                   "cache_write": u.get("cache_creation_input_tokens", 0) or 0, "model": MODEL, "stop": r.get("stop_reason")}
 
 
+def _answer_cost(usage: dict) -> float:
+    """16 Nov 2026 (audit repair 7, G-67): an answer was priced as fresh tokens only (in x 3 + out x 15), so every cached token counted as
+    free. Now from the one price table, cache writes and reads included, and the call keeps its line in India's cost record."""
+    from jarvis.india import costlog
+
+    if usage.get("model") in ("rule", "none", None):
+        return 0.0
+    costlog.record("answer", str(usage.get("model")), usage)
+    return round(costlog.price(str(usage.get("model")), usage), 5)
+
+
 def _call(system: str, history: list[dict], user: str, post=None, max_tokens: int | None = None, cached: tuple[str, str] | None = None,
           on_text=None) -> tuple[str, dict]:
     """_claude with a bigger budget when asked (a batch of questions, a retry) and the facts cached when given; a stand-in without those
@@ -1968,7 +1979,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
     _timing_log(thread, text, voice, tm)
     rid = uuid.uuid4().hex[:12]
     row = {"id": rid, "role": "assistant", "t": int(time.time()), "provider": "claude" if usage.get("model") not in ("rule", "none") else usage.get("model"), "ms": ms, "rating": None, **reply, "timing": tm,
-           "model_label": "Claude Sonnet" if usage.get("model") not in ("rule", "none") else "Ananta (rules)", "mode": mode or "auto", "cost_usd": round((usage.get("in", 0) * 3 + usage.get("out", 0) * 15) / 1e6, 5),
+           "model_label": "Claude Sonnet" if usage.get("model") not in ("rule", "none") else "Ananta (rules)", "mode": mode or "auto", "cost_usd": _answer_cost(usage),
            "usage": usage, "thread": thread, "talking_to": speaker.label(thread), "live": live_record(f.get("today_live"))}
     _append(thread, row)
     _touch_index(thread, said[:60], voice)

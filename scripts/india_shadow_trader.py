@@ -61,6 +61,11 @@ def claude(prompt: str, model: str, max_tokens: int = 3000) -> str:     # 11 Nov
               {"x-api-key": key, "anthropic-version": "2023-06-01"}, timeout=120)
     if r.get("error"):
         raise RuntimeError(str(r["error"])[:200])
+    try:                                                   # 16 Nov 2026 (audit repair 7, G-67): every India AI call keeps its cost
+        from jarvis.india import costlog
+        costlog.record("shadow trader (" + str(max_tokens) + ")", model, r)
+    except Exception:  # noqa: BLE001
+        pass
     return "".join(c.get("text", "") for c in r.get("content") or [] if c.get("type") == "text")
 
 

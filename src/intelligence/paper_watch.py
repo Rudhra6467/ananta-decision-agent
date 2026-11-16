@@ -124,8 +124,12 @@ def _send_now(title: str, body: str, level: str, topic: str, post: Callable[...,
         return apple
     if not wanted:
         return "skipped"
-    r = _ntfy_send(topic, title, body, level, post)
-    return "sent" if apple == "sent" and r != "sent" else r
+    # 16 Nov 2026 (audit repair 7, flag 97; decided for Madhav on 14 Nov): each note came twice, in the ntfy app and in the Ananta app. A
+    # note the Ananta app received goes nowhere else; ntfy carries it only when the Apple push did not go (no token, off, or failed), and
+    # the outside watchdog keeps ntfy as its own road for when Ananta itself is down (scripts/jarvis_watchdog.py).
+    if apple == "sent":
+        return "sent"
+    return _ntfy_send(topic, title, body, level, post)
 
 
 def _ntfy_send(topic: str, title: str, body: str, level: str, post: Callable[..., Any] | None) -> str:

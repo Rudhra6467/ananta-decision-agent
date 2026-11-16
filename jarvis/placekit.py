@@ -390,3 +390,35 @@ def problems(name: str, payload: dict, _depth: int = 0) -> list[str]:
         for pg in pages_in(parts):
             out += problems(f"{name} › {pg.get('title') or 'page'}", pg, _depth + 1)
     return out
+
+
+
+# 16 Nov 2026 (audit repair 7, G-74): Activity sent the phone 468 KB (crypto) and more for India, 96% of it the full sheet behind each row.
+# The rows of the newest days keep their sheets; an older row opens its sheet by name ("activity:<key>"), built when it is tapped.
+LAZY_AFTER_DAYS = 2
+
+
+def row_key(day: str, r: dict) -> str:
+    import hashlib
+
+    return hashlib.sha1(f"{day}|{r.get('title')}|{r.get('tag')}".encode()).hexdigest()[:12]
+
+
+def lazy_days(days: dict, keep: int = LAZY_AFTER_DAYS) -> dict:
+    """The day groups with each older row's inline sheet swapped for a link to it (a copy; the caller's rows are not changed)."""
+    out = {}
+    for i, (d, rows) in enumerate(days.items()):
+        if i < keep:
+            out[d] = rows
+            continue
+        out[d] = [({**r, "to": place("activity:" + row_key(d, r))} if isinstance(r.get("to"), dict) and "page" in r["to"] else r) for r in rows]
+    return out
+
+
+def find_sheet(days: dict, key: str) -> dict:
+    """The sheet behind an Activity row, by its key; KeyError when it has gone (the row aged out of the three weeks)."""
+    for d, rows in days.items():
+        for r in rows:
+            if row_key(d, r) == key and isinstance(r.get("to"), dict) and "page" in r["to"]:
+                return r["to"]["page"]
+    raise KeyError("activity:" + key)

@@ -314,8 +314,21 @@ def judge(part: dict, paths: dict, now: int, span: int) -> dict:
             return res
 
     need = part.get("min_work", 1)
+    # 16 Nov 2026 (audit repair 7, G-65): "no brain decision" was a miss on days nothing woke the brain (buying off, the dial closed). A
+    # part with `expected_if` is judged only on slots where that proof has a record; on the others there was nothing to do.
+    wanted = None
+    if part.get("expected_if"):
+        try:
+            ex = part["expected_if"]
+            wanted = [e[0] for e in _sql(ex["sql"].format(**paths), ex["query"], params)]
+        except (OSError, sqlite3.Error, KeyError, ValueError):
+            wanted = None                                # cannot tell: judge as before
     for s in slots:
         lo, hi = s - int(cad.get("early", 0)), ends[s]
+        if wanted is not None and not any(lo <= t < hi for t in wanted):
+            res["expected"] += 1
+            res["ok"] += 1
+            continue
         if part.get("latest_only"):
             hi = now + 1                                 # a single current value: anything since the scheduled run counts
         res["expected"] += 1

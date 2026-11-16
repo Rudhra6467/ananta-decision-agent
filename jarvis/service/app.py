@@ -2122,7 +2122,7 @@ def _push_warn(title: str, body: str):
 
 
 def background_jobs() -> dict:
-    """Every 15 minutes: check alerts (no AI cost); write the morning / evening brief once each (free model)."""
+    """Every 15 minutes: check alerts (no AI cost); write the morning / evening brief once each (Claude, deep mode; a quiet day's is one line by code, 16 Nov)."""
     import time as _t
 
     from jarvis.service import health as _health

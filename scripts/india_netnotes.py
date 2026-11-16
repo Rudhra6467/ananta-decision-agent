@@ -46,6 +46,11 @@ def ask(symbol: str, move: str, day: str) -> dict:
               {"model": MODEL, "max_tokens": 600, "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 2}],
                "messages": [{"role": "user", "content": PROMPT.format(symbol=symbol, move=move, day=day)}]},
               {"x-api-key": key, "anthropic-version": "2023-06-01"}, timeout=120)
+    try:                                                   # 16 Nov 2026 (audit repair 7, G-67): every India AI call keeps its cost
+        from jarvis.india import costlog
+        costlog.record("net notes", MODEL, r)
+    except Exception:  # noqa: BLE001
+        pass
     text = "".join(c.get("text", "") for c in r.get("content") or [] if c.get("type") == "text")
     m = re.search(r"\{.*\}", text, re.S)
     j = json.loads(m.group(0)) if m else {"note": text.strip()[:240] or "no answer", "grade": "C", "urls": []}

@@ -731,6 +731,11 @@ def candles(name: str, request: Request, tf: str = "", who: str = Depends(signed
 @r.get("/v3/{name:path}")
 def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
     fn = india_views.ROUTES.get(name)
+    if fn is None and name.startswith("place/activity:"):     # 16 Nov 2026 (G-74): an older Activity row's sheet, by its key
+        from jarvis.india import places as _ip
+
+        key = name.split(":", 1)[1]
+        fn = lambda full=True: _ip.activity_sheet(key, full)   # noqa: E731
     if fn is None:                                  # 19 Nov 2026: stock and watchlist pages, and the search list (jarvis/india/watch.py)
         from jarvis.india import watch as india_watch
         fn = india_watch.dynamic(name)

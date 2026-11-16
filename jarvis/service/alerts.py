@@ -2,7 +2,8 @@
 
 Alerts are plain rules checked every 15 minutes with no AI cost. Ananta only PREPARES an alert (pending action); it becomes
 active when the owner confirms. When one fires, the phone gets a short notification (ntfy) and the Home feed shows it.
-Briefings (morning 08:00 and evening 21:30 Toronto) are written once each by the free model and pushed in one line.
+Briefings (morning 08:00 and evening 21:30 Toronto) are written once each by Claude (the paid model, deep mode; it was called "the free
+model" here until 16 Nov, G-66) and pushed in one line; on a quiet day, one line written by code.
 """
 from __future__ import annotations
 
@@ -179,6 +180,22 @@ class Alerts:
             return None
         return kind
 
+    def quiet_day(self) -> str | None:
+        """The brief's one line when nothing happened since the last brief: the $500 book all in cash, no fill and no alert fired since (16 Nov
+        2026, G-66). None when anything happened, or when the book cannot be read (then the model writes the brief, as before)."""
+        try:
+            last = self.db.execute("SELECT MAX(t) FROM briefings").fetchone()[0] or 0
+            row = self.db.execute("SELECT v FROM book500 WHERE k='state'").fetchone()
+            st = json.loads(row[0]) if row else None
+            fills = self.db.execute("SELECT COUNT(*) FROM book500_fills WHERE t > ?", (last,)).fetchone()[0]
+            fired = self.db.execute("SELECT COUNT(*) FROM alerts WHERE fired_t > ?", (last,)).fetchone()[0]
+        except Exception:  # noqa: BLE001
+            return None
+        if not last or not st or st.get("pos") or fills or fired or not isinstance(st.get("value"), (int, float)):
+            return None
+        return (f"Your $500 account is {_cad(st['value'])}, all in cash; nothing was bought or sold and no alert fired since the last brief. "
+                "Nothing needs you. (A quiet day: written by Ananta's own code, no model asked.)")
+
     def write_brief(self, kind: str, ask_fn: Callable[[str], dict], push: Callable[[str, str], Any] | None = None) -> dict | None:
         day = datetime.fromtimestamp(self.now(), _tz()).strftime("%Y-%m-%d")
         # 5 Nov (synopsis): the briefs ran to five or six sentences and left out the $500 account, though its core had bought Bitcoin and
@@ -189,7 +206,11 @@ class Alerts:
             ("Give me my evening wrap-up in exactly 3 short sentences: first my $500 account today (its value in C$ and any buy or sell), "
              "then what happened in the market and the other books, then what is close to triggering or waits for me, or that nothing does. "
              "Evidence collected and the details go in the points, not the sentences.")
-        r = ask_fn(q)
+        quiet = self.quiet_day()
+        # 16 Nov 2026 (audit repair 7, G-66): on a day nothing happened the paid model read up to 182,000 tokens to say "all cash, nothing
+        # happened". Now a quiet day's brief is one line written by code (no model, no cost); any trade, any alert or any coin held is a day
+        # for the model.
+        r = {"kind": "answer", "answer": quiet, "quiet_day": True} if quiet else ask_fn(q)
         if r.get("error") or r.get("backup_withheld_why"):    # 12 Nov (F2): a withheld brief is not the day's brief; it waits for Claude
             # 13 Nov (Madhav: no backup model): due_brief asks again every 15 minutes. From 09:00 for the morning brief and 22:30 for the
             # evening one (an hour after each is first due) the day gets one plain line instead: the wait is said and the asking stops
@@ -213,6 +234,10 @@ class Alerts:
             except Exception:  # noqa: BLE001
                 pass
         return {"id": bid, "kind": kind, "text": r.get("answer")}
+
+
+def _cad(v) -> str:
+    return f"C${float(v):,.2f}"
 
 
 GREETING = re.compile(r"^(?:good )?(?:morning|evening|afternoon|hi|hello|hey)\b[^.!?]{0,15}[.!?]$", re.I)

@@ -305,14 +305,26 @@ def activity(full: bool = True) -> dict:
     parts = [K.chips([{"id": "all", "label": "All"}, {"id": "trade", "label": "Trades"}, {"id": "change", "label": "Changes"}, {"id": "note", "label": "Plans"},
                       {"id": "fix", "label": "Fixes"}, {"id": "you", "label": "For you"}], sort=K.SORT_DATED, on="trade" if any(r.get("tag") == "trade" for _d, _o, r in ev) else None),   # 14 Nov (Madhav): Recents ⌄; opens on Trades when there are any
              {"t": "needs", "title": "Waiting for you", "tags": ["you"]}]
-    days: dict[str, list] = {}
-    for d, _o, r in ev:
-        days.setdefault(d, []).append(r)
-    for d in list(days)[:14]:
-        parts.append(K.rows(IS._dw(d), days[d][:25]))
+    days = _activity_days(ev)
+    for d, rows in K.lazy_days(days).items():                 # 16 Nov (G-74): an older row's sheet is fetched when it is tapped
+        parts.append(K.rows(IS._dw(d), rows))
     if not ev:
         parts.append(K.line("Nothing has happened in the last three weeks."))
     return K.surface("activity", "india", parts, title="Activity")
+
+
+def _activity_days(ev: list[tuple]) -> dict:
+    days: dict[str, list] = {}
+    for d, _o, r in ev:
+        days.setdefault(d, []).append(r)
+    return {d: days[d][:25] for d in list(days)[:14]}
+
+
+def activity_sheet(key: str, full: bool = True) -> dict:
+    """The sheet behind an older Activity row (16 Nov 2026, G-74). Madhav's own, like Activity itself."""
+    if not full:
+        return {"ready": False, "kind": "place", "name": "activity", "words": "This page shows Madhav's account. A guest's own book is on the practice screens."}
+    return K.find_sheet(_activity_days(_events(full)), key)
 
 
 # ------------------------------------------------------------------------------------------------ Home

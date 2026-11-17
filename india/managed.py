@@ -150,7 +150,7 @@ def features(df: pd.DataFrame, day: str) -> pd.DataFrame:
         rets = c.pct_change().dropna()
         turn = float(g["turnover"].tail(60).median()) if "turnover" in g else None
         out.append({"symbol": sym, "date": str(g["date"].iloc[-1].date()), "close": float(c.iloc[-1]), "sma50": float(c.tail(50).mean()), "sma200": float(c.tail(200).mean()),
-                    "rsi14": rsi, "ret_20": float(c.iloc[-1] / c.iloc[-21] - 1), "ret_120": float(c.iloc[-1] / c.iloc[-121] - 1) if len(c) > 121 else None,
+                    "rsi14": rsi, "ret_20": float(c.iloc[-1] / c.iloc[-21] - 1), "ret_120": float(c.iloc[-1] / c.iloc[-121] - 1) if len(c) > 121 else None, "ret_60": float(c.iloc[-1] / c.iloc[-61] - 1),
                     "off_high_250": float(c.iloc[-1] / c.tail(250).max() - 1), "vol60": float(rets.tail(60).std() * math.sqrt(250)), "turnover_med60": turn,
                     "prev_close": float(c.iloc[-2])})
     return pd.DataFrame(out)
@@ -378,10 +378,13 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
             continue
         value = qty * price
         k = costs.cost("delivery", "buy", value)
-        p = book["positions"].setdefault(sym, {"qty": 0, "avg": price, "last": price, "source": "replacement", "entered": day})
+        p = book["positions"].setdefault(sym, {"qty": 0, "avg": price, "last": price, "source": buy.get("source") or "replacement", "entered": day})
         p["avg"] = (p["avg"] * p["qty"] + value) / (p["qty"] + qty)
         p["qty"] += qty
-        p.update({"stop": round(p["avg"] * (1 - c["stop_pct"] / 100), 2), "min_exit_after": c["min_hold_sessions"], "plan": plan["id"], "for_cut": buy.get("for_cut")})
+        if p.get("source") != "park":
+            p.update({"stop": round(p["avg"] * (1 - c["stop_pct"] / 100), 2), "min_exit_after": c["min_hold_sessions"], "plan": plan["id"], "for_cut": buy.get("for_cut")})
+        if buy.get("kind"):
+            t["kind"] = buy["kind"]
         book["cash_inr"] -= value + k
         book["costs_inr"] += k
         left = value + k                                               # 14 Nov: spent once; a second buy naming the same cut gets what is left
@@ -391,7 +394,7 @@ def fill(book: dict, day: str, df: pd.DataFrame, c: dict) -> list[dict]:
             take = min(freed[x], left)
             freed[x] -= take
             left -= take
-        t.update({"qty": qty, "price": round(price, 2), "value_inr": round(value, 2), "cost_inr": round(k, 2), "gap_pct": round(100 * gap, 2), "stop": p["stop"], "filled": True,
+        t.update({"qty": qty, "price": round(price, 2), "value_inr": round(value, 2), "cost_inr": round(k, 2), "gap_pct": round(100 * gap, 2), "stop": p.get("stop"), "filled": True,
                   **({"capped_at_freed_inr": round(got, 2), "planned_inr": round(float(buy["inr"]), 2)} if its_cuts and got < float(buy["inr"]) else {})})
         done.append(t)
     book["filled_plans"].append(plan["id"])
@@ -437,9 +440,32 @@ def exits(book: dict, day: str, feats: pd.DataFrame, c: dict) -> list[dict]:
 
 # ------------------------------------------------------------------------------------------------------------------------ the plan
 
-def cut_list(book: dict, day: str, c: dict) -> list[dict]:
-    """The allocator's REDUCE / TRIM / TIDY suggestions on names this book holds, not cut again inside reentry_sessions."""
+def trend_now() -> str:
+    """The market state the allocator read this evening (Nifty against its 50- and 200-day averages)."""
     v = _load(paths.data_dir() / "paper" / "allocation_view.json", {}) or {}
+    return str(((v.get("regime") or {}).get("regime")) or "unknown")
+
+
+def weak_vs_market(feats: pd.DataFrame | None, c: dict) -> set:
+    """17 Nov 2026 (managed-v2; india/cutstudy.py): the weakest fifth of the 250 most-traded Nifty 500 names over 60 sessions that also close
+    under their own 200-day average. On 2007-2023 this was right 56% / 55% (a random stock 54% / 53%); today's grade alone was 53% / 52%."""
+    if feats is None or not len(feats) or "ret_60" not in feats:
+        return set()
+    f = feats.dropna(subset=["ret_60"])
+    if "turnover_med60" in f and f["turnover_med60"].notna().any():
+        f = f.sort_values("turnover_med60", ascending=False).head(250)
+    r = f["ret_60"].rank(pct=True)
+    return set(f.loc[(r <= c.get("weak_fifth", 0.2)) & (f["close"] < f["sma200"]), "symbol"])
+
+
+def cut_list(book: dict, day: str, c: dict, feats: pd.DataFrame | None = None, trend: str | None = None) -> list[dict]:
+    """The allocator's REDUCE / TRIM / TIDY suggestions on names this book holds, not cut again inside reentry_sessions.
+    managed-v2 (Madhav's yes, 17 Nov 2026 18:54): a REDUCE needs the stock weak against the market (weak_vs_market), no REDUCE while the
+    Nifty is below both its averages, and at most max_cuts_per_week cuts in five sessions (stops do not count)."""
+    v = _load(paths.data_dir() / "paper" / "allocation_view.json", {}) or {}
+    v2 = "max_cuts_per_week" in c
+    weak = weak_vs_market(feats, c) if v2 else set()
+    trend = trend or trend_now()
     out = []
     for s in v.get("suggestions") or []:
         sym, act = s.get("symbol"), s.get("action")
@@ -464,8 +490,14 @@ def cut_list(book: dict, day: str, c: dict) -> list[dict]:
             continue
         if inr < 1 or (act != "TIDY" and inr < c["min_cut_inr"]):          # a ₹500 trim is noise, not a decision
             continue
+        if v2 and act == "REDUCE" and (trend == "below_both" or sym not in weak):
+            continue
         out.append({"symbol": sym, "kind": act, "all": act == "TIDY", "inr": round(inr), "share": round(share, 4), "grade": s.get("grade"), "why": s.get("why"),
                     "wrong_if": s.get("wrong_if")})
+    if v2:
+        done = sum(1 for t in book["trades"] if t.get("side") == "SELL" and t.get("filled") and t.get("kind") not in ("stop", "weak", "UNPARK")
+                   and sessions_between(t["day"], day) < 5)
+        out = sorted(out, key=lambda x: -float(x["inr"]))[: max(0, int(c["max_cuts_per_week"]) - done)]
     return out
 
 
@@ -514,7 +546,8 @@ def reasons(r: pd.Series, n500_ret120: float | None) -> list[str]:
 
 def make_plan(book: dict, day: str, feats: pd.DataFrame, exit_rows: list[dict], c: dict) -> dict:
     for_session = next_session(dt.date.fromisoformat(day)).isoformat()
-    cuts = exit_rows + cut_list(book, day, c)
+    trend = trend_now()
+    cuts = exit_rows + cut_list(book, day, c, feats, trend)
     cuts.sort(key=lambda x: (x.get("kind") not in ("stop", "weak"), -float(x.get("inr") or 0)))   # 31 Oct: exits first, then the biggest cut gets the first replacement
     sectors = nifty500()
     n500 = None
@@ -529,7 +562,7 @@ def make_plan(book: dict, day: str, feats: pd.DataFrame, exit_rows: list[dict], 
     recent = {t["symbol"] for t in book["trades"] if t.get("side") == "SELL" and t.get("filled") and sessions_between(t["day"], day) < c["reentry_sessions"]}
     exclude = set(book["positions"]) | recent | {x["symbol"] for x in cuts}
     cands = candidates(book, feats, sectors, n500, exclude, day, c) if cuts else feats.iloc[0:0]
-    week_buys = sum(1 for t in book["trades"] if t.get("side") == "BUY" and t.get("filled") and sessions_between(t["day"], day) < 5)
+    week_buys = sum(1 for t in book["trades"] if t.get("side") == "BUY" and t.get("filled") and t.get("kind") != "PARK" and sessions_between(t["day"], day) < 5)
     room = max(0, c["max_new_per_week"] - week_buys)
     buys, notes, used = [], [], set()
     pool_small = 0.0
@@ -561,6 +594,7 @@ def make_plan(book: dict, day: str, feats: pd.DataFrame, exit_rows: list[dict], 
             small = [x["symbol"] for x in cuts if float(x["inr"]) < c["min_buy_inr"]]
             buys.append({"symbol": pick["symbol"], "inr": round(pool_small), "for_cut": "+".join(small), "industry": pick["industry"], "reasons": reasons(pick, n500), "also_considered": [],
                          "why": f"replaces the small stakes {', '.join(small)} together: " + "; ".join(reasons(pick, n500)[:2]), "stop_pct": c["stop_pct"], "min_hold_sessions": c["min_hold_sessions"]})
+    park(book, day, feats, cuts, buys, trend, c)
     plans = _plans()
     row = {"id": f"mp-{for_session}", "written_at": _now(), "written_day": day, "for_session": for_session, "config_sha": c["config_sha"], "rules": c["version"],
            "cuts": cuts, "buys": buys, "no_change": not cuts and not buys, "notes": notes, "freed_inr": round(sum(float(x["inr"]) for x in cuts)),
@@ -572,11 +606,41 @@ def make_plan(book: dict, day: str, feats: pd.DataFrame, exit_rows: list[dict], 
     return row
 
 
+def park(book: dict, day: str, feats: pd.DataFrame, cuts: list, buys: list, trend: str, c: dict) -> None:
+    """managed-v2 (Madhav's yes, 17 Nov 2026): cash that no replacement used for park_after_sessions sessions goes into the Nifty index fund
+    (park_symbol) while the Nifty is above both its averages, keeping park_reserve_pct of stocks and cash as cash; the fund is sold whole
+    when the trend breaks. On 2007-2023 the Nifty 500 rose 61-65% of 20-session spans in an uptrend (about +1%), worst 1 in 20 a 7-10% dip."""
+    sym = c.get("park_symbol")
+    if not sym:
+        return
+    held = book["positions"].get(sym)
+    if held and trend != "above_both":
+        cuts.append({"symbol": sym, "kind": "UNPARK", "all": True, "inr": round(held["qty"] * held["last"]),
+                     "why": "the Nifty is no longer above both its averages, so the parked cash leaves the index fund"})
+        return
+    if trend != "above_both" or cuts or buys:
+        return
+    last = max((t["day"] for t in book["trades"] if t.get("filled") and t.get("kind") != "PARK"), default=book.get("start_day"))
+    if last and sessions_between(last, day) < c["park_after_sessions"]:
+        return
+    stocks = sum(v["qty"] * v["last"] for v in book["positions"].values())
+    spare = book["cash_inr"] - c["park_reserve_pct"] / 100 * (stocks + book["cash_inr"])
+    if spare < c["park_min_inr"] or sym not in set(feats["symbol"]):
+        return
+    buys.append({"symbol": sym, "inr": round(spare), "for_cut": "", "kind": "PARK", "source": "park", "industry": "index fund", "reasons": [],
+                 "also_considered": [], "why": f"parks ₹{spare:,.0f} of idle cash in the Nifty index fund while the market is in an uptrend",
+                 "stop_pct": None, "min_hold_sessions": 0})
+
+
 def plan_brief(p: dict) -> str:
     """One or two sentences for the voice; the full words are in the view."""
     if p.get("no_change"):
         return f"No change for {_dw(p['for_session'])}: the managed book has nothing new to cut or buy (the cut list's names it already cut stay cut)."   # 3 Nov: 'nothing is on the cut list' contradicted the cut list
     cuts, buys = p.get("cuts") or [], p.get("buys") or []
+    pk = [b for b in buys if b.get("kind") == "PARK"]
+    if pk and not cuts and len(buys) == 1:
+        return f"For {_dw(p['for_session'])}: {pk[0]['why']}."
+    buys = [b for b in buys if b.get("kind") != "PARK"]
     w = f"For {_dw(p['for_session'])}: {len(cuts)} cut{'s' if len(cuts) != 1 else ''} ({', '.join(x['symbol'] for x in cuts)}) freeing about ₹{float(p.get('freed_inr') or 0):,.0f}"
     if buys:
         w += "; " + ", ".join(f"{b['symbol']} replaces {b['for_cut']}" for b in buys) + ", each with a 7% stop"
@@ -593,6 +657,9 @@ def plan_words(p: dict) -> str:
         what = "sells all of" if cut.get("all") else "sells about ₹{:,.0f} of".format(float(cut["inr"]))
         parts.append(f"{what} {cut['symbol']} ({cut.get('kind', '').lower()}: {str(cut.get('why') or '').split('. ')[0].rstrip('.')})")
     for b in p.get("buys") or []:
+        if b.get("kind") == "PARK":
+            parts.append(b["why"])
+            continue
         parts.append(f"buys about ₹{float(b['inr']):,.0f} of {b['symbol']} to replace {b['for_cut']} ({'; '.join(b['reasons'][:2])}), with a {b['stop_pct']}% stop and a {b['min_hold_sessions']}-session minimum hold")
     w = f"For {_dw(p['for_session'])} the managed book " + "; ".join(parts) + ". Fills at the open; a buy that opens more than the gap limit above the last close is skipped."
     if p.get("notes"):

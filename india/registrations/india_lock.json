@@ -32,7 +32,7 @@
  "pins": {
   "paper_rules": {
    "what": "The stock paper book's rules as configured (india/paper_config.json): families, exits, slots, the Rs 50,000 options book (60,000 until 2 Nov) and the survival rules (5% day, 22% pause, record-only on paper).",
-   "sha256": "c0d8fdcc08da6e5b855984554cf2918b0efbb12c602570225a64d1d0fe7022c2",
+   "sha256": "ebf5ca729ba6878f19110e26d1bd706e4dc8cad472087d214d09d36803beed8d",
    "history": [
     {
      "date": "2026-10-23",
@@ -57,6 +57,14 @@
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 2026-11-02 18:08 Toronto (in chat), asked which options amount is real (Rs 60,000 options line, Rs 50,000 allocation rule, Rs 34,000 in the twin after the 22 Oct move): \"50k. only one amount. no 2-3 setups.\" cfg-2026-11-02a: options.capital_inr, book_inr and books.main.capital_inr 60,000 -> 50,000; the options line still trades one lot. No other rule changes.",
      "sha256": "c0d8fdcc08da6e5b855984554cf2918b0efbb12c602570225a64d1d0fe7022c2"
+    },
+    {
+     "date": "2026-11-17",
+     "approved_by": "Madhav (in chat)",
+     "note": "A decision changes, and the record is split at this day: managed-v2: a REDUCE needs weakness against the market (weakest fifth of the liquid 250 over 60 sessions and under its 200-day), no REDUCE while the Nifty is below both averages, at most 3 cuts a week, idle cash parked in NIFTYBEES in an uptrend. Madhav, 17 Nov 2026 18:54 Toronto: \"Yes to it\"",
+     "sha256": "ebf5ca729ba6878f19110e26d1bd706e4dc8cad472087d214d09d36803beed8d",
+     "door": "change",
+     "commit": "6641897"
     }
    ]
   },

@@ -106,17 +106,36 @@ def _services(opener=None) -> list[dict]:
     return out
 
 
-def _answers() -> list[dict]:
-    out = []
+def _replay_age_days(night, today=None) -> int | None:
+    """Whole days between the replay's night and today (Toronto calendar, the replay's own)."""
+    import datetime as _dt
     try:
-        r = json.loads((ROOT / "docs" / "repair_shop" / "replay" / "latest.json").read_text())
+        n = _dt.date.fromisoformat(str(night)[:10])
+    except ValueError:
+        return None
+    return ((today or _dt.date.today()) - n).days
+
+
+def _answers(root: Path | None = None, today=None) -> list[dict]:
+    out = []
+    base = root or ROOT
+    try:
+        r = json.loads((base / "docs" / "repair_shop" / "replay" / "latest.json").read_text())
         s = r.get("summary") or {}
+        night = s.get("night")
+        age = _replay_age_days(night, today)
+        old = age is not None and age > 2          # the 24-hour replay of night N lands on N+1 or N+2
+        if old:                                    # 18 Nov: a replay stuck since 15 Nov was still called "last night's"
+            out.append({"market": "india", "severity": "medium", "source": "nightly replay",
+                        "what": (f"the nightly replay has not finished since the night of {night} ({age} days ago); "
+                                 "its never-again checks are that old")})
         bad = [f for f in r.get("failures") or [] if f.get("source") in ("today", "never_again")]
         if bad:
             ex = bad[0]
             why = ((ex.get("problems") or [{}])[0].get("why") or "")[:160]
+            label = f"the replay of {night}" if old else f"last night's replay ({night})"
             out.append({"market": "india", "severity": "low", "source": "nightly replay",            # told when asked, not as a nudge
-                        "what": (f"last night's replay ({s.get('night')}) found {len(bad)} of my India answers wrong; for example "
+                        "what": (f"{label} found {len(bad)} of my India answers wrong; for example "
                                  f"\"{str(ex.get('text'))[:60]}\": {why}")})
     except (OSError, ValueError):
         pass

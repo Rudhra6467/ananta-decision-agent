@@ -27,7 +27,7 @@ import { CheckIcon, CopyIcon, MicIcon, RetryIcon, SendIcon, SpeakerIcon, StopIco
 import { loadMe, useMe } from "../../src/visitor";
 import { useMarket } from "../../src/market";
 import { MsgGuard, ScreenError } from "../../src/safe";
-import { BAR_ROOM, markStartersDone, onOrbPress, setTyping, setVoiceStage, startersDone, useTyping } from "../../src/once";
+import { BAR_ROOM, markStartersDone, onEndVoice, onOrbPress, setLiveVoice, setTyping, setVoiceStage, startersDone, useTyping } from "../../src/once";
 
 // 12 Nov 2026 (Madhav: "looking for consistency in other places too"): Ask is the one place both looks share. In the redesign Ananta's one
 // colour is bronze (10 Nov: the mark, the orb, the one action), but Ask still drew its links, its chosen tab and its send button in the
@@ -253,6 +253,7 @@ export default function Ananta() {
   useEffect(() => { kept.thread = thread; }, [thread]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const askSeq = useRef(0);                                    // 19 Nov: Stop drops the answer still on its way
   // Two switches: Auto on/off (Ananta picks a lighter or stronger model per question) and Claude / Google (who answers).
   const [autoOn, setAutoOn] = useState(true);
   const [google, setGoogle] = useState(false);
@@ -311,6 +312,8 @@ export default function Ananta() {
   const typingNow = useTyping();
   const onStage = isNew && live && !showChat;
   useEffect(() => { setVoiceStage(onStage); return () => setVoiceStage(false); }, [onStage]);
+  // 19 Nov 2026 (Madhav): the bar's small Ananta at the bottom right while the voice is on and he is on another screen
+  useEffect(() => { setLiveVoice(phase); return () => setLiveVoice("off"); }, [phase]);
   const padTop = isNew ? ins.top : 0;
   const barRoom = isNew && !typingNow ? BAR_ROOM + Math.max(ins.bottom, 12) : 0;
   const [err, setErr] = useState<string | null>(null);
@@ -559,19 +562,22 @@ export default function Ananta() {
       return;
     }
     setMsgs((m) => [...m, { role: "user", text: q }]);
+    const mine = ++askSeq.current;
     try {
       const r = await api("/v3/ask", { text: q, thread: threadRef.current, mode: modeRef.current, context: where() });
+      if (mine !== askSeq.current) return;                      // stopped while it was thinking
       if (pendingChips.current.length && !r.error) { r.follow_ups = pendingChips.current; pendingChips.current = []; }
       // 27 Oct: an answer that failed or came back empty keeps the question, so it can be retried with one tap
       if (r.error || (!String(r.answer ?? "").trim() && !r.tour?.length && !r.ui?.length && r.kind !== "clarify"))
         handleTextAnswer({ ...r, error: r.error ?? "That answer came back empty.", retry: q });
       else handleTextAnswer(r);
     } catch (e: any) {
-      handleTextAnswer({ error: e?.message ?? String(e), retry: q });
+      if (mine === askSeq.current) handleTextAnswer({ error: e?.message ?? String(e), retry: q });
     } finally {
-      setBusy(false);
+      if (mine === askSeq.current) setBusy(false);
     }
   };
+  const stopAsk = () => { askSeq.current++; setBusy(false); TTS.stop(); Haptics.soft(); };
 
   // ---- voice mode: one state machine (src/voiceloop.ts) drives listen -> think -> speak -> listen ----
   // What Ananta says aloud for an answer: the answer, the "did you mean" choices, and any screen it could not open.
@@ -802,6 +808,9 @@ export default function Ananta() {
   const liveTapRef = useRef<() => void>(() => {});
   startLiveRef.current = startLive;
   liveTapRef.current = () => { Haptics.soft(); loop.tap(); };
+  const endRef = useRef(endLive);
+  endRef.current = endLive;
+  useEffect(() => onEndVoice(() => endRef.current()), []);       // 19 Nov: the small orb's close button ends the voice from any screen
   useEffect(() => onOrbPress(() => {
     if (!focusedRef.current) return;                // a second Ask screen left under the classic tabs stays quiet
     if (loopRef.current?.on) liveTapRef.current(); else void startLiveRef.current();
@@ -868,9 +877,12 @@ export default function Ananta() {
         style={{ height: 34, borderRadius: 10, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 }}>
         <Text style={{ color: C.text, fontSize: 13, fontWeight: "600" }}>Sessions</Text>
       </Pressable>
-      <View style={{ flex: 1 }}>
-        <Segmented tint={isNew ? { on: AC.accent, soft: AC.soft } : undefined} value={tabv} onChange={(k) => setTabv(k as any)} options={[{ key: "chat", label: "Chat" }, { key: "now", label: "Ananta now" }]} />
-      </View>
+      {/* 19 Nov 2026 (Madhav: "No need of Ananta now here"): Chat only; Ananta now stays reachable from a link with ?tab=now */}
+      <Text style={{ flex: 1, textAlign: "center", color: C.text, fontSize: 16, fontWeight: "700" }}>Ananta</Text>
+      <Pressable onPress={newSession} hitSlop={10} accessibilityRole="button" accessibilityLabel="New chat"
+        style={{ height: 34, borderRadius: 10, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center", paddingHorizontal: 10 }}>
+        <Text style={{ color: C.text, fontSize: 13, fontWeight: "600" }}>New</Text>
+      </Pressable>
     </View>
   );
   const drawer = <SessionsDrawer open={sessions} onClose={() => setSessions(false)} onOpen={openSession} onNew={newSession} current={thread} />;
@@ -910,7 +922,6 @@ export default function Ananta() {
         {/* 12 Nov: "Show the conversation" had no way back to the big voice screen while voice was still on */}
         {isNew && live ? <Text onPress={() => setShowChat(false)} accessibilityRole="button" style={{ color: AC.accent, fontWeight: "600", marginRight: 12 }}>Voice screen</Text> : null}
         {msgs.length ? <Text onPress={shareSession} style={{ color: AC.accent, fontWeight: "600", marginRight: 12 }}>Share</Text> : null}
-        <Text onPress={newSession} style={{ color: AC.accent, fontWeight: "600", marginLeft: 12 }}>New</Text>
       </View>
       {ctx && ctx.screen !== "ask" ? (
         <Pressable onPress={() => setCtx(null)} style={{ alignSelf: "flex-start", marginHorizontal: 16, marginTop: 6, flexDirection: "row", gap: 6, backgroundColor: AC.soft, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
@@ -1033,30 +1044,47 @@ export default function Ananta() {
           onOrb={() => { Haptics.soft(); loop.tap(); }} onEnd={endLive} onVoice={pickVoice}
           rateLabel={TTS.rate} onRate={(r) => TTS.setRate(r)} />
       ) : (
-        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card }}>
-          <Pressable onPress={dictate} accessibilityLabel={mic.status !== "idle" ? "Done dictating" : "Dictate"} style={{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center",
-            backgroundColor: mic.status !== "idle" ? C.bad : C.card2 }}>
-            {mic.status !== "idle" ? <StopIcon color={C.onInk} /> : <MicIcon color={C.text} />}
-          </Pressable>
-          <TextInput ref={inRef} value={mic.status !== "idle" ? micLabel : text} editable={mic.status === "idle"}
-            onChangeText={(v) => { setText(v); if (v.trim()) dropStarters(); if (!v) setInH(44); else if (v.length < text.length) requestAnimationFrame(refit); }}
-            // 3 Nov: the measured height is used as it is (no +2) and a change under 3 px is ignored: adding to the measure made the box grow by
-            // itself, re-measure and grow again until React stopped the screen (error 185)
-            onContentSizeChange={onInSize}
-            onFocus={() => setTyping(true)} onBlur={() => setTyping(false)}
-            placeholder="Ask Ananta…" placeholderTextColor={C.dim} multiline accessibilityLabel="Ask Ananta"
-            style={{ flex: 1, height: text ? inH : 44, minHeight: 44, maxHeight: 180, fontSize: 15, lineHeight: 20, color: C.text, backgroundColor: C.bg, borderRadius: 22,
-              paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 }} />
-          {text.trim() ? (
-            <Pressable onPress={() => send(text)} disabled={busy} accessibilityLabel="Send"
-              style={{ backgroundColor: busy ? C.line : AC.accent, borderRadius: 22, width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-              <SendIcon color={C.onInk} />
-            </Pressable>
-          ) : (
-            <Pressable onPress={startLive} accessibilityLabel="Talk to Ananta" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: AC.accent, alignItems: "center", justifyContent: "center" }}>
-              <Wave />
-            </Pressable>
-          )}
+        // 19 Nov 2026 (Madhav: "Take inspiration from Claude and chatgpt. Have voice message, voice chat and stop actions down like both have"):
+        // one rounded box, the words on top; under them the microphone (a voice message, dictated into the box) and, on the right, voice chat
+        // (the wave), Send once there are words, or Stop while Ananta is answering
+        <View style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: 10, backgroundColor: C.bg }}>
+          <View style={{ borderRadius: 24, borderWidth: 1, borderColor: C.line, backgroundColor: C.card, paddingHorizontal: 6, paddingTop: 4, paddingBottom: 6,
+            shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 2 } }}>
+            <TextInput ref={inRef} value={mic.status !== "idle" ? micLabel : text} editable={mic.status === "idle"}
+              onChangeText={(v) => { setText(v); if (v.trim()) dropStarters(); if (!v) setInH(44); else if (v.length < text.length) requestAnimationFrame(refit); }}
+              // 3 Nov: the measured height is used as it is (no +2) and a change under 3 px is ignored: adding to the measure made the box grow by
+              // itself, re-measure and grow again until React stopped the screen (error 185)
+              onContentSizeChange={onInSize}
+              onFocus={() => setTyping(true)} onBlur={() => setTyping(false)}
+              placeholder="Ask Ananta…" placeholderTextColor={C.dim} multiline accessibilityLabel="Ask Ananta"
+              style={{ height: text ? inH : 44, minHeight: 44, maxHeight: 180, fontSize: 16, lineHeight: 21, color: C.text, paddingHorizontal: 10, paddingTop: 11, paddingBottom: 8,
+                ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}) }} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 }}>
+              <Pressable onPress={() => setSessions(true)} accessibilityLabel="Sessions" hitSlop={6}
+                style={{ height: 36, paddingHorizontal: 12, borderRadius: 18, borderWidth: 1, borderColor: C.line, justifyContent: "center" }}>
+                <Text style={{ color: C.dim, fontSize: 13, fontWeight: "600" }}>Sessions</Text>
+              </Pressable>
+              <View style={{ flex: 1 }} />
+              <Pressable onPress={dictate} accessibilityLabel={mic.status !== "idle" ? "Done with the voice message" : "Voice message"} hitSlop={6}
+                style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: mic.status !== "idle" ? C.bad : "transparent" }}>
+                {mic.status !== "idle" ? <StopIcon color={C.onInk} /> : <MicIcon color={C.text} />}
+              </Pressable>
+              {busy ? (
+                <Pressable onPress={stopAsk} accessibilityLabel="Stop" style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.text, alignItems: "center", justifyContent: "center" }}>
+                  <View style={{ width: 13, height: 13, borderRadius: 3, backgroundColor: C.bg }} />
+                </Pressable>
+              ) : text.trim() ? (
+                <Pressable onPress={() => send(text)} accessibilityLabel="Send"
+                  style={{ backgroundColor: AC.accent, borderRadius: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center" }}>
+                  <SendIcon color={C.onInk} />
+                </Pressable>
+              ) : (
+                <Pressable onPress={startLive} accessibilityLabel="Voice chat with Ananta" style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: AC.accent, alignItems: "center", justifyContent: "center" }}>
+                  <Wave />
+                </Pressable>
+              )}
+            </View>
+          </View>
         </View>
       )}
       {barRoom ? <View style={{ height: barRoom, backgroundColor: C.card }} /> : null}

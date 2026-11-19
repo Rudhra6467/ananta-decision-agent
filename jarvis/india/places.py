@@ -484,7 +484,10 @@ def home(full: bool = True) -> dict:
         if len(top) == 3:
             break
     day = m.get("as_of_day") or mb.get("day")          # 12 Nov (G-03): the close the big number is marked at, from the book it comes from
-    parts = [K.hero(f"Your paper account · {IS._dw(day)} close" if day else "Your paper account", _rs(value), change=(f"{_rs(value - start, sign=True)} ({_pct(ret)})" if isinstance(value, (int, float)) and isinstance(start, (int, float)) and isinstance(ret, (int, float)) else _pct(ret) if ret is not None else None),
+    dwc = re.sub(r"^(\w{3}) ", r"\1, ", IS._dw(day)) if day else ""
+    # 19 Nov 2026 (Madhav): the first line reads "Paper · Mon, 16 Nov · Close", with "Needs you" on its right (the app shows it when the
+    # open list has something waiting, and Running otherwise)
+    parts = [K.hero(f"Paper · {dwc} · Close" if day else "Paper", _rs(value), change=(f"{_rs(value - start, sign=True)} ({_pct(ret)})" if isinstance(value, (int, float)) and isinstance(start, (int, float)) and isinstance(ret, (int, float)) else _pct(ret) if ret is not None else None),
                     tone=_tone(ret), since=((f"since {IS._dw(mb.get('start_day'))}" if mb.get("start_day") else "")
                            # 12 Nov evening (repair 2's outside check, N7): a holding with no close that day is said beside the big number
                            + (f" · {len(mb['kept_old_price'])} at an older price" if mb.get("kept_old_price") else "")
@@ -511,10 +514,13 @@ def home(full: bool = True) -> dict:
              # 14 Nov 2026 (Madhav: "move the two boxes up for the first section, and the next session to the second"): the boxes and the
              # cash line under the big number, then the plan card
              K.today(label, line, sub, to=K.place("plan")),
-             {"t": "needs", "title": "Needs you", "badge": True, "more": K.place("notices")},
+             # 19 Nov 2026 (Madhav, the Apple Developer app's cards): each item its own card with a large icon
+             {"t": "needs", "title": "Needs you", "badge": True, "more": K.place("notices"), "style": "cards"},
              # 14 Nov 2026 (Madhav): the notices are a titled section, after what needs him and before what Ananta did
              K.notices(home_notices(t, m, clk), title="Heads-up"),
-             K.rows("What Ananta did", top, more=K.tab("activity")) if top else None]
+             {**K.rows("What Ananta did", top, more=K.tab("activity")), "style": "cards"} if top else None]
+    if parts and parts[0]:
+        parts[0]["needs_to"] = K.place("notices")
     return K.surface("home", "india", parts, title="Home")
 
 
@@ -548,12 +554,15 @@ def markets(full: bool = True) -> dict:
     hs = sorted(m.get("holdings") or [], key=lambda h: -(h.get("value_inr") or 0))
     ob = m.get("options_book") or {}
     hp = holdings_page(hs) if hs else None
+    from jarvis.india import watch as W
+    wl = W.lists()
+    # 19 Nov 2026 (Madhav): after the boxes and the trend line come his Zerodha holdings, then options, then the morning view (in the Apple
+    # Developer app's cards), then his watchlists; a fifth chip, Watchlist, and a box per watchlist beside the Nifty boxes
     parts = [K.chips([{"id": "all", "label": "Indices"}, {"id": "holdings", "label": "Holdings", "count": len(hs) or None}, {"id": "options", "label": "Options"},
-                      {"id": "view", "label": "Morning view"}]),
-             K.peek(cards, note=when, tags=["all"]),
+                      {"id": "view", "label": "Morning view"}, {"id": "watchlist", "label": "Watchlist", "count": len(wl) or None}]),
+             K.peek(cards + (IS._safe(W.boxes) or []), note=when, tags=["all"]),
              {**K.rows(None, [K.row("The Nifty is in an uptrend" if up else "The Nifty is not in an uptrend",
                                     (f"{round(int(breadth.group(1)) / 10)} in 10 big stocks above long-term average" if breadth else None), to=K.to_page(morning_page(mv)))], plain=True), "tags": ["all"]} if trend else None,
-             K.rows("Morning view", [_split_row(x) for x in pick], sub=f"before the {mv.get('session_words') or 'last'} open", more=K.to_page(morning_page(mv)), tags=["all", "view"]) if pick else None,
              # 12 Nov (the outside check of repair 4, item 3): "Your Zerodha holdings", as Account and Your stocks name them since G-06
              K.rows("Your Zerodha holdings", [holding_row(h) for h in hs[:3]], count=len(hs), more=K.to_page(hp), tags=["all"]) if hs else None,
              K.rows("Your Zerodha holdings", [holding_row(h) for h in hs], count=len(hs), tags=["holdings"]) if hs else None,
@@ -561,8 +570,18 @@ def markets(full: bool = True) -> dict:
                                       ((f"{ob.get('sessions')} of 20 sessions; {_left_n()}" if _left_n() else f"{ob.get('sessions')} of 20 sessions on record")
                                        if ob.get("sessions") is not None else None),
                                       right=_rs(ob.get("pnl_inr"), sign=True),
-                                      right_tone=_tone(ob.get("pnl_inr")), to=K.place("options"))], tags=["all", "options"]) if ob else None]
-    return K.surface("markets", "india", parts, title="Markets", search={"hint": "Search a stock", "route": "/coin/"})
+                                      right_tone=_tone(ob.get("pnl_inr")), to=K.place("options"))], tags=["all", "options"]) if ob else None,
+             {**K.rows("Morning view", [{**_split_row(x), "icon": _view_icon(x)} for x in pick], sub=f"before the {mv.get('session_words') or 'last'} open",
+                       more=K.to_page(morning_page(mv)), tags=["all", "view"]), "style": "cards"} if pick else None]
+    parts += IS._safe(W.sections) or []
+    return K.surface("markets", "india", parts, title="Markets", search={"hint": "Search a stock or company", "list": "stocklist", "place": "stock:"})
+
+
+def _view_icon(x: str) -> str:
+    """The morning view's card icon, by what the line is about."""
+    t = str(x).lower()
+    return ("people" if re.search(r"institution|fii|dii", t) else "markets" if re.search(r"us:|dow|nasdaq|s&p|gift", t) else
+            "moon" if re.search(r"vix|fear", t) else "bars" if re.search(r"breadth|stocks are above|sector", t) else "sun")
 
 
 def options_page(full: bool = True) -> dict:
@@ -709,7 +728,7 @@ def more(full: bool = True) -> dict:
                                         {"t": "needs_tile", "label": "The open list", "icon": "list", "tint": "violet", "to": K.place("openlist")},
                                         K.tile("Repair board", "Your flags", "flag", "violet", K.route("/flags"))]),
              K.tiles("Settings", [{"t": "push_tile", "label": "Phone notes", "icon": "phone"},
-                                  K.tile("Appearance", "Dark or light", "sun", None, {"action": "theme"}),
+                                  K.tile("Password", "Change it", "lock", None, K.route("/password")),
                                   K.tile("All settings", "Voice, sign-out", "person", None, K.route("/more"))])]
     return K.surface("more", "india", parts, title="More")
 
@@ -952,7 +971,14 @@ def candles(name: str, rng: str | None = None, tf: str | None = None, full: bool
                           note="One point a scored session: the money set aside plus the line's result on one option lot, on paper.")
     key = CHART_KEYS.get(key.replace(" ", ""), key)
     if key not in KEY_NAME:
-        raise KeyError(name)
+        # 19 Nov 2026 (Madhav: a stock's page like Zerodha's or TradingView's): any NSE stock by its Kite instrument token
+        from jarvis.india import livesession as L
+        from jarvis.india import watch as W
+        tok = W.token(key)
+        if not tok:
+            raise KeyError(name)
+        L.INDEX_TOKENS.setdefault(key, tok)
+        KEY_NAME.setdefault(key, W._tidy(W.names().get(key, key)))
     return index_candles(key, rng, tf, fetch=fetch)
 
 

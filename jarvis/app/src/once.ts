@@ -38,3 +38,44 @@ export const BAR_ROOM = 64 + 26 + 10;
 const orbSubs = new Set<() => void>();
 export const onOrbPress = (f: () => void): (() => void) => { orbSubs.add(f); return () => { orbSubs.delete(f); }; };
 export const pressOrb = (): boolean => { orbSubs.forEach((f) => f()); return orbSubs.size > 0; };
+
+// 19 Nov 2026 (Madhav, a YouTube screenshot): while the voice is on and he moves to another screen, Ananta shrinks to a small orb at the
+// bottom right; a tap brings him back to Ask. Ask says the voice's phase here; the bar draws the orb; the orb can also end the voice.
+let liveVoice = "off";
+const liveSubs = new Set<(v: string) => void>();
+export const setLiveVoice = (v: string): void => { if (v !== liveVoice) { liveVoice = v; liveSubs.forEach((f) => f(v)); } };
+export function useLiveVoice(): string {
+  const [v, setV] = useState(liveVoice);
+  useEffect(() => { liveSubs.add(setV); return () => { liveSubs.delete(setV); }; }, []);
+  return v;
+}
+const endSubs = new Set<() => void>();
+export const onEndVoice = (f: () => void): (() => void) => { endSubs.add(f); return () => { endSubs.delete(f); }; };
+export const endVoice = (): void => { endSubs.forEach((f) => f()); };
+
+// 19 Nov 2026 (Madhav, an Instagram screenshot: "if I am scrolling up, the bar minimises, when I tap on it, it resizes to actual size. When I
+// am not using it, it resizes to smaller"): the bar is small while a page scrolls on and after a few quiet seconds, full size at the top of a
+// page, on a scroll back up and the moment he touches it.
+let small = false;
+const smallSubs = new Set<(v: boolean) => void>();
+let idle: ReturnType<typeof setTimeout> | null = null;
+export const IDLE_MS = 4000;
+export const setBarSmall = (v: boolean): void => { if (v !== small) { small = v; smallSubs.forEach((f) => f(v)); } };
+export function useBarSmall(): boolean {
+  const [v, setV] = useState(small);
+  useEffect(() => { smallSubs.add(setV); return () => { smallSubs.delete(setV); }; }, []);
+  return v;
+}
+export const barAwake = (): void => {
+  setBarSmall(false);
+  if (idle) clearTimeout(idle);
+  idle = setTimeout(() => setBarSmall(true), IDLE_MS);
+};
+let lastY = 0;
+export const reportScroll = (y: number): void => {
+  const d = y - lastY;
+  lastY = y;
+  if (y < 24) { barAwake(); return; }
+  if (d > 4) setBarSmall(true);
+  else if (d < -10) barAwake();
+};

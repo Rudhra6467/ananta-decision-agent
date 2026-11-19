@@ -18,11 +18,11 @@ import re
 OVERVIEWS = ("home", "markets", "more")          # rules 3 and 4 are for these first layers
 TONES = (None, "good", "bad", "warn")
 PART_TYPES = ("hero", "today", "boxes", "peek", "rows", "chips", "tiles", "pill", "heading", "line", "points", "trust", "kv", "notices",
-              "bars", "split", "chart", "link", "identity", "counts", "needs", "pricechart", "ba")     # needs: the app fills it from /v3/place/needs (the open list)
+              "bars", "split", "chart", "link", "identity", "counts", "needs", "pricechart", "ba", "watchmanage", "watchadd", "watchnew")     # needs: the app fills it from /v3/place/needs (the open list)
 # word budgets (rule 2 to 4 and 8); the app's row is cut at one line anyway, the budget keeps the words whole
 MAX = {"row_title": 6, "row_sub": 9, "row_right": 4, "today_line": 9, "today_sub": 13, "notice": 11, "point_overview": 10, "points_overview": 3,
        "rows_overview": 3, "tile_label": 3, "tile_value": 4, "chip": 4, "box_label": 3, "box_caption": 6, "foot": 16, "page_line": 22,
-       "home_words": 150, "markets_words": 170, "more_words": 110, "ba_label": 8, "ba_value": 14, "ba_rows": 4}
+       "home_words": 150, "markets_words": 200, "more_words": 110, "ba_label": 8, "ba_value": 14, "ba_rows": 4}
 
 
 def nwords(s) -> int:

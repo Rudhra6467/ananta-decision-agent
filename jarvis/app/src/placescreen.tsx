@@ -6,6 +6,8 @@ import { router, useScrollToTop } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "./theme";
 import { Bell, HideButton, Icon, MarketChip, Parts, Pinned, useNeeds, usePlace } from "./place";
+import { ThemeToggle } from "./themetoggle";
+import { reportScroll } from "./once";
 // 11 Nov 2026 (Madhav, 07:51: "there is no need of hide symbol in all the pages right? Only in home tab"): the eye is on Home only.
 
 function Problem({ err, words }: { err?: string | null; words?: string }) {
@@ -25,12 +27,12 @@ export function PlaceScreen({ name, title }: { name: string; title: string }) {
   useScrollToTop(ref);
   const count = needs.data?.count ?? 0;
   return (
-    <ScrollView ref={ref} style={{ flex: 1, backgroundColor: C.bg }}
+    <ScrollView ref={ref} style={{ flex: 1, backgroundColor: C.bg }} onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)} scrollEventThrottle={32}
       contentContainerStyle={{ paddingTop: ins.top + 12, paddingHorizontal: 16, paddingBottom: 132, gap: 16, width: "100%", maxWidth: 720, alignSelf: "center" }}
       refreshControl={<RefreshControl refreshing={!!loading && !!data} onRefresh={() => { reload(); needs.reload(); }} tintColor={C.dim} />}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 }}>
         {name === "home" ? <MarketChip /> : <Text accessibilityRole="header" style={{ color: C.text, fontSize: 24, lineHeight: 30, fontWeight: "700", letterSpacing: -0.2 }}>{title}</Text>}
-        <View style={{ flexDirection: "row", alignItems: "center" }}>{name === "home" ? <HideButton /> : null}<Bell count={count} /></View>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>{name === "home" ? <HideButton /> : null}{name === "more" ? <ThemeToggle /> : null}<Bell count={count} /></View>
       </View>
       {err && !data ? <Problem err={err} /> : null}
       {data && data.ready === false ? <Problem words={data.words} /> : null}

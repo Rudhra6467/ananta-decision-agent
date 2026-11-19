@@ -116,7 +116,7 @@ def test_home_and_account_say_which_close_the_big_number_is_marked_at(india, mon
     """Before: Home's 'Your paper account' had no date at all, beside index boxes dated the latest session."""
     monkeypatch.setattr(IS, "_managed", lambda: {"start_inr": 160499, "start_day": "2026-10-30", "positions": 11, "day": "2026-11-09"})
     hero = next(p for p in IP.home()["parts"] if p["t"] == "hero")
-    assert hero["label"] == "Your paper account · Mon 9 Nov close" and hero["value"] == "₹1,64,725"
+    assert hero["label"] == "Paper · Mon, 9 Nov · Close" and hero["value"] == "₹1,64,725"   # 19 Nov 2026 (Madhav): the new first line
     hero = next(p for p in IP.account()["parts"] if p["t"] == "hero")
     assert hero["since"] == "since Fri 30 Oct, at the Mon 9 Nov close"
 

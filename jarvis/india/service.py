@@ -731,6 +731,9 @@ def candles(name: str, request: Request, tf: str = "", who: str = Depends(signed
 @r.get("/v3/{name:path}")
 def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
     fn = india_views.ROUTES.get(name)
+    if fn is None:                                  # 19 Nov 2026: stock and watchlist pages, and the search list (jarvis/india/watch.py)
+        from jarvis.india import watch as india_watch
+        fn = india_watch.dynamic(name)
     if fn is None:
         raise HTTPException(status_code=404, detail=f"India has no view for /v3/{name} yet")
     try:
@@ -744,6 +747,20 @@ def v3(name: str, who: str = Depends(signed_in), days: int = 30) -> dict:
         return tidy(fn())
     except Exception as e:   # noqa: BLE001 - a view that cannot build says so; the screen shows the error box, never a half page
         raise HTTPException(status_code=503, detail=f"India view {name} could not build: {e.__class__.__name__}: {str(e)[:120]}") from e
+
+
+@r.post("/v3/watch")
+def watch_act(b: dict, who: str = Depends(signed_in)) -> dict:
+    """Madhav's watchlists (19 Nov 2026): create, rename, delete, add a stock, remove a stock. The owner only; nothing trades."""
+    if str(who).startswith("guest:"):
+        raise HTTPException(status_code=403, detail="Watchlists are Madhav's own.")
+    from jarvis.india import watch as india_watch
+    try:
+        return india_watch.act(b or {})
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail="That watchlist is gone.") from e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @r.get("/history")

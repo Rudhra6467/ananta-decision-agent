@@ -21,6 +21,7 @@ import { useData } from "./useData";
 import { soft, tap } from "./haptics";
 import { api } from "./api";
 import { showToast } from "./visitor";
+import { StockSearch, WatchAdd, WatchManage, WatchNew } from "./watch";
 
 // ---------------------------------------------------------------------------------------------------- where a tap goes
 export type To = { tab?: string; place?: string; page?: any; sheet?: any; ask?: string; route?: string; action?: string; as?: string; peek?: any } | null | undefined;
@@ -82,7 +83,7 @@ async function clearNeeds() {
 }
 
 // ---------------------------------------------------------------------------------------------------- type and small pieces
-const T = {
+export const T = {
   hero: { fontSize: 40, lineHeight: 46, fontWeight: "700" as const, letterSpacing: -0.8, ...NUM },
   title: { fontSize: 24, lineHeight: 30, fontWeight: "700" as const, letterSpacing: -0.2 },
   today: { fontSize: 20, lineHeight: 26, fontWeight: "600" as const, letterSpacing: -0.2 },
@@ -95,7 +96,7 @@ const T = {
 };
 const cap = (s: any) => { const t = String(s ?? ""); return t ? t[0].toUpperCase() + t.slice(1) : t; };
 const toneColor = (t?: string | null) => (t === "good" ? C.good : t === "bad" ? C.bad : t === "warn" ? C.warn : undefined);
-const card = () => ({ backgroundColor: C.card, borderRadius: 20, borderWidth: 1, borderColor: C.line });
+export const card = () => ({ backgroundColor: C.card, borderRadius: 20, borderWidth: 1, borderColor: C.line });
 
 const ICONS: Record<string, string> = {
   up: "M12 19V5M6 11l6-6 6 6", down: "M12 5v14M6 13l6 6 6-6", note: "M7 4h7l4 4v12H7zM14 4v4h4M10 13h5M10 16h5",
@@ -125,7 +126,7 @@ export function Icon({ name, size = 22, color, stroke = 1.75 }: { name: string; 
 const tintOf = (t?: string) => (t === "bronze" ? [C.bronzeTint, C.gold] : t === "blue" ? [C.blueTint, C.blue] : t === "violet" ? [C.violetTint, C.violet] : [C.card2, C.dim]);
 function IconTile({ name, tint, size = 40 }: { name: string; tint?: string; size?: number }) {
   const [bg, fg] = tintOf(tint);
-  return <View style={{ width: size, height: size, borderRadius: size * 0.3, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}><Icon name={name} color={fg} /></View>;
+  return <View style={{ width: size, height: size, borderRadius: size * 0.3, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}><Icon name={name} color={fg} size={size > 44 ? 26 : 22} /></View>;
 }
 function Letter({ ch, grade }: { ch?: string; grade?: string }) {
   const g = (grade || "").toUpperCase();
@@ -227,13 +228,21 @@ export function MarketChip() {
 }
 
 // ---------------------------------------------------------------------------------------------------- 1 · hero number
-function Hero({ p }: { p: any }) {
+function Hero({ p, needs }: { p: any; needs?: number }) {
   const m = useMask();
+  // 19 Nov 2026 (Madhav): Home's first line is "Paper · Mon, 16 Nov · Close" with "Needs you" on its right while something waits for him
+  const wants = !!p.needs_to && !!needs;
   return (
     <View style={{ gap: 6, marginTop: 4 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
         <Text style={[T.meta, { color: C.dim, flexShrink: 1 }]}>{p.label}</Text>
-        {p.status ? (
+        {wants ? (
+          <Pressable onPress={() => go(p.needs_to)} accessibilityRole="button" accessibilityLabel={`Needs you: ${needs}`} hitSlop={10}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.warn }} />
+            <Text style={[T.meta, { color: C.text, fontWeight: "700" }]}>Needs you · {needs}</Text>
+          </Pressable>
+        ) : p.status ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.status.ok ? C.good : C.warn }} />
             <Text style={[T.meta, { color: C.dim }]}>{p.status.words}</Text>
@@ -387,6 +396,22 @@ export function Row({ r, last }: { r: any; last?: boolean }) {
   const style = { flexDirection: "row" as const, alignItems: "center" as const, gap: 12, minHeight: 64, paddingVertical: 10, borderBottomWidth: last ? 0 : 1, borderBottomColor: C.line2 };
   return r.to ? <Pressable onPress={() => go(r.to)} accessibilityRole="button" style={style}>{body}</Pressable> : <View style={style}>{body}</View>;
 }
+function CardRow({ r }: { r: any }) {
+  const m = useMask();
+  const body = (
+    <>
+      <IconTile name={r.icon || (r.grade ? "check" : "note")} tint={r.tint || "bronze"} size={52} />
+      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+        <Text style={{ color: C.text, fontSize: 17, lineHeight: 22, fontWeight: "700" }} numberOfLines={2}>{m(cap(r.title))}</Text>
+        {r.sub ? <Text style={{ color: C.dim, fontSize: 14, lineHeight: 19 }} numberOfLines={3}>{m(r.sub)}</Text> : null}
+        {r.right ? <Text style={[T.meta, { color: toneColor(r.right_tone) ?? C.dim, ...NUM }]} numberOfLines={1}>{m(r.right)}{r.right_sub ? `  ${m(r.right_sub)}` : ""}</Text> : null}
+      </View>
+      {r.to ? <Chev /> : null}
+    </>
+  );
+  const style = [card(), { flexDirection: "row" as const, alignItems: "center" as const, gap: 14, padding: 16, minHeight: 84 }];
+  return r.to ? <Pressable onPress={() => go(r.to)} accessibilityRole="button" style={({ pressed }) => [...style, { opacity: pressed ? 0.85 : 1 }]}>{body}</Pressable> : <View style={style}>{body}</View>;
+}
 function Section({ p, rows, needs }: { p: any; rows?: any[]; needs?: number }) {
   const rs = rows ?? p.rows ?? [];
   if (!rs.length) return null;
@@ -404,9 +429,14 @@ function Section({ p, rows, needs }: { p: any; rows?: any[]; needs?: number }) {
           ) : null}
         </View>
       ) : null}
-      <View style={[card(), { paddingHorizontal: 16 }]}>
-        {rs.map((r: any, i: number) => <Row key={(r.title || "") + i} r={r} last={i === rs.length - 1} />)}
-      </View>
+      {p.style === "cards" ? (
+        // 19 Nov 2026 (Madhav, the Apple Developer app): each item its own card, a large icon tile, a bold title and its line under it
+        <View style={{ gap: 10 }}>{rs.map((r: any, i: number) => <CardRow key={(r.title || "") + i} r={r} />)}</View>
+      ) : (
+        <View style={[card(), { paddingHorizontal: 16 }]}>
+          {rs.map((r: any, i: number) => <Row key={(r.title || "") + i} r={r} last={i === rs.length - 1} />)}
+        </View>
+      )}
       {p.foot ? <Text style={[T.meta, { color: C.dim, fontWeight: "500", paddingHorizontal: 4, paddingTop: 6 }]}>{p.foot}</Text> : null}
     </View>
   );
@@ -1330,12 +1360,12 @@ export function Parts({ data, needs }: { data: any; needs?: any }) {
     return on === first || (p.t === "rows" && (p.rows || []).some((r: any) => r.tag === on));
   };
   const out: React.ReactNode[] = [];
-  if (data?.search) out.push(<Search key="search" s={data.search} />);
+  if (data?.search) out.push(data.search.list ? <StockSearch key="search" s={data.search} /> : <Search key="search" s={data.search} />);
   parts.forEach((p, i) => {
     if (!shown(p)) return;
     const k = `${p.t}${i}`;
     switch (p.t) {
-      case "hero": out.push(<Hero key={k} p={p} />); break;
+      case "hero": out.push(<Hero key={k} p={p} needs={needs?.count} />); break;
       case "today": out.push(<TodayCard key={k} p={p} />); break;
       case "boxes": {
         const overHome = SHEET_PLACES.includes(data?.name);   // Madhav, 10 Nov 22:12: Home's two boxes open each number in a tall sheet over Home
@@ -1364,6 +1394,9 @@ export function Parts({ data, needs }: { data: any; needs?: any }) {
       case "chart": out.push(<Chart key={k} p={p} />); break;
       case "pricechart": out.push(<PriceChart key={`${k}${p.sym}`} p={p} />); break;
       case "counts": out.push(<Counts key={k} p={p} />); break;
+      case "watchnew": out.push(<WatchNew key={k} p={p} />); break;
+      case "watchmanage": out.push(<WatchManage key={`${k}${(p.symbols || []).join()}`} p={p} />); break;
+      case "watchadd": out.push(<WatchAdd key={k} p={p} />); break;
       case "link": out.push(<Pressable key={k} onPress={() => go(p.to)} accessibilityRole="link" style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 4 }}><Text style={[T.row, { color: C.gold }]}>{p.label}</Text></Pressable>); break;
       case "identity": out.push(
         <View key={k} style={[card(), { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14, paddingHorizontal: 16 }]}>

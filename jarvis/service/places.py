@@ -959,7 +959,7 @@ def more(j) -> dict:
                                         K.tile("The open list", f"{n.get('YOU', 0)} need you", "list", "violet", K.place("openlist")),
                                         K.tile("Repair board", f"{n.get('WORK', 0)} to do", "flag", "violet", K.route("/flags"))]),
              K.tiles("Settings", [K.tile("Phone notes", "Not set up yet", "phone", None, push.get("to") if push else K.ask("How do I turn on phone notes?"), quiet=True) if push else K.tile("Phone notes", "Ask how", "phone", None, K.ask("Are phone notes on for my iPhone?")),
-                                  K.tile("Appearance", "Dark or light", "sun", None, {"action": "theme"}),
+                                  K.tile("Password", "Change it", "lock", None, K.route("/password")),
                                   K.tile("All settings", "Voice, sign-out", "person", None, K.route("/more"))])]
     return K.surface("more", "crypto", parts, bell=len(you), title="More")
 

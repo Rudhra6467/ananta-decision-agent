@@ -11,7 +11,7 @@ import { C, useThemeVersion } from "../../src/theme";
 import { Orb } from "../../src/newui";
 import { Icon } from "../../src/place";
 import { ScreenError } from "../../src/safe";
-import { pressOrb, useTyping, useVoiceStage } from "../../src/once";
+import { barAwake, endVoice, pressOrb, useBarSmall, useLiveVoice, useTyping, useVoiceStage } from "../../src/once";
 
 export const ErrorBoundary = ScreenError;
 
@@ -25,6 +25,7 @@ const TABS: { name: string; label: string }[] = [
 // light tick marks each tab it passes; the tab is chosen only when the finger lifts. A page swipe moves the pill with the page. The orb
 // in the middle is never chosen by a drag (Ask opens only from a tap on it, 14 Nov). The bar is 58 points tall (it was 64).
 const BAR_H = 58;
+const BAR_SMALL_H = 46;                                                  // 19 Nov 2026: the bar at rest (Instagram)
 const PILL_INSET = 5;
 const ROUTE_ORDER = ["home", "markets", "activity", "more", "ask"];          // the pager's order (app/new/_layout.tsx below)
 const slotOf = (name: string) => TABS.findIndex((t) => t.name === name);
@@ -44,8 +45,13 @@ function Bar({ state, navigation, position }: any) {
   const lift = useRef(new Animated.Value(1)).current;
   const dragging = useRef(false);
   const [hover, setHover] = useState<number | null>(null);
-  const keep = useRef({ w, active, state, navigation });
-  keep.current = { w, active, state, navigation };
+  const live = useLiveVoice();
+  const smallNow = useBarSmall() && active !== "ask";              // 19 Nov: on Ask the bar stays full (the orb is the microphone there)
+  const sz = useRef(new Animated.Value(0)).current;
+  useEffect(() => { Animated.spring(sz, { toValue: smallNow ? 1 : 0, stiffness: 260, damping: 26, mass: 1, useNativeDriver: false }).start(); }, [smallNow]);
+  useEffect(() => { barAwake(); }, [active]);                       // a new tab: full size, then small after a few quiet seconds
+  const keep = useRef({ w, active, state, navigation, small: smallNow });
+  keep.current = { w, active, state, navigation, small: smallNow };
 
   // the pill follows the pager: route index -> slot (Ask fades the pill out; the orb shows the microphone there)
   useEffect(() => {
@@ -68,6 +74,7 @@ function Bar({ state, navigation, position }: any) {
   }, [active, w]);
 
   const go = (name: string) => {
+    if (keep.current.small) { barAwake(); return; }                 // 19 Nov (Instagram): a tap on the small bar brings it back to full size first
     const { state: st, navigation: nav } = keep.current;
     const route = st.routes.find((r: any) => r.name === name);
     const ev = nav.emit({ type: "tabPress", target: route?.key, canPreventDefault: true });
@@ -77,6 +84,7 @@ function Bar({ state, navigation, position }: any) {
   const pan = useRef(PanResponder.create({
     onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
     onPanResponderGrant: (_e, g) => {
+      barAwake();
       dragging.current = true;
       hx.stopAnimation();
       Animated.parallel([Animated.spring(lift, { toValue: 1.08, stiffness: 400, damping: 22, useNativeDriver: false }),
@@ -114,12 +122,29 @@ function Bar({ state, navigation, position }: any) {
 
   if ((typing || stage) && active === "ask") return null;  // 3 Nov: while he types in Ask the bar steps aside; 12 Nov: and on the big voice screen
   const lit = (i: number) => (hover !== null ? hover === i : active === TABS[i].name);
+  const barH = sz.interpolate({ inputRange: [0, 1], outputRange: [BAR_H, BAR_SMALL_H] });
+  const labelO = sz.interpolate({ inputRange: [0, 0.5], outputRange: [1, 0], extrapolate: "clamp" });
+  const labelH = sz.interpolate({ inputRange: [0, 1], outputRange: [13, 0] });
+  const orbS = sz.interpolate({ inputRange: [0, 1], outputRange: [1, 0.78] });
+  const orbY = sz.interpolate({ inputRange: [0, 1], outputRange: [0, 8] });
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: Math.max(ins.bottom, 12), alignItems: "center" }}>
-      <View accessibilityRole="tablist" style={{ width: "100%", maxWidth: 520, paddingHorizontal: 16 }}>
-        <View ref={barRef} {...pan.panHandlers}
+      {live !== "off" && active !== "ask" ? (
+        // 19 Nov 2026 (Madhav, YouTube's mini player): the voice is still on, so Ananta waits small at the bottom right; a tap goes back to Ask
+        <View pointerEvents="box-none" style={{ position: "absolute", right: 16, bottom: BAR_H + 18, alignItems: "center", gap: 4 }}>
+          <Orb size={56} mic label="Back to Ananta" onPress={() => { tap(); navigation.navigate("ask"); }} />
+          <Pressable onPress={() => { tap(); endVoice(); }} accessibilityRole="button" accessibilityLabel="End voice" hitSlop={8}
+            style={{ position: "absolute", top: -6, left: -6, width: 24, height: 24, borderRadius: 12, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" }}>
+            <Icon name="close" size={14} color={C.text} />
+          </Pressable>
+          <Text style={{ color: C.dim, fontSize: 11, fontWeight: "700" }}>{live === "speaking" ? "Speaking" : live === "thinking" ? "Thinking" : "Listening"}</Text>
+        </View>
+      ) : null}
+      <Animated.View accessibilityRole="tablist" onTouchStart={() => barAwake()}
+        style={{ width: sz.interpolate({ inputRange: [0, 1], outputRange: ["100%", "74%"] }) as any, maxWidth: 520, paddingHorizontal: 16 }}>
+        <Animated.View ref={barRef as any} {...pan.panHandlers}
           onLayout={(e) => { setW(e.nativeEvent.layout.width / TABS.length); barRef.current?.measureInWindow((x) => { left.current = x; }); }}
-          style={{ height: BAR_H, borderRadius: BAR_H / 2, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, flexDirection: "row", alignItems: "center",
+          style={{ height: barH, borderRadius: BAR_H / 2, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, flexDirection: "row", alignItems: "center",
             shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}>
           {w ? (
             <Animated.View pointerEvents="none" style={{ position: "absolute", top: PILL_INSET - 1, height: BAR_H - 2 * PILL_INSET, width: w - 2 * PILL_INSET + 6, left: PILL_INSET - 3,
@@ -131,11 +156,11 @@ function Bar({ state, navigation, position }: any) {
           {TABS.map((t, i) => {
             if (!t.label) {
               return (
-                <View key={t.name} style={{ flex: 1, alignItems: "center", marginTop: -24 }}>
+                <Animated.View key={t.name} style={{ flex: 1, alignItems: "center", marginTop: -24, transform: [{ translateY: orbY }, { scale: orbS }] }}>
                   {/* 7 Nov (Madhav): first press opens Ask; on Ask already, the same press starts the voice */}
                   <Orb size={54} mic={active === "ask"} label={active === "ask" ? "Talk to Ananta" : "Ask Ananta"}
-                    onPress={() => { if (active === "ask") pressOrb(); else navigation.navigate("ask"); }} />
-                </View>
+                    onPress={() => { if (keep.current.small) { barAwake(); return; } if (active === "ask") pressOrb(); else navigation.navigate("ask"); }} />
+                </Animated.View>
               );
             }
             const on = lit(i);
@@ -144,12 +169,12 @@ function Bar({ state, navigation, position }: any) {
               <Pressable key={t.name} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: active === t.name }}
                 onPress={() => go(t.name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 1, minHeight: 46 }}>
                 <Icon name={t.name} size={22} color={col} />
-                <Text style={{ color: col, fontSize: 10.5, lineHeight: 13, fontWeight: "700" }}>{t.label}</Text>
+                <Animated.Text style={{ color: col, fontSize: 10.5, lineHeight: 13, fontWeight: "700", opacity: labelO, height: labelH }}>{t.label}</Animated.Text>
               </Pressable>
             );
           })}
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </View>
   );
 }

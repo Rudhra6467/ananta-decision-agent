@@ -234,7 +234,7 @@
     "docs/knowledge/acceptance_gate.json",
     "jarvis/service/realism.py"
    ],
-   "sha256": "e0b2d748e18bfc3e41c63e6f56c4505d42886b0c3dd1106d602fc12af1b88c62",
+   "sha256": "fe111edae94a8704b4e199b5f674c497a5244ee6e6880c501271d08648d249b5",
    "history": [
     {
      "date": "2026-10-15",
@@ -265,6 +265,14 @@
      "approved_by": "Madhav (in chat)",
      "note": "Madhav, 10 Nov 09:32 Toronto: \"Keep your best reasoning in place and take decisions for every part and continue here. Crypto is a very straightforward market. Only buys or keep off until cooling.\" Decided by Claude on that delegation. ndax_book.step reads core.mode from discipline_v1.json; all_in (the rule review 39 found better than thirds for 2024-2026) buys the whole core when the dial opens and sells it when the dial closes.",
      "sha256": "e0b2d748e18bfc3e41c63e6f56c4505d42886b0c3dd1106d602fc12af1b88c62"
+    },
+    {
+     "date": "2026-11-20",
+     "approved_by": "Madhav (in chat)",
+     "note": "A decision changes, and the record is split at this day: G-42: a Bank of Canada outage uses the last rate, three days at most; a sale with no NDAX quote waits for the next step; the book waits for both core candles to 06:00 UTC; a step after the note is kept for the next note. Madhav, 2026-11-20: \"Madhav, 14 Nov 2026 09:59 Toronto: \"use your reasoning and take best decisions based on our discussion and continue to complete them\"",
+     "sha256": "fe111edae94a8704b4e199b5f674c497a5244ee6e6880c501271d08648d249b5",
+     "door": "change",
+     "commit": "dc5050c"
     }
    ]
   }

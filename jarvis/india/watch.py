@@ -132,6 +132,10 @@ def quotes(syms: list[str]) -> dict:
     except Exception:  # noqa: BLE001
         pass
     qb = (_json(views.DATA / "manifests" / "quotebook.json", {}) or {}).get("quotes") or {}
+    for s in syms:                                  # after the close Kite's previous close equals today's: take the day's move from the closes
+        r = qb.get(s) or {}
+        if s in out and out[s].get("change_pct") == 0 and isinstance(r.get("chg_1d"), (int, float)) and r.get("close") and abs(out[s]["last"] / r["close"] - 1) < 0.002:
+            out[s]["change_pct"] = round(100 * r["chg_1d"], 2)
     for s in syms:
         if s not in out and (qb.get(s) or {}).get("close") is not None:
             r = qb[s]

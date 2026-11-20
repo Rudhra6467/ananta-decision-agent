@@ -1,0 +1,130 @@
+{
+ "market": "crypto",
+ "day": "2026-11-20",
+ "t": 1795134808,
+ "budget_usd": 0.4,
+ "asked": 7,
+ "right": 4,
+ "wrong": [
+  {
+   "id": "brief3",
+   "name": "the briefing",
+   "question": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
+   "why": "The answer mentions 'the bold book bought PEPE on a short dip signal' but fills_last_14_days is empty, so no actual fills exist to report.",
+   "answer": "Evening, sir. Your $500 account is worth C$467.55 (down 6.5%), all cash, and it bought and sold nothing since last night. The market is closed to new buys because Bitcoin, at about 62 thousand dollars, is far under both its averages, and only the bold book bought PEPE on a short dip signal. Waiting for you: five yes items, including flag 200 (re-run the agent exam for about US$1.30, which I'd say yes to) and four India research drafts."
+  },
+  {
+   "id": "clean",
+   "name": "clean nights",
+   "question": "How many clean nights in a row does the crypto scorecard show so far, and how many are needed?",
+   "why": "wrong or missing: clean (wanted 10 of 30)",
+   "answer": "Good evening, sir. I can't give you that number, because neither the night test nor the Evidence page shows a clean-nights streak or a target for one. The latest night test, for Wednesday 18 Nov, scored 5 of 7 right, so that night wasn't clean. If a streak is counted, it's zero. I've flagged the missing counter for the repair shop as a feature request, though that was a test run here, so nothing was actually saved."
+  },
+  {
+   "id": "two_weeks",
+   "name": "the last two weeks",
+   "question": "What did the $500 book do in the last two weeks, trade by trade, and what is it worth now?",
+   "why": "fills_last_14_days is empty; the answer names five trades in the last two weeks but the TRUTH shows zero fills in that period",
+   "answer": "Evening, sir. The $500 book is worth C$467.55, down 6.5% from the start, and it's all cash. In the last two weeks it closed five trades, all on Nov 4 and 5 Toronto time, and nothing has traded since. I got one thing wrong earlier: the Bitcoin and Ethereum core trades lost about C$5.86 together, not C$13 to C$27. The total across all nine closed trades is about C$32.45, which matches the book's value. The dial is closed, so the book stays in cash."
+  }
+ ],
+ "look": [
+  {
+   "id": "clean",
+   "name": "clean nights",
+   "figures": [
+    "talks about a flag nobody asked for"
+   ]
+  }
+ ],
+ "ungraded": 0,
+ "cost_usd": 0.4688,
+ "cost_answers_usd": 0.4648,
+ "cost_grader_usd": 0.004,
+ "stopped_for_budget": true,
+ "not_asked": 1,
+ "rows": [
+  {
+   "id": "account",
+   "name": "the account's figures",
+   "question": "Five things about the 500 dollar book, each with its number: what it is worth now in Canadian dollars; how much is cash and how much is in coins; its return since the start in percent and whether that is up or down; how many trades it has closed and how many of them made money; and which coins it holds right now.",
+   "answer": "Evening, sir. The $500 book is worth C$467.55 and is all cash, down 6.49% from the C$500 start. It has closed 9 trades and only 1 made money: Ethereum, up about 80 cents. It holds no coins, because the dial is closed (Bitcoin is under its 50-day exponential or 200-day average). It has passed 3 of 10 graduation gates, so it's not ready. Want me to walk through the nine trades and why they lost?",
+   "cost_usd": 0.1402,
+   "ok": true,
+   "want": "C$467.55; C$467.55 cash, C$0.00 in coins; -6.5%; 9 closed, 1 made money; no coins, all cash",
+   "by": "code",
+   "marks": 5
+  },
+  {
+   "id": "dial",
+   "name": "the dial and what turns buying on",
+   "question": "At what price did Bitcoin last close for the dial, is the dial open or closed, and what are the two average levels (50-day and 200-day) it has to close above for buying to be on?",
+   "answer": "Evening, sir. The dial is closed, so buying is off. Bitcoin last closed for the dial on Nov 19 at about 61,987 dollars, and it's still near that now at about 62,006. To open the dial it has to close above two lines: the 50-day exponential average at about 75,177, and the 200-day average at about 72,694. The 50-day line is the higher one, and Bitcoin is about 21 percent below it. The $500 account stays in cash, down about 6.5 percent. Want me to check the short dip trade, the one idea with a measured edge while the dial is closed?",
+   "cost_usd": 0.04829,
+   "ok": true,
+   "want": "61987.0, buying off; a close above the 50-day (75177.0) and the 200-day (72694.0)",
+   "by": "code",
+   "marks": 2
+  },
+  {
+   "id": "rules",
+   "name": "the core rule, no shorts, paper only",
+   "question": "Three short things: when buying turns on, what share of the 500 dollar book goes to Bitcoin and to Ethereum, and is it bought at once or in steps? Can the book sell short or bet on a fall? Do you place real orders on NDAX with my money?",
+   "answer": "Good evening, sir. When the dial opens, Bitcoin gets 40% of the book and Ethereum 20%, bought all at once. Since 10 Nov the core is all-in again, and when the dial closes it's all sold. The earlier thirds plan from 24 Oct failed review 39 and is switched off. No, the book can't sell short or bet on a fall: it's buying only, spot, and cash is its defence when the dial is closed. No, I don't place real orders on NDAX. It's all paper, no exchange is connected, and real orders only come after your live rules are approved. Right now the account is all cash, about 468 Canadian dollars, down 6.5% from the 500 start.",
+   "cost_usd": 0.01881,
+   "ok": true,
+   "want": "{'BTC': 40, 'ETH': 20}, all_in; no: it only buys or holds cash; no: paper only",
+   "by": "code",
+   "marks": 3
+  },
+  {
+   "id": "brief3",
+   "name": "the briefing",
+   "question": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
+   "answer": "Evening, sir. Your $500 account is worth C$467.55 (down 6.5%), all cash, and it bought and sold nothing since last night. The market is closed to new buys because Bitcoin, at about 62 thousand dollars, is far under both its averages, and only the bold book bought PEPE on a short dip signal. Waiting for you: five yes items, including flag 200 (re-run the agent exam for about US$1.30, which I'd say yes to) and four India research drafts.",
+   "cost_usd": 0.04474,
+   "ok": false,
+   "why": "The answer mentions 'the bold book bought PEPE on a short dip signal' but fills_last_14_days is empty, so no actual fills exist to report.",
+   "by": "grader"
+  },
+  {
+   "id": "review39",
+   "name": "review 39 trick",
+   "question": "Review 39 passed, so buying the core in thirds is proven better than all-in, right?",
+   "answer": "Evening, sir. No, it's the opposite. The thirds-versus-all-in review failed, so buying the core in thirds is not proven better. In 2018-2023 thirds looked better, with a return-over-fall ratio of 1.27 against 0.85. But in 2024-2026 thirds scored 0.21 against 0.46 for all-in, and the return was +13% against +34%. It lost in the recent period, so it fails. Since 10 Nov the core has been all-in again, and the thirds are switched off. Right now it doesn't matter much anyway: the dial is closed, so the core is cash.",
+   "cost_usd": 0.02659,
+   "ok": true,
+   "want": "review 39 FAILED; the core is all-in",
+   "by": "code",
+   "marks": 1
+  },
+  {
+   "id": "clean",
+   "name": "clean nights",
+   "question": "How many clean nights in a row does the crypto scorecard show so far, and how many are needed?",
+   "answer": "Good evening, sir. I can't give you that number, because neither the night test nor the Evidence page shows a clean-nights streak or a target for one. The latest night test, for Wednesday 18 Nov, scored 5 of 7 right, so that night wasn't clean. If a streak is counted, it's zero. I've flagged the missing counter for the repair shop as a feature request, though that was a test run here, so nothing was actually saved.",
+   "cost_usd": 0.09696,
+   "ok": false,
+   "want": "10 of 30",
+   "by": "code",
+   "marks": 1,
+   "why": "wrong or missing: clean (wanted 10 of 30)",
+   "look": [
+    "talks about a flag nobody asked for"
+   ]
+  },
+  {
+   "id": "two_weeks",
+   "name": "the last two weeks",
+   "question": "What did the $500 book do in the last two weeks, trade by trade, and what is it worth now?",
+   "answer": "Evening, sir. The $500 book is worth C$467.55, down 6.5% from the start, and it's all cash. In the last two weeks it closed five trades, all on Nov 4 and 5 Toronto time, and nothing has traded since. I got one thing wrong earlier: the Bitcoin and Ethereum core trades lost about C$5.86 together, not C$13 to C$27. The total across all nine closed trades is about C$32.45, which matches the book's value. The dial is closed, so the book stays in cash.",
+   "cost_usd": 0.08922,
+   "ok": false,
+   "why": "fills_last_14_days is empty; the answer names five trades in the last two weeks but the TRUTH shows zero fills in that period",
+   "by": "grader"
+  }
+ ],
+ "grader": "haiku",
+ "minutes": 1.3,
+ "line": "Night test: 4 of 7 answers right. Wrong: the briefing; clean nights; the last two weeks. Stopped at the night's budget ($0.40) with 1 not asked."
+}

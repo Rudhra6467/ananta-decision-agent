@@ -1,21 +1,21 @@
 {
  "account": {
-  "last": "2026-11-19",
+  "last": "2026-11-20",
   "last_ok": true,
-  "streak": 9
+  "streak": 10
  },
  "dial": {
-  "last": "2026-11-19",
+  "last": "2026-11-20",
   "last_ok": true,
-  "streak": 9
+  "streak": 10
  },
  "rules": {
-  "last": "2026-11-19",
+  "last": "2026-11-20",
   "last_ok": true,
-  "streak": 9
+  "streak": 10
  },
  "brief3": {
-  "last": "2026-11-19",
+  "last": "2026-11-20",
   "last_ok": false,
   "streak": 0,
   "failed": true,
@@ -39,7 +39,7 @@
   "streak": 1
  },
  "two_weeks": {
-  "last": "2026-11-19",
+  "last": "2026-11-20",
   "last_ok": false,
   "streak": 0,
   "failed": true,
@@ -61,14 +61,19 @@
   "streak": 1
  },
  "clean": {
-  "last": "2026-11-19",
-  "last_ok": true,
-  "streak": 1,
+  "last": "2026-11-20",
+  "last_ok": false,
+  "streak": 0,
   "failed": true,
   "first_failed": "2026-11-18"
  },
  "unknown": {
   "last": "2026-11-19",
+  "last_ok": true,
+  "streak": 1
+ },
+ "review39": {
+  "last": "2026-11-20",
   "last_ok": true,
   "streak": 1
  }

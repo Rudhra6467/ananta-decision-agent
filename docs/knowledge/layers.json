@@ -1684,6 +1684,7 @@
     "jarvis/india/views.py",
     "jarvis/india/surfaces.py",
     "jarvis/india/places.py",
+    "jarvis/india/watch.py",
     "jarvis/india/livesession.py",
     "jarvis/india/neveragain.py",
     "jarvis/india/factmap.py",

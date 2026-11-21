@@ -4,7 +4,7 @@
 // write every place). Swiping left and right between the places stays (9 Nov, TestFlight).
 import SwipeTabs from "expo-router/js-top-tabs";
 import { useEffect, useRef, useState } from "react";
-import { Animated, PanResponder, Pressable, Text, View } from "react-native";
+import { Animated, Dimensions, PanResponder, Pressable, Text, View } from "react-native";
 import { soft, tap } from "../../src/haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "../../src/theme";
@@ -25,7 +25,10 @@ const TABS: { name: string; label: string }[] = [
 // light tick marks each tab it passes; the tab is chosen only when the finger lifts. A page swipe moves the pill with the page. The orb
 // in the middle is never chosen by a drag (Ask opens only from a tap on it, 14 Nov). The bar is 58 points tall (it was 64).
 const BAR_H = 58;
-const BAR_SMALL_H = 46;                                                  // 19 Nov 2026: the bar at rest (Instagram)
+// 21 Nov 2026 (Madhav, an Instagram screenshot: "it gets reduced to 70-75% ... I want it only to reduce to 80-85%, and a clear structure for the
+// icon and the circle"): the small bar is the whole bar scaled as one piece, so the pill, the icons and the orb keep their places and their
+// proportions. Its width and height no longer change (the pill, measured at full size, slid out of the 46-point bar while it shrank).
+const BAR_SMALL = 0.84;
 const PILL_INSET = 5;
 const ROUTE_ORDER = ["home", "markets", "activity", "more", "ask"];          // the pager's order (app/new/_layout.tsx below)
 const slotOf = (name: string) => TABS.findIndex((t) => t.name === name);
@@ -50,6 +53,8 @@ function Bar({ state, navigation, position }: any) {
   const sz = useRef(new Animated.Value(0)).current;
   useEffect(() => { Animated.spring(sz, { toValue: smallNow ? 1 : 0, stiffness: 260, damping: 26, mass: 1, useNativeDriver: false }).start(); }, [smallNow]);
   useEffect(() => { barAwake(); }, [active]);                       // a new tab: full size, then small after a few quiet seconds
+  const scaleNow = useRef(1);                                      // the bar's scale right now, for the drag's finger-to-slot sums
+  useEffect(() => { const id = sz.addListener(({ value }) => { scaleNow.current = 1 - (1 - BAR_SMALL) * value; }); return () => sz.removeListener(id); }, []);
   const keep = useRef({ w, active, state, navigation, small: smallNow });
   keep.current = { w, active, state, navigation, small: smallNow };
 
@@ -80,6 +85,10 @@ function Bar({ state, navigation, position }: any) {
     const ev = nav.emit({ type: "tabPress", target: route?.key, canPreventDefault: true });
     if (keep.current.active !== name && !ev.defaultPrevented) nav.navigate(name);
   };
+  const inBar = (screenX: number) => {
+    const W = keep.current.w * TABS.length;
+    return (screenX - Dimensions.get("window").width / 2) / scaleNow.current + W / 2;
+  };
   const slotAt = (x: number) => Math.max(0, Math.min(TABS.length - 1, Math.floor(x / Math.max(1, keep.current.w))));
   const pan = useRef(PanResponder.create({
     onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
@@ -89,18 +98,18 @@ function Bar({ state, navigation, position }: any) {
       hx.stopAnimation();
       Animated.parallel([Animated.spring(lift, { toValue: 1.08, stiffness: 400, damping: 22, useNativeDriver: false }),
                          Animated.timing(hop, { toValue: 1, duration: 120, useNativeDriver: false })]).start();
-      setHover(slotAt(g.x0 - left.current));
+      setHover(slotAt(inBar(g.x0)));
     },
     onPanResponderMove: (_e, g) => {
       const W = keep.current.w;
-      const fx = g.moveX - left.current;
+      const fx = inBar(g.moveX);
       hx.setValue(Math.max(0, Math.min((TABS.length - 1) * W, fx - W / 2)));
       const s = slotAt(fx);
       setHover((h) => { if (h !== s && s !== ORB_SLOT) soft(); return s; });
     },
     onPanResponderRelease: (_e, g) => {
       const W = keep.current.w;
-      const fx = g.moveX - left.current;
+      const fx = inBar(g.moveX);
       let s = slotAt(fx);
       if (s === ORB_SLOT) s = fx - s * W < W / 2 ? s - 1 : s + 1;   // the orb is never chosen by a drag: the nearer side wins
       dragging.current = false;
@@ -122,11 +131,10 @@ function Bar({ state, navigation, position }: any) {
 
   if ((typing || stage) && active === "ask") return null;  // 3 Nov: while he types in Ask the bar steps aside; 12 Nov: and on the big voice screen
   const lit = (i: number) => (hover !== null ? hover === i : active === TABS[i].name);
-  const barH = sz.interpolate({ inputRange: [0, 1], outputRange: [BAR_H, BAR_SMALL_H] });
+  const barS = sz.interpolate({ inputRange: [0, 1], outputRange: [1, BAR_SMALL] });
+  const barY = sz.interpolate({ inputRange: [0, 1], outputRange: [0, BAR_H * (1 - BAR_SMALL) / 2] });   // the bottom edge stays where it was
   const labelO = sz.interpolate({ inputRange: [0, 0.5], outputRange: [1, 0], extrapolate: "clamp" });
-  const labelH = sz.interpolate({ inputRange: [0, 1], outputRange: [13, 0] });
-  const orbS = sz.interpolate({ inputRange: [0, 1], outputRange: [1, 0.78] });
-  const orbY = sz.interpolate({ inputRange: [0, 1], outputRange: [0, 8] });
+  const iconY = sz.interpolate({ inputRange: [0, 1], outputRange: [0, 7] });                        // the icon to the centre once its label fades
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: Math.max(ins.bottom, 12), alignItems: "center" }}>
       {live !== "off" && active !== "ask" ? (
@@ -141,10 +149,10 @@ function Bar({ state, navigation, position }: any) {
         </View>
       ) : null}
       <Animated.View accessibilityRole="tablist" onTouchStart={() => barAwake()}
-        style={{ width: sz.interpolate({ inputRange: [0, 1], outputRange: ["100%", "74%"] }) as any, maxWidth: 520, paddingHorizontal: 16 }}>
+        style={{ width: "100%", maxWidth: 520, paddingHorizontal: 16, transform: [{ translateY: barY }, { scale: barS }] }}>
         <Animated.View ref={barRef as any} {...pan.panHandlers}
           onLayout={(e) => { setW(e.nativeEvent.layout.width / TABS.length); barRef.current?.measureInWindow((x) => { left.current = x; }); }}
-          style={{ height: barH, borderRadius: BAR_H / 2, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, flexDirection: "row", alignItems: "center",
+          style={{ height: BAR_H, borderRadius: BAR_H / 2, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, flexDirection: "row", alignItems: "center",
             shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}>
           {w ? (
             <Animated.View pointerEvents="none" style={{ position: "absolute", top: PILL_INSET - 1, height: BAR_H - 2 * PILL_INSET, width: w - 2 * PILL_INSET + 6, left: PILL_INSET - 3,
@@ -156,7 +164,7 @@ function Bar({ state, navigation, position }: any) {
           {TABS.map((t, i) => {
             if (!t.label) {
               return (
-                <Animated.View key={t.name} style={{ flex: 1, alignItems: "center", marginTop: -24, transform: [{ translateY: orbY }, { scale: orbS }] }}>
+                <Animated.View key={t.name} style={{ flex: 1, alignItems: "center", marginTop: -24 }}>
                   {/* 7 Nov (Madhav): first press opens Ask; on Ask already, the same press starts the voice */}
                   <Orb size={54} mic={active === "ask"} label={active === "ask" ? "Talk to Ananta" : "Ask Ananta"}
                     onPress={() => { if (keep.current.small) { barAwake(); return; } if (active === "ask") pressOrb(); else navigation.navigate("ask"); }} />
@@ -168,8 +176,8 @@ function Bar({ state, navigation, position }: any) {
             return (
               <Pressable key={t.name} accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: active === t.name }}
                 onPress={() => go(t.name)} style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 1, minHeight: 46 }}>
-                <Icon name={t.name} size={22} color={col} />
-                <Animated.Text style={{ color: col, fontSize: 10.5, lineHeight: 13, fontWeight: "700", opacity: labelO, height: labelH }}>{t.label}</Animated.Text>
+                <Animated.View style={{ transform: [{ translateY: iconY }] }}><Icon name={t.name} size={22} color={col} /></Animated.View>
+                <Animated.Text style={{ color: col, fontSize: 10.5, lineHeight: 13, fontWeight: "700", opacity: labelO }}>{t.label}</Animated.Text>
               </Pressable>
             );
           })}

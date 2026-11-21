@@ -1,6 +1,6 @@
-# The one map (2026-11-19T20:50)
+# The one map (2026-11-20T20:50)
 
-The map holds 175 studies and 1440 variants. 79 mismatches between layers: 24 planned, not done, 14 proved, not in the paper rules, 37 tested, but not at full scale, 2 the voice has it, but no plain-words name, 2 a result the screens do not show; 14 need Madhav's yes.
+The map holds 175 studies and 1440 variants. 83 mismatches between layers: 28 planned, not done, 14 proved, not in the paper rules, 37 tested, but not at full scale, 2 the voice has it, but no plain-words name, 2 a result the screens do not show; 14 need Madhav's yes.
 
 ## Mismatches
 
@@ -21,9 +21,13 @@ The map holds 175 studies and 1440 variants. 79 mismatches between layers: 24 pl
 | A planned, not done | D28 | tracker: WAIT_MADHAV: Residential-status answer (Zerodha, accountant) | SAFE | decides NRO conversion timing; not needed for research |
 | A planned, not done | D30 | tracker: BUILD: Nifty valuation series (P/E, P/B, dividend yield) and index total-return history | SAFE | niftyindices endpoint no longer answers (18 Oct probe); another source needed; one hypothesis (OPT-H60) |
 | A planned, not done | EVC | tracker: BLOCKED: Event channel model: wars, unrest, oil and rupee shocks through GDELT conflict and unrest counts and | SAFE | build it, or mark it dropped with a reason |
+| A planned, not done | EXIT_LESSON:PULL:GAVE_BACK | an approved draft with no study answering it | SAFE | register and run it, or record why not |
 | A planned, not done | F05 | tracker: BLOCKED: O-04 straddle, estimated version, to be calibrated against the recorder before it is trusted | SAFE | 18 Oct: synthetic reconstruction 2015-2023 (928 expiry days): O-04 loses about 1% of the Rs 50,000 book per expiry day;  |
 | A planned, not done | G02 | tracker: BLOCKED: Two families validated on development plus validation years; holdout opened once per family, and the | SAFE | build it, or mark it dropped with a reason |
 | A planned, not done | K02 | tracker: BLOCKED: Daily scored call (M-11): bullish, bearish and neutral written before the open, scored at the checkp | SAFE | 18 Oct: daily mechanical Nifty call (rule v0 from E08/C01/E04) written each evening with a coin-flip null, scored at 1/5 |
+| A planned, not done | MISS_PATTERN:down:overbought_drop:intraday_selloff | an approved draft with no study answering it | SAFE | register and run it, or record why not |
+| A planned, not done | MISS_PATTERN:up:breakout_range:intraday_run | an approved draft with no study answering it | SAFE | register and run it, or record why not |
+| A planned, not done | OPTIONS_LINE:SP1 | an approved draft with no study answering it | SAFE | register and run it, or record why not |
 | A planned, not done | R01 | tracker: BLOCKED: Calibrate synthetic option prices against the recorder: how wrong are they | SAFE | build it, or mark it dropped with a reason |
 | A planned, not done | R02 | tracker: BLOCKED: O-01 option leg, O-02 option legs, O-04 real: first look at 12 weeks of recording, tail at 26 | SAFE | build it, or mark it dropped with a reason |
 | A planned, not done | S08 | tracker: BLOCKED: Calls ledger and scoring | SAFE | build it, or mark it dropped with a reason |

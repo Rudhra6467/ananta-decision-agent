@@ -848,7 +848,8 @@ def view(book: dict, day: str, plan: dict | None, filled: list[dict], c: dict, o
     # 12 Nov 2026 (audit repair 4, G-06): the book's own positions, each at the book's own size ("Your stocks" showed the real holdings
     # under the book's total); and the marks on its past rows (G-07, G-17: two cuts made by the old rules), append-only beside the ledger
     own = sorted(({"symbol": s, "qty": int(p["qty"]), "last": round(float(p["last"]), 2), "value_inr": round(p["qty"] * p["last"]),
-                   "source": "replacement" if p.get("source") == "replacement" else "from the account",
+                   # 21 Nov 2026 (the lock review, I-03): the parked index fund was labelled "from the account"
+                   "source": {"replacement": "replacement", "park": "parked cash (the Nifty index fund)"}.get(p.get("source"), "from the account"),
                    "pnl_pct": round(100 * (p["last"] / p["avg"] - 1), 1) if p.get("avg") else None}
                   for s, p in book["positions"].items()), key=lambda r: -r["value_inr"])
     return {"built_at": _now(), "paper": True, "day": day, "opened_today": opened, "kept_old_price": kept, "start_day": book["start_day"], "start_inr": round(start), "value_inr": round(value),

@@ -311,6 +311,24 @@ def refresh(day: dt.date, prev: dt.date, log=print) -> dict:
     return out
 
 
+def no_special_sessions(raw: pd.DataFrame) -> pd.DataFrame:
+    """21 Nov 2026 (the keen audit's G-02, decided 14 Nov under Madhav's word of 14 Nov 09:59, choice a: the Muhurat hour is no session
+    anywhere; built after the outside lock review of 21 Nov found it not built): the options line read the Sunday Muhurat hour of 8 Nov as
+    the previous session when deciding on Mon 9 Nov (prev_date 8 Nov, so the open looked like a gap up), while its scoring skipped that
+    hour as no regular session (G-01). Weekend days and NSE's special sessions (manifests/special_sessions.json) are now left out of the
+    daily candles a decision is read from, as the paper books and the scoring already leave them out."""
+    special = set()
+    try:
+        from india import nse
+
+        special = nse.special_sessions()
+    except Exception:  # noqa: BLE001  without the list, weekends alone are left out
+        pass
+    d = pd.to_datetime(raw["date"]).dt.date
+    keep = d.map(lambda x: x.weekday() < 5 and x not in special)
+    return raw[keep.to_numpy()]
+
+
 def overnight(k: kite.Kite, day: dt.date, nse_tokens: dict, nfo: list[dict] | None) -> dict:
     """Everything SP1 knows before 09:15 for each index (scenario.build's overnight columns, computed the same way)."""
     D = paths.data_dir()
@@ -320,6 +338,7 @@ def overnight(k: kite.Kite, day: dt.date, nse_tokens: dict, nfo: list[dict] | No
         raw.append(c.assign(index_name=name))
     raw = pd.concat(raw, ignore_index=True)
     raw = raw[raw["date"] < day]
+    raw = no_special_sessions(raw)
     daily = {sym: scenario._daily(name, raw).set_index("date") for sym, name in scenario.IDX.items()}
     vix = scenario._daily("INDIA VIX", raw).set_index("date")["close"]
     sessions = sorted(daily["NIFTY"].index)

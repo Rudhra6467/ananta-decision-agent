@@ -50,3 +50,13 @@ def test_the_run_check_watches_the_copy_every_night():
         job = next(x for v in vars(runcheck_parts).values() if isinstance(v, list) for x in v
                    if isinstance(x, dict) and x.get("id") == "backup_r2")
     assert job["cadence"].get("daily") == "03:40" and "weekly" not in job["cadence"] and job["name"].startswith("Nightly")
+
+
+def test_the_run_check_starts_the_copy_on_the_night_after_go_live():
+    """Repair 6 went live on 20 Nov 2026 13:19 Toronto (d94cba9); the nights of 18-20 Nov ran the old Sundays-only copy, so they
+    are not lost runs (morning review 21 Nov 2026: the checker listed them as a medium miss)."""
+    from jarvis.service import runcheck_parts
+
+    job = next(x for v in vars(runcheck_parts).values() if isinstance(v, list) for x in v
+               if isinstance(x, dict) and x.get("id") == "backup_r2")
+    assert job["since"] == "2026-11-21"

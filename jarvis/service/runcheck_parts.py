@@ -192,7 +192,7 @@ PARTS: list[dict] = [
      "cadence": {"daily": "03:40", "tz": TOR, "grace": 2 * 3600},
      "proof": {"files": "{backups}/{date}/jarvis.sqlite", "min_bytes": 1_000_000}},
     # 15 Nov 2026 (audit repair 6, G-69): the copy leaves the Mac every night, so a night it does not is a lost run (it was Sundays only)
-    {"id": "backup_r2", "name": "Nightly backup copy to R2", "job": "com.ananta.backup", "severity": "medium", "since": "2026-11-18",   # the first night after the go-live (its outside check, find 11)
+    {"id": "backup_r2", "name": "Nightly backup copy to R2", "job": "com.ananta.backup", "severity": "medium", "since": "2026-11-21",   # the first night after the go-live (its outside check, find 11); repair 6 went live 20 Nov 13:19 (d94cba9), so 18-20 Nov were not misses (morning review 21 Nov)
      "cadence": {"daily": "03:40", "tz": TOR, "grace": 2 * 3600},
      "min_work": 1, "proof": {"log": "{runs}/backup.log", "regex": r"'folder': '[^']*/(?P<d>\d{4}-\d\d-\d\d)'.*'r2': 'backups/"}},
     {"id": "mongo_archive", "name": "Old app's database archive", "job": "com.ananta.mongoarchive", "severity": "low",

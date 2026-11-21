@@ -32,7 +32,7 @@
  "pins": {
   "paper_rules": {
    "what": "The stock paper book's rules as configured (india/paper_config.json): families, exits, slots, the Rs 50,000 options book (60,000 until 2 Nov) and the survival rules (5% day, 22% pause, record-only on paper).",
-   "sha256": "ebf5ca729ba6878f19110e26d1bd706e4dc8cad472087d214d09d36803beed8d",
+   "sha256": "1eab934e1f594be09e9309ae27213aa38f29d876e002e7cbd0ca4309092974e6",
    "history": [
     {
      "date": "2026-10-23",
@@ -65,6 +65,14 @@
      "sha256": "ebf5ca729ba6878f19110e26d1bd706e4dc8cad472087d214d09d36803beed8d",
      "door": "change",
      "commit": "6641897"
+    },
+    {
+     "date": "2026-11-21",
+     "approved_by": "Madhav (in chat)",
+     "note": "A decision changes, and the record is split at this day: managed-v3: a replacement is sized by fixed risk (0.5% of the stocks-and-cash book at two daily ranges, at most 15% a name, never more than its cut freed; the rest stays in cash for the park rule); the 7% stop stays (india/sizingstudy.py, 20 Nov). Madhav, 21 Nov 2026 07:43 Toronto: \"Madhav, 21 Nov 2026 07:43 Toronto: \"Yes let's do the sizing changes and others we found\"",
+     "sha256": "1eab934e1f594be09e9309ae27213aa38f29d876e002e7cbd0ca4309092974e6",
+     "door": "change",
+     "commit": "387b157"
     }
    ]
   },

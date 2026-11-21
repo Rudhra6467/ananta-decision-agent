@@ -84,6 +84,13 @@ def _pct(x, nd=1) -> str:
 
 # ------------------------------------------------------------------------------------------------------------------------------ sections
 
+# 21 Nov 2026 (the variable map, india/variablemap.py; Madhav's yes to "the sizing changes and others we found"): last night's Nasdaq is the
+# strongest outside force on the Nifty's day (6-7% of its daily movement explained, t 8 in both periods; oil, the rupee, the dollar and US
+# rates under 1% each). After a Nasdaq move of 1% or more the Nifty moved the same way the next day 67% (2007-2017) and 69% (2018-2023) of
+# the time, by about +0.4 to +0.6% after a rise and -0.4 to -0.6% after a fall.
+US_LEAN = {"move": 0.01, "same_way_in": 2, "of": 3, "avg_pct": 0.5, "source": "india/variablemap.py, 20 Nov 2026 (2007-2023)"}
+
+
 def overnight(plan: dict, session: str | None = None) -> dict:
     """What moved while India slept: the US close (Tiingo, fresh), India's own last close, the fear gauge, yesterday's institutional flows."""
     out = {"status": "ok", "us": {}, "india": {}, "flows": {}, "notes": []}
@@ -100,6 +107,12 @@ def overnight(plan: dict, session: str | None = None) -> dict:
                                    "two_day": (float(r["close"]) / float(rows.iloc[-3]["close"]) - 1) if len(rows) > 2 else None}
     except Exception as e:  # noqa: BLE001
         out["notes"].append(f"US close missing: {e.__class__.__name__}")
+    nq = (out["us"].get("Nasdaq 100") or {}).get("ret")
+    if nq is not None and abs(nq) >= US_LEAN["move"]:
+        out["us_lean"] = {"nasdaq_ret": nq, **{k: v for k, v in US_LEAN.items() if k != "move"},
+                          "words": (f"The Nasdaq moved {100 * nq:+.1f}%. On 2007-2023, after a Nasdaq move of 1% or more the Nifty went the same way "
+                                    f"the next day about {US_LEAN['same_way_in']} times in {US_LEAN['of']}, by about {US_LEAN['avg_pct']}% on average: "
+                                    "a lean, not a forecast.")}
     ov = plan.get("overnight") or {}
     for k, name in (("NIFTY 50", "Nifty"), ("NIFTY BANK", "Bank Nifty"), ("INDIA VIX", "fear gauge")):
         v = ov.get(k)
@@ -435,6 +448,8 @@ def lines(f: dict) -> dict:
         sp, nq = us["S&P 500"], us.get("Nasdaq 100") or {}
         fmt = lambda r: "flat" if r is not None and abs(r) < 0.0005 else _pct(r)   # noqa: E731
         view.append(f"US: the S&P 500 closed {fmt(sp.get('ret'))} ({_dw(sp.get('date'))})" + (f", the Nasdaq {fmt(nq.get('ret'))}" if nq else "") + ".")
+        if ov.get("us_lean"):
+            view.append(ov["us_lean"]["words"])
     ind = ov.get("india") or {}
     n = ind.get("Nifty") or {}
     if n:

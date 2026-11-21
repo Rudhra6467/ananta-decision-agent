@@ -679,13 +679,23 @@ def _managed_mention(text: str) -> str:
 def _managed_cuts() -> list[dict]:
     """Every cut in the managed book's plans so far (paper/managed/plans.jsonl): the name, the kind, the rupees, the reason, the replacement."""
     out = []
+    # 21 Nov 2026 (the outside lock review, I-04; register R-042): "why did you cut Tata Power" said "sold about Rs 10,600", the plan's
+    # estimate; the sale filled at Rs 10,312.68. The ledger's filled rupees are given beside the plan's, and are the ones to say.
+    filled = {}
+    for t in _jsonl_rows(DATA / "paper" / "managed" / "ledger.jsonl"):
+        if t.get("filled") and t.get("side") == "SELL" and t.get("plan"):
+            k = (t["plan"], t.get("symbol"))
+            filled[k] = {"qty": (filled.get(k) or {}).get("qty", 0) + int(t.get("qty") or 0),
+                         "inr": round((filled.get(k) or {}).get("inr", 0) + float(t.get("value_inr") or 0), 2), "price": t.get("price")}
     for r in _jsonl_rows(DATA / "paper" / "managed" / "plans.jsonl"):
         buys = {b.get("for_cut"): b.get("symbol") for b in r.get("buys") or []}
         for c in r.get("cuts") or []:
             k = str(c.get("kind") or "").upper()
             out.append({"session": r.get("for_session"), "symbol": c.get("symbol"), "kind": k,
                         "meaning": {"TRIM": "part of the stake sold, the rest kept", "REDUCE": "the stake cut back, not sold out", "TIDY": "a too-small stake sold whole"}.get(k, k),
-                        "inr": c.get("inr"), "why": c.get("why"), "replaced_by": buys.get(c.get("symbol")) or next((s for fc, s in buys.items() if c.get("symbol") in str(fc or "").split("+")), None)})
+                        "planned_inr": c.get("inr"), "sold": filled.get((r.get("id"), c.get("symbol"))),
+                        "say": "the rupees it sold for are sold.inr (the fill); planned_inr was the estimate the night before",
+                        "why": c.get("why"), "replaced_by": buys.get(c.get("symbol")) or next((s for fc, s in buys.items() if c.get("symbol") in str(fc or "").split("+")), None)})
     return out[-12:]
 
 
@@ -698,7 +708,16 @@ def _managed_book() -> dict:
         return {"status": "not started", "words": "the managed book has not started yet; until it does Ananta does not pick replacements"}
     p = v.get("plan") or {}
     return {"status": "ok", "paper": True, "words": v.get("words"), "clock": (v.get("clock") or {}).get("words"), "value_inr": v.get("value_inr"), "return_pct": v.get("return_pct"),
-            "start_day": v.get("start_day"), "replacements_held": [{"symbol": r["symbol"], "entered": r.get("entered"), "for_cut": r.get("for_cut"), "pnl_pct": r.get("pnl_pct"), "stop": r.get("stop"), "held_sessions": r.get("held_sessions")} for r in v.get("replacements") or []],
+            "start_day": v.get("start_day"),
+            # 21 Nov 2026 (the outside lock review, I-03 and FU2-1): asked which stocks the book holds, the Ask built the list from the cuts
+            # and the replacements, named a stock the book had sold (Indian Energy Exchange) and left out the parked index fund (NIFTYBEES);
+            # asked which does worst it ranked only the three replacements. Every holding now, each with its value, share and result.
+            "holdings_now": [{"symbol": h.get("symbol"), "value_inr": h.get("value_inr"), "share_pct": round(100 * float(h.get("value_inr") or 0) / float(v.get("stocks_inr") or 0), 1)
+                              if v.get("stocks_inr") else None, "pnl_pct_since_bought_or_start": h.get("pnl_pct"),
+                              "source": "parked cash (the Nifty index fund)" if h.get("symbol") == "NIFTYBEES" else h.get("source")}   # views before 21 Nov
+                             for h in v.get("holdings") or []],
+            "holdings_rule": "the book's holdings are exactly holdings_now (all of them, the index fund included); a name not in it is not held",
+            "replacements_held": [{"symbol": r["symbol"], "entered": r.get("entered"), "for_cut": r.get("for_cut"), "pnl_pct": r.get("pnl_pct"), "stop": r.get("stop"), "held_sessions": r.get("held_sessions")} for r in v.get("replacements") or []],
             "filled_today": [{k: t.get(k) for k in ("side", "symbol", "qty", "price", "skipped", "for_cut")} for t in v.get("filled_today") or []],
             "plan": {"for_session": p.get("for_session"), "brief": ("No change for that session: the managed book has nothing new to cut or buy (the cut list's names it already cut stay cut)" if p.get("no_change") else p.get("brief")), "no_change": p.get("no_change"),   # 3 Nov: the stored brief said "nothing is on the cut list" "error": p.get("error"),
                      "cuts": [{"symbol": x.get("symbol"), "kind": x.get("kind"), "inr": x.get("inr"), "why": x.get("why")} for x in p.get("cuts") or []],

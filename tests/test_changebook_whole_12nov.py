@@ -26,3 +26,27 @@ def test_every_live_line_from_the_audit_repairs_on_names_its_commit():
 def test_the_change_book_is_in_date_order():
     dates = [r["date"] for r in _rows()]
     assert [i for i in range(1, len(dates)) if dates[i] < dates[i - 1]] == []
+
+
+def test_every_commit_a_live_audit_line_names_is_a_real_commit():
+    """21 Nov 2026 (the outside lock review): four lines named words instead of commits, five named only a commit that changed the change
+    book, and one named the wrong repo's commit, while the check above only asked that the field be filled. Every id of a live line from
+    12 Nov on must now be a commit that git finds in the agent repo, the records repo or the old backend (an optional "records " prefix)."""
+    import re
+    import subprocess
+
+    home = BOOK.parents[3]                                      # ~/code (the tests may move HOME)
+    repos = [p for p in (BOOK.parents[2], home / "ananta-records", home / "Ananta") if (p / ".git").exists()]
+
+    def found(h: str) -> bool:
+        return any(subprocess.run(["git", "-C", str(r), "cat-file", "-e", h + "^{commit}"], capture_output=True).returncode == 0 for r in repos)
+
+    bad = []
+    for r in _rows():
+        if r["date"] < "2026-11-12" or r.get("status") != "live":
+            continue
+        for c in r.get("commits") or []:
+            m = re.fullmatch(r"(?:records |backend )?([0-9a-f]{7,40})", str(c))
+            if not m or not found(m.group(1)):
+                bad.append((r["date"], r["words"][:50], c))
+    assert bad == []

@@ -127,7 +127,9 @@ WHAT ANANTA IS (use these words)
 - 1 Nov 2026 (outsider crypto round): "my crypto account", "the account", "how is it doing" mean THE $500 NDAX book: call officer_note
   first and answer from it (its value is in the facts; never quote a value from memory), then mention the Explorer and the trend portfolio only if
   asked. 10 Nov night test: "our book", "the book", "my book", "our account", "my portfolio", "my money", "how are we doing" also mean THE $500 book;
-  the measuring books (Explorer, trend portfolio, the $4,000 lab) are never "our book" unless named. Its plan line, brakes and the brain's state are in the
+  the measuring books (Explorer, trend portfolio, the $4,000 lab) are never "our book" unless named. 21 Nov 2026 (the lock review, TR3b): "did any of
+  our trades win", "how many trades won" mean the $500 account's OWN closed trades first (book500: closed_summary, e.g. "1 of 9 won"); the
+  measuring books come after, named as measuring books. Its plan line, brakes and the brain's state are in the
   discipline tool. RULE B, as Madhav uses it: no new crypto studies and no rule changes before 14 December 2026, the day-60 checkpoint when the
   evidence window ends; parked books (H07, RBD) and anything the reconstruction queues (a new family, a rule fix) wait for that day. (The Explorer's
   frozen rulebook is part of the same rule.) When the dial is closed the brain does not review moments without a measured edge in a closed market;
@@ -227,7 +229,7 @@ TOOLS = [
     ("trade", "Full detail of one trade by its id (from trades): why it was bought, conditions at entry, exit plan, timeline, what-if variants.", _schema({"id": {"type": "string"}}, ["id"])),
     ("portfolio", "The T3 portfolio: value, return, holdings with cost and P&L, ratings and reasons, pending proposals, mode, comparison with buy-and-hold and the shadow book.", OFF),
     ("history", "What happened historically after a setup in the current market condition (intraday atlas, 2017-2026 5m data): odds of +3% before -1.5%, net after costs, typical 1h/4h/24h ranges. Give coin to use its current condition.", _schema({"setup": {"type": "string", "description": "E1-E8 or ANY"}, "coin": COIN})),
-    ("evidence", "The Evidence page (inside the logic repair, live): what is watching and how often; every limit, how often it stopped a trade and what the stopped trades did; results against random in market events; reconstruction (nightly rebuilds and the ones Madhav asked for, mismatches, the other-traders study and what came of it); missed moves and patterns on their way to the repair shop; the repair board (tickets, requests, reviews, waiting questions: found, done, change, status); what changed; what we wait for and when it should arrive at this pace. Also counts by setup, shadows and repairs in use. part = summary (default: the live repair loop and each review's title and verdict) | reviews (every review in full) | setups (counts by setup and shadows) | in_use (repairs running and safety changes) | full (everything, large).", _schema({"part": {"type": "string", "enum": ["summary", "reviews", "setups", "in_use", "full"]}})),
+    ("evidence", "The Evidence page (inside the logic repair, live): what is watching and how often; every limit, how often it stopped a trade and what the stopped trades did; results against random in market events; reconstruction (nightly rebuilds and the ones Madhav asked for, mismatches, the other-traders study and what came of it); missed moves and patterns on their way to the repair shop; the repair board (tickets, requests, reviews, waiting questions: found, done, change, status); what changed; what we wait for and when it should arrive at this pace. Also counts by setup, shadows and repairs in use. part = summary (default: the live repair loop and each review's title and verdict) | reviews (every review: id, date, title, verdict, all of them) | setups (counts by setup and shadows) | in_use (repairs running and safety changes) | full (everything, large). review = one review's id (\"R42\" or \"42\"): that review in full (question, result, what changed).", _schema({"part": {"type": "string", "enum": ["summary", "reviews", "setups", "in_use", "full"]}, "review": {"type": "string"}})),
     ("knowledge", "Search Ananta's research and knowledge: repair shop reviews, rulebook, variable registry, studies, Madhav's framework, the teacher hypotheses (Rayner, Trade With Trend: claim, status, what our first look found), the casebook of Madhav's own trades and Madhav's own notes. Returns the matching lines of the knowledge map (which document holds what) plus the best passages. Use for 'what did we learn', 'why do we do X', 'has this been tested', 'what does Rayner / Trade With Trend say about X'.", _schema({"query": {"type": "string"}}, ["query"])),
     ("reads", "Madhav's own three buy setups, read on every coin at the last daily close: M1 capitulation at the lows (like his Jun 5 SOL buy), M2 higher-low retest (like Jun 25-26), M3 quiet base after a run (like Aug 10; a = upper half of the base, b = first close above it). Each read lists its conditions (found vs needed), FIRED / CLOSE (one missing) / NO, the stop if it fails, and what history said (repair-shop review #5). Use for 'any setups like mine', 'is SOL setting up like my June buy', 'what is close to firing'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
     ("zones", "Zones (price bands, not lines) around each coin's price: swing zones with how often they held, the 52-week low/high, the 50- and 200-day averages as bands, base floor/top; which coins are INSIDE a zone now, the next support and resistance zone, and what review #6 said about each kind (200-day average and overlapping zones held most). With a coin: its zones plus the lookout (decision chain, your setups, a plan: held if / wrong if) when it is inside one, and its recent zone entries. Use for 'where is support', 'is SOL in a zone', 'what levels matter', 'what should I watch'.", _schema({"coin": {**COIN, "description": "Optional coin; omit for all"}})),
@@ -660,7 +662,15 @@ def _book_status(j) -> dict:
     G-35): its brake record marks the two fires of 28 Oct that a false fall caused and counts the fires on real losses only."""
     from jarvis.service import officer
 
-    return officer.book_status(j)
+    st = officer.book_status(j)
+    try:                                       # 21 Nov 2026 (the lock review, TR3b): the account's own wins, counted once, said first
+        closed = (st or {}).get("closed") or []
+        won = sum(1 for c in closed if float(c.get("pnl_cad") or 0) > 0)
+        if isinstance(st, dict) and closed:
+            st["closed_summary"] = {"closed": len(closed), "won": won, "words": f"{won} of {len(closed)} of the account's own closed trades made money"}
+    except (TypeError, ValueError, AttributeError):
+        pass
+    return st
 
 
 def _window_words(j) -> str:
@@ -1181,9 +1191,18 @@ class Lookups:
                 "history_2024_2026": hit["recent"], "positive_after_costs_in_both_periods": hit["stable_positive_after_costs"],
                 "how_to_read": "p_target = share that reached the target before the stop; net_pct = average result after NDAX costs; ranges are 10th/50th/90th percentile moves in %. Brackets: e.g. '3/1.5_24h' = +3% target, -1.5% stop, 24 hours."}
 
-    def t_evidence(self, part: str = "summary") -> dict:
+    def t_evidence(self, part: str = "summary", review: str | None = None) -> dict:
         """Cost layer (2026-10-09): the whole Evidence was ~14k tokens on every use; the summary is enough for most questions."""
         ev = views.evidence_collected(self.j)
+        # 21 Nov 2026 (the outside lock review, C-21): asked about review 42, the Ask said "I can't find a review 42; the list I pulled
+        # stops at review 31": all 42 reviews in full were longer than a lookup may be and the end was cut. Now part=reviews is an index of
+        # every review, short, and one review is read in full by its id.
+        allr = ev.get("forwarded") or []
+        if review:
+            want = "R" + re.sub(r"\D", "", str(review))
+            hit = next((r for r in allr if str(r.get("id")) == want), None)
+            return {"review": hit} if hit else {"review": None, "words": f"there is no review {want}; the reviews run from "
+                                                f"{allr[0]['id'] if allr else '-'} to {allr[-1]['id'] if allr else '-'}", "ids": [r.get("id") for r in allr]}
         fw = views.evidence_forwarded(self.j)
         for x in fw["in_use"]:
             (x.get("tracking") or {}).pop("series", None)
@@ -1197,7 +1216,8 @@ class Lookups:
         if part == "full":
             return {**ev, "in_use": fw["in_use"], "safety_changes": fw["safety_changes"], **live}
         if part == "reviews":
-            return {"reviews": ev.get("forwarded") or []}
+            return {"count": len(allr), "reviews": [{k: r.get(k) for k in ("id", "date", "title", "verdict")} for r in allr],
+                    "more": "evidence with review = <id> gives one review in full"}
         if part == "setups":
             return {"collected": ev.get("collected"), "tracker": ev.get("tracker")}
         if part == "in_use":

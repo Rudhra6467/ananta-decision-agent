@@ -1550,7 +1550,7 @@ class Lookups:
     def t_night_test(self) -> dict:
         """12 Nov 2026 (the keen outside audit, G-31): asked "what did the night test say" 41 minutes after it ran, the Ask described the
         nightly trade review: it had no way to read the night test that Home and Activity show (nightcheck.latest)."""
-        from jarvis.service import nightcheck, officer
+        from jarvis.service import nightcheck, officer, quietnight
 
         if self.guest:
             return {"error": "The night test is the owner's; a visitor cannot see it."}
@@ -1565,7 +1565,9 @@ class Lookups:
                 "the_figures": [{"question": x.get("name"), "figures": list(x.get("figures") or [])[:8]} for x in (r.get("look") or [])[:5]],
                 "figures_rule": "figures in an answer that match nothing Ananta read for it; a list for a person to look at, not counted as wrong",
                 "stopped_for_budget": r.get("stopped_for_budget"), "not_asked": r.get("not_asked"), "cost_usd": r.get("cost_usd"),
-                "line": r.get("line"), "not_this": "not the nightly trade review (trade_reviews), not the nightly note (officer_note)"}
+                "line": r.get("line"), "not_this": "not the nightly trade review (trade_reviews), not the nightly note (officer_note)",
+                # 20 Nov 2026 (Madhav): quiet nights since this test were not tested, on purpose (nightcheck.quiet_night)
+                "quiet_nights_since": (lambda q: q and {"nights": q.get("since_test"), "last": q.get("day"), "why": q.get("why")})(quietnight.quiet())}
 
     def t_trade_reviews(self, days: float = 7) -> dict:
         from jarvis.service import reviews

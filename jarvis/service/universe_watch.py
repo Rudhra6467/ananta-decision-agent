@@ -920,6 +920,11 @@ def start_night_test(j) -> bool:
         return False
     j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (key, str(int(j.now()))))
     j.db.commit()
+    from jarvis.service import quietnight             # 20 Nov 2026 (Madhav): on a quiet night the paid test is not run
+    why = quietnight.quiet_night(j)
+    if why:
+        quietnight.record_quiet(why, now=j.now())
+        return False
     root = Path(__file__).resolve().parents[2]
     log = Path.home() / "ananta_runs" / "nightcheck.log"
     log.parent.mkdir(parents=True, exist_ok=True)

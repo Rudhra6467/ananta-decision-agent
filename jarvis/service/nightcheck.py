@@ -395,6 +395,7 @@ def run(j, ask=None, post=None, day: str | None = None, budget: float | None = N
         file_flags: bool = True) -> dict:
     """Ask tonight's questions, mark each, keep the result. `ask` and `post` are stand-ins for tests; `only` asks just those ids."""
     from jarvis.service import ask as askmod
+    from jarvis.service import quietnight
 
     X = _x()
     t0 = time.time()
@@ -410,6 +411,7 @@ def run(j, ask=None, post=None, day: str | None = None, budget: float | None = N
     except Exception as exc:  # noqa: BLE001
         out["error"] = f"the book could not be read: {str(exc)[:160]}"
         todo, T = [], {}
+    out["dial"] = quietnight.dial(j)                   # 20 Nov 2026: a quiet night is one on which the dial has not moved since
     a = ask or (askmod.Ask(j) if todo else None)
     for k, q in enumerate(todo):
         if out["cost_usd"] >= budget:

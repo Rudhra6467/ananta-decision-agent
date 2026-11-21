@@ -419,6 +419,12 @@ def _night_test() -> dict | None:
     pts += [f"Wrong: {w['name']} ({_tidy(str(w.get('why') or ''))[:140]})" for w in wrong[:5]]
     if not wrong:
         pts.append("Every answer that could be checked against the book agreed with it")
+    from jarvis.service import quietnight
+
+    q = quietnight.quiet()                                  # 20 Nov 2026: the nights since, not tested because nothing happened
+    if q:
+        n = int(q.get("since_test") or 1)
+        pts.append(f"Not tested on {n} quiet night{'s' if n != 1 else ''} since (last {_dm(q['day'])}): all cash, nothing traded, the dial unmoved")
     if r.get("ungraded"):
         pts.append(f"{r['ungraded']} answer{'s' if r['ungraded'] != 1 else ''} could not be marked")
     if r.get("look"):

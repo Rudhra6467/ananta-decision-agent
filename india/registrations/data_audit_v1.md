@@ -10,14 +10,14 @@ Madhav asked for this before any new research (flag 63): how wide and how good e
 | gold/features | 3,456,514 | 1995-2023 | - |
 | gold/hypothesis_map | 137 | - | - |
 | gold/universe | 6,812,969 | 1995-2023 | - |
-| silver/calendar | 8,390 | 1994-2026 | - |
-| silver/cm_bhavcopy | 9,883,851 | 1994-2023 | 2026-11-18 |
-| silver/corporate_actions | 326,306 | 1994-2026 | - |
-| silver/delivery | 7,664,008 | 2003-2023 | 2026-11-18 |
-| silver/flows | 39,404 | 2000-2023 | 2026-11-18 |
-| silver/fo_bhavcopy | 157,536,583 | 2000-2023 | 2026-11-18 |
+| silver/calendar | 8,391 | 1994-2026 | - |
+| silver/cm_bhavcopy | 9,883,851 | 1994-2023 | 2026-11-19 |
+| silver/corporate_actions | 326,311 | 1994-2026 | - |
+| silver/delivery | 7,664,008 | 2003-2023 | 2026-11-19 |
+| silver/flows | 39,404 | 2000-2023 | 2026-11-19 |
+| silver/fo_bhavcopy | 157,536,583 | 2000-2023 | 2026-11-19 |
 | silver/fo_calendar | 4,489 | - | - |
-| silver/fo_greeks | 3,402,929 | 2001-2023 | 2026-11-18 |
+| silver/fo_greeks | 3,402,929 | 2001-2023 | 2026-11-19 |
 | silver/ipo | 681 | - | - |
 | silver/kite_5m | 83,656,639 | 2015-2023 | 2026-11-13 |
 | silver/kite_day | 1,533,700 | 2003-2023 | 2026-10-16 |
@@ -25,10 +25,10 @@ Madhav asked for this before any new research (flag 63): how wide and how good e
 | silver/kite_index/day | 230,382 | 2003-2023 | 2026-11-18 |
 | silver/kite_index/minute | 5,146,641 | 2015-2023 | 2026-11-18 |
 | silver/macro | 85,056 | 1990-2026 | - |
-| silver/pr | 8,746,016 | 2010-2023 | 2026-11-17 |
+| silver/pr | 8,746,016 | 2010-2023 | 2026-11-18 |
 | silver/reference | 759 | - | - |
 | silver/security_master | 14,878 | - | - |
-| silver/valuation | 17,486 | 1999-2023 | 2026-11-18 |
+| silver/valuation | 17,486 | 1999-2023 | 2026-11-19 |
 
 ## What the audit found
 

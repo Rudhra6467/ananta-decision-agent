@@ -31,16 +31,28 @@ def _sessions():
     except Exception:  # noqa: BLE001
         days = []
     last = days[-1] if days else dt.date.today()
+    try:                                       # 21 Nov 2026 (the lock review, G-09): the exchange's known holidays past the calendar's end
+        from india import dayplan
+        hol = {dt.date.fromisoformat(str(h)[:10]) for h in dayplan.holidays(refresh=False)}
+    except Exception:  # noqa: BLE001
+        hol = set()
     d = last
     while len(days) < 10_000 and d < last + dt.timedelta(days=400):
         d += dt.timedelta(days=1)
-        if d.weekday() < 5 and d > last:
+        if d.weekday() < 5 and d > last and d not in hol:
             days.append(d)
     return days
 
 
-def _finish(days, start: dt.date, done: int, need: int) -> dt.date | None:
-    """The session on which the trial reaches `need`, counting from `start` (session 1 = the first session on or after start)."""
+def _finish(days, start: dt.date, done: int, need: int, through: dt.date | None = None) -> dt.date | None:
+    """The session on which the trial reaches `need`. 21 Nov 2026 (the outside lock review, G-09): counting `need` sessions from `start`
+    ignored the trial's own count, so a trial that skipped a session (the options line counts neither the Muhurat hour nor a lost day)
+    was said to finish early: the options line at 18 of 20 on Fri 20 Nov was given 23 Nov, not Wed 25 Nov (24 Nov a holiday). With the
+    count and the day it runs through, the finish is the (need - done)th session after that day; without them, as before."""
+    if through is not None and 0 <= done < need:
+        later = [d for d in days if d > through]
+        k = need - done - 1
+        return later[k] if k < len(later) else None
     after = [d for d in days if d >= start]
     if not after:
         return None
@@ -66,7 +78,7 @@ def build() -> dict:
             y, m = start_d.year + (start_d.month - 1 + need) // 12, (start_d.month - 1 + need) % 12 + 1
             fin = dt.date(y, m, min(start_d.day, 28))
         else:
-            fin = _finish(days, start_d, done, need) if start_d else None
+            fin = _finish(days, start_d, done, need, through) if start_d else None
         left = max(need - done, 0)
         rows.append({"name": name, "what": what, "started": start_d.isoformat() if start_d else None, "done": done, "need": need, "left": left,
                      "unit": unit, "expected_finish": fin.isoformat() if fin else None, "complete": done >= need, "so_far": so_far, "judged_on": judge})

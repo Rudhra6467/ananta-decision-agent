@@ -62,6 +62,11 @@ INTERNAL = [
     ("paper/managed/plans.jsonl", "the plan history (the latest plan is read through the managed view)"),
     ("paper/managed/audit_history.jsonl", "the evening audit's day-by-day status (the latest audit.json is read by the Ask)"),
     ("reports/cutstudy_*.json", "research results: the cut-rule study on history (its .md is the report for Madhav)"),
+    # 21 Nov 2026 (morning review): the three studies of 20 Nov (records india/sizingstudy.py, boosttest.py) wrote files with no route,
+    # and the fact map failed from 21 Nov 00:30. Research on 2000-2023 only; each .md is the report for Madhav.
+    ("reports/sizingstudy_*.json", "research results: the sizing and risk study on history (its .md is the report for Madhav; "
+                                   "the managed book's version 3 rests on it through the lock door, 21 Nov)"),
+    ("reports/boosttest_*.json", "research results: the one boosting test on history (its .md is the report for Madhav)"),
     ("paper/allocation_ledger.jsonl", "the allocator's ledger (its view is what is read)"),
     ("reports/*.md", "a written report for Madhav (the morning review page)"), ("reports/ask_guard.jsonl", "the answer guard's log (the morning review reads it)"),
     ("readmodel/*", "the read model itself"),
@@ -97,6 +102,8 @@ READ_BY = [
 COPIED = [
     ("manifests/xstudies_*.json", "jarvis/india/marketcontext.py", "XO1|FX1|FII1|SR1"), ("manifests/diistudy_dii1.json", "jarvis/india/marketcontext.py", "DII1"),
     ("manifests/hf_chronos_results.json", "india/morningview.py", "chronos"), ("manifests/hf_news_results.json", "jarvis/india/ask.py", "news"),
+    # 21 Nov 2026: the variable map's Nasdaq finding is written into the morning view's US_LEAN by hand (records 387b157)
+    ("reports/variablemap_*.json", "india/morningview.py", "US_LEAN"),
 ]
 # Written during the Indian session (09:00-15:30 IST): these must be read live, never only by the nightly build
 DAYTIME = ["paper/sp1/decisions.jsonl", "paper/sp1/book.json", "paper/morningview/*", "paper/account/*", "paper/allocation_view.json"]

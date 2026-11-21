@@ -64,3 +64,17 @@ def test_sf1_shadow_files_are_internal_with_a_reason(tmp_path, monkeypatch):
     rows = {r["pattern"]: r for r in factmap.routes(factmap.producers(time.time()))}
     for n in (".lock", "rows.jsonl", "score.json"):
         assert rows[f"paper/shadow/sf1/{n}"]["route"] == "internal"
+
+
+def test_the_20_nov_studies_have_a_route(tmp_path, monkeypatch):
+    """21 Nov 2026 morning review: the sizing study, the boosting test and the variable map (records, 20 Nov) wrote reports with no
+    route, and the fact map failed. The first two are research results (internal, with a reason); the variable map's Nasdaq finding is
+    copied into the morning view by hand, so a re-run must update those words."""
+    monkeypatch.setattr(factmap, "DATA", tmp_path)
+    for n in ("sizingstudy", "boosttest", "variablemap"):
+        _make(tmp_path, f"reports/{n}_2026-11-20.json")
+    rows = {r["pattern"]: r for r in factmap.routes(factmap.producers(time.time()))}
+    assert rows["reports/sizingstudy_DATE.json"]["route"] == "internal"
+    assert rows["reports/boosttest_DATE.json"]["route"] == "internal"
+    assert rows["reports/variablemap_DATE.json"]["route"] in ("copied", "internal")
+    assert all(rows[f"reports/{n}_DATE.json"]["why"] for n in ("sizingstudy", "boosttest", "variablemap"))

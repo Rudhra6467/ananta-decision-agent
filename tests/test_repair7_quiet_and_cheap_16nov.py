@@ -77,7 +77,7 @@ def test_g66_a_quiet_days_brief_is_one_line_by_code(tmp_path):
     a = Alerts(db, now=lambda: 1794730000.0)
     db.execute("CREATE TABLE book500 (k TEXT PRIMARY KEY, v TEXT)")
     db.execute("CREATE TABLE book500_fills (t INTEGER)")
-    db.execute("CREATE TABLE owner_requests (num INTEGER, waits TEXT, status TEXT)")
+    db.execute("CREATE TABLE owner_requests (num INTEGER, waits TEXT, status TEXT, text TEXT)")
     db.execute("INSERT INTO book500 VALUES ('state', ?)", (json.dumps({"cash": 487.2, "value": 487.2, "pos": {}, "dial": False}),))
     db.execute("INSERT INTO briefings VALUES ('B1', 1794700000, 'evening', '2026-11-15', 'x', ?)", (json.dumps({"dial_at_brief": False}),))
     db.commit()
@@ -185,7 +185,7 @@ def test_check4_a_dial_change_or_an_item_for_his_yes_is_no_quiet_day(tmp_path):
     a = Alerts(db, now=lambda: 1794730000.0)
     db.execute("CREATE TABLE book500 (k TEXT PRIMARY KEY, v TEXT)")
     db.execute("CREATE TABLE book500_fills (t INTEGER)")
-    db.execute("CREATE TABLE owner_requests (num INTEGER, waits TEXT, status TEXT)")
+    db.execute("CREATE TABLE owner_requests (num INTEGER, waits TEXT, status TEXT, text TEXT)")
     db.execute("INSERT INTO book500 VALUES ('state', ?)", (json.dumps({"cash": 487.2, "value": 487.2, "pos": {}, "dial": False}),))
     db.execute("INSERT INTO briefings VALUES ('B1', 1794700000, 'evening', '2026-11-15', 'x', ?)", (json.dumps({"dial_at_brief": False}),))
     db.commit()
@@ -194,9 +194,10 @@ def test_check4_a_dial_change_or_an_item_for_his_yes_is_no_quiet_day(tmp_path):
     db.commit()
     assert a.quiet_day() is None                                                   # the dial opened since the last brief
     db.execute("UPDATE book500 SET v=? WHERE k='state'", (json.dumps({"cash": 487.2, "value": 487.2, "pos": {}, "dial": False}),))
-    db.execute("INSERT INTO owner_requests VALUES (1, 'YOU', 'OPEN')")
+    db.execute("INSERT INTO owner_requests VALUES (281, 'YOU', 'OPEN', '[Crypto · list] Re-run the agent exam once by hand now that the credit is back.')")
     db.commit()
-    assert a.quiet_day() is None                                                   # something waits for his yes
+    q = a.quiet_day()                                                              # 21 Nov: something waits for his yes, and the
+    assert "Nothing needs you" not in q and "One thing waits for your yes: flag 200, Re-run the agent exam" in q   # code line names it
 
 
 def test_check5_a_one_hour_cache_write_is_priced_at_twice_the_input():

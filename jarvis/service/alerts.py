@@ -192,16 +192,28 @@ class Alerts:
             prev = self.db.execute("SELECT reply FROM briefings ORDER BY t DESC LIMIT 1").fetchone()
             was = (json.loads(prev[0] or "{}") or {}).get("dial_at_brief") if prev else None
             # its outside check: "Nothing needs you" was said with an item waiting for his yes, and a dial or brake change was called quiet
-            waiting = self.db.execute("SELECT COUNT(*) FROM owner_requests WHERE COALESCE(waits, '')='YOU' AND status IN ('OPEN', 'PLANNED')").fetchone()[0]
+            waits = self.db.execute("SELECT num, text FROM owner_requests WHERE COALESCE(waits, '')='YOU' AND status IN ('OPEN', 'PLANNED') "
+                                    "ORDER BY num").fetchall()
         except Exception:  # noqa: BLE001
             return None
         br = (st or {}).get("brakes") or {}
         braked = br.get("paused") or float(br.get("block_until") or 0) > self.now()
-        if (not last or not st or st.get("pos") or fills or fired or waiting or braked or was is None or was != st.get("dial")
+        if (not last or not st or st.get("pos") or fills or fired or braked or was is None or was != st.get("dial")
                 or not isinstance(st.get("value"), (int, float))):
             return None
+        # 21 Nov 2026: one item waiting for his yes (flag 200, the exam re-run) sent every quiet brief to the paid model for a week. An item
+        # waiting is now named by code, from the open list itself, instead of "Nothing needs you".
+        if waits:
+            from jarvis.service.openlist import plain
+
+            first = plain(re.sub(r"^\[[^\]]*\]\s*", "", str(waits[0][1] or "")), 110)
+            needs = (f"One thing waits for your yes: flag {waits[0][0] - 81}, {first}" if len(waits) == 1 else
+                     f"{len(waits)} things wait for your yes; the first is flag {waits[0][0] - 81}, {first}")
+            needs = needs.rstrip(".") + "."
+        else:
+            needs = "Nothing needs you."
         return (f"Your $500 account is {_cad(st['value'])}, all in cash; nothing was bought or sold and no alert fired since the last brief. "
-                "Nothing needs you. (A quiet day: written by Ananta's own code, no model asked.)")
+                f"{needs} (A quiet day: written by Ananta's own code, no model asked.)")
 
     def write_brief(self, kind: str, ask_fn: Callable[[str], dict], push: Callable[[str, str], Any] | None = None) -> dict | None:
         day = datetime.fromtimestamp(self.now(), _tz()).strftime("%Y-%m-%d")

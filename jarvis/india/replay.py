@@ -35,6 +35,55 @@ BANK = OUT / "bank.jsonl"
 JUDGE_MODEL = os.getenv("REPLAY_JUDGE_MODEL", "claude-sonnet-5-5")
 FIXED_AFTER = 3
 MAX_TURNS = int(os.getenv("REPLAY_MAX_TURNS", "120"))
+# 21 Nov 2026 (flag 203): the run started on 15 Nov 23:20 was still running on 21 Nov at full processor use, inside a regular expression
+# (a sample of the process showed it in re.sub), so no nightly check ran for six nights. Now one turn may take TURN_SECONDS; past that it is
+# stopped and recorded as a finding with its question, and the whole run is ended by the system after RUN_CPU_SECONDS of processor time
+# whatever it is doing.
+TURN_SECONDS = int(os.getenv("REPLAY_TURN_SECONDS", "180"))
+RUN_CPU_SECONDS = int(os.getenv("REPLAY_RUN_CPU_SECONDS", str(3 * 3600)))
+
+
+class TurnTimeout(Exception):
+    """One replayed turn ran past TURN_SECONDS."""
+
+
+class _deadline:
+    """Raise TurnTimeout in the main thread after `seconds` (SIGALRM; a no-op off the main thread or where there is no SIGALRM)."""
+
+    def __init__(self, seconds: float, what: str):
+        self.seconds, self.what, self.old = seconds, what, None
+
+    def _ring(self, *_):
+        raise TurnTimeout(f"stopped after {self.seconds:g} s: {self.what[:120]}")
+
+    def __enter__(self):
+        import signal
+        import threading
+
+        if hasattr(signal, "SIGALRM") and threading.current_thread() is threading.main_thread() and self.seconds > 0:
+            self.old = signal.signal(signal.SIGALRM, self._ring)
+            signal.setitimer(signal.ITIMER_REAL, self.seconds)
+        return self
+
+    def __exit__(self, *exc):
+        import signal
+
+        if self.old is not None:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, self.old)
+        return False
+
+
+def _cap_the_run() -> None:
+    """The backstop: the system ends this process after RUN_CPU_SECONDS of processor time (RLIMIT_CPU), even inside a long C call."""
+    try:
+        import resource
+
+        soft, hard = resource.getrlimit(resource.RLIMIT_CPU)
+        want = RUN_CPU_SECONDS if hard in (resource.RLIM_INFINITY, -1) else min(RUN_CPU_SECONDS, hard)
+        resource.setrlimit(resource.RLIMIT_CPU, (want, hard))
+    except (ImportError, ValueError, OSError):
+        pass
 
 JUDGE_SYSTEM = """You grade one answer from Ananta, a paper-trading assistant for the Indian market that talks to its owner, Madhav ("sir"),
 sometimes by voice (speech-to-text, so his words may be garbled), and sometimes to a grader or family member he hands the conversation to.
@@ -111,11 +160,12 @@ def replay_conversation(turns: list[dict], tag: str) -> list[dict]:
     for t in turns:
         ask.LIVE_OVERRIDE = t.get("live") if isinstance(t.get("live"), dict) else None
         try:
-            r = ask.ask("owner", t["text"], thread=thread, voice=t.get("voice", False), token="replay", flag_post=_fake_post, flag_get=_fake_get)
-            row = {**t, "answer": r.get("answer"), "kind": r.get("kind"), "provider": r.get("provider"), "talking_to": r.get("talking_to"),
-                   "ms": (r.get("timing") or {}).get("ms")}
-            if ask.LIVE_OVERRIDE:                               # 2 Nov: the answer must not contradict the moment it was asked at
-                row["today_problems"] = livesession.check(str(r.get("answer") or ""), ask.LIVE_OVERRIDE, t["text"])
+            with _deadline(TURN_SECONDS, t["text"]):
+                r = ask.ask("owner", t["text"], thread=thread, voice=t.get("voice", False), token="replay", flag_post=_fake_post, flag_get=_fake_get)
+                row = {**t, "answer": r.get("answer"), "kind": r.get("kind"), "provider": r.get("provider"), "talking_to": r.get("talking_to"),
+                       "ms": (r.get("timing") or {}).get("ms")}
+                if ask.LIVE_OVERRIDE:                           # 2 Nov: the answer must not contradict the moment it was asked at
+                    row["today_problems"] = livesession.check(str(r.get("answer") or ""), ask.LIVE_OVERRIDE, t["text"])
             out.append(row)
         except Exception as e:  # noqa: BLE001  a crash is itself a finding
             out.append({**t, "answer": None, "error": f"{type(e).__name__}: {str(e)[:200]}"})
@@ -221,6 +271,15 @@ def _fkey(f: dict) -> tuple:
     return (f.get("source"), f.get("text"), tuple(sorted(str((p or {}).get("code")) for p in (f.get("problems") or []))))
 
 
+def _judged(history: list[dict], turn: dict) -> dict:
+    """judge() inside the turn's deadline; a judge that runs past it is a failed check that says so."""
+    try:
+        with _deadline(TURN_SECONDS, "judging: " + str(turn.get("text") or "")):
+            return judge(history, turn)
+    except TurnTimeout as e:
+        return {"pass": False, "problems": [{"code": "TIMEOUT", "why": str(e)}]}
+
+
 def run(hours: float = 24.0, use_bank: bool = True, notify=None) -> dict:
     night = dt.date.today().isoformat()
     real_dir = ask.ASK_DIR
@@ -237,13 +296,13 @@ def run(hours: float = 24.0, use_bank: bool = True, notify=None) -> dict:
             turns = c["turns"][: MAX_TURNS - n]
             done = replay_conversation(turns, f"{ci:03d}{c['thread'][:6]}")
             for i, t in enumerate(done):
-                g = judge(done[:i], t)
+                g = _judged(done[:i], t)
                 results.append({"source": "today", "thread": c["thread"], "i": i, **t, **g})
                 n += 1
         for bi, b in enumerate(r for r in rows_bank if r.get("status") != "fixed"):
             turns = [*b.get("context", []), {"text": b["text"], "voice": b.get("voice", False)}]
             done = replay_conversation(turns, f"bk{bi:03d}")
-            g = judge(done[:-1], done[-1])
+            g = _judged(done[:-1], done[-1])
             results.append({"source": "bank", "key": b["key"], **done[-1], **g})
             b["history"] = (b.get("history") or [])[-9:] + [[night, g["pass"]]]
             b["passes_in_a_row"] = (b.get("passes_in_a_row", 0) + 1) if g["pass"] else 0
@@ -252,7 +311,7 @@ def run(hours: float = 24.0, use_bank: bool = True, notify=None) -> dict:
         # 2 Nov 2026: Madhav's conversations of 1-2 Nov, re-asked every night at their own moment; they never retire (jarvis/india/neveragain.py)
         try:
             from jarvis.india import neveragain
-            results += neveragain.run(ask, replay_conversation, judge)
+            results += neveragain.run(ask, replay_conversation, _judged)
         except Exception as e:  # noqa: BLE001
             results.append({"source": "never_again", "case": "crash", "text": "never-again cases", "answer": None, "pass": False,
                             "problems": [{"code": "CRASH", "why": f"{type(e).__name__}: {str(e)[:200]}"}]})
@@ -338,4 +397,5 @@ if __name__ == "__main__":
         print("seeded", seed())
     else:
         hrs = float(sys.argv[sys.argv.index("--hours") + 1]) if "--hours" in sys.argv else 24.0
+        _cap_the_run()
         print(json.dumps(run(hrs, use_bank="--no-bank" not in sys.argv, notify=_ntfy), indent=1))

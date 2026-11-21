@@ -149,10 +149,15 @@ def features(df: pd.DataFrame, day: str) -> pd.DataFrame:
         rsi = float((100 - 100 / (1 + (au.iloc[-1] / ad.iloc[-1]))) if ad.iloc[-1] > 0 else 100.0)
         rets = c.pct_change().dropna()
         turn = float(g["turnover"].tail(60).median()) if "turnover" in g else None
+        atr = None                                       # 21 Nov 2026 (managed-v3): the 14-day average true range as a share of the close
+        if "high" in g and "low" in g:
+            h, lo = g["high"].astype(float).reset_index(drop=True), g["low"].astype(float).reset_index(drop=True)
+            tr = pd.concat([h - lo, (h - c.shift()).abs(), (lo - c.shift()).abs()], axis=1).max(axis=1)
+            atr = float(tr.tail(14).mean() / c.iloc[-1]) if c.iloc[-1] > 0 else None
         out.append({"symbol": sym, "date": str(g["date"].iloc[-1].date()), "close": float(c.iloc[-1]), "sma50": float(c.tail(50).mean()), "sma200": float(c.tail(200).mean()),
                     "rsi14": rsi, "ret_20": float(c.iloc[-1] / c.iloc[-21] - 1), "ret_120": float(c.iloc[-1] / c.iloc[-121] - 1) if len(c) > 121 else None, "ret_60": float(c.iloc[-1] / c.iloc[-61] - 1),
                     "off_high_250": float(c.iloc[-1] / c.tail(250).max() - 1), "vol60": float(rets.tail(60).std() * math.sqrt(250)), "turnover_med60": turn,
-                    "prev_close": float(c.iloc[-2])})
+                    "prev_close": float(c.iloc[-2]), "atr14_pct": atr})
     return pd.DataFrame(out)
 
 
@@ -544,6 +549,25 @@ def reasons(r: pd.Series, n500_ret120: float | None) -> list[str]:
     return out
 
 
+def size_for(book: dict, pick, want: float, c: dict) -> tuple[float, str]:
+    """managed-v3 (Madhav's yes, 21 Nov 2026 07:43 Toronto: "Yes let's do the sizing changes"): fixed-risk sizing. A new name may lose at
+    most size_risk_pct of the stocks-and-cash book if it falls size_atr_mult of its daily ranges (ATR 14), and holds at most max_name_pct
+    of it; a wild name gets fewer rupees than its cut freed, a calm one never more. The rest stays in cash, where the park rule takes it
+    into the index fund in an uptrend. On 2007-2023 (india/sizingstudy.py, 20 Nov) this with the 7% stop cut the deepest fall from about
+    -77% to -40% (2007-2017) and -62% to -38% (2018-2023) with no loss of return per unit of fall. Before 21 Nov a replacement got its
+    cut's rupees in full (managed-v1/v2)."""
+    r = c.get("size_risk_pct")
+    atr = pick.get("atr14_pct") if hasattr(pick, "get") else None
+    if not r or atr is None or pd.isna(atr) or atr <= 0:
+        return want, "the cut's rupees (no daily range on file)" if r else "the cut's rupees"
+    base = sum(v["qty"] * v["last"] for v in book["positions"].values()) + book["cash_inr"]
+    cap = min(base * r / 100 / (c["size_atr_mult"] * atr), base * c["max_name_pct"] / 100)
+    if cap >= want:
+        return want, f"the cut's rupees (the risk cap ₹{cap:,.0f} is higher)"
+    return cap, (f"₹{cap:,.0f}, not the cut's ₹{want:,.0f}: it swings about {100 * atr:.1f}% a day, so {c['size_atr_mult']:g} days' swing "
+                 f"risks {r:g}% of the book; the rest stays in cash")
+
+
 def make_plan(book: dict, day: str, feats: pd.DataFrame, exit_rows: list[dict], c: dict) -> dict:
     for_session = next_session(dt.date.fromisoformat(day)).isoformat()
     trend = trend_now()
@@ -572,11 +596,12 @@ def make_plan(book: dict, day: str, feats: pd.DataFrame, exit_rows: list[dict], 
         if inr < c["min_buy_inr"]:
             pool_small += inr
             continue
-        pick = None
+        pick, size, sized = None, inr, ""
         for _, r in cands.iterrows():
-            if r["symbol"] in used or r["close"] * c["min_shares"] > inr:
+            size, sized = size_for(book, r, inr, c)
+            if r["symbol"] in used or r["close"] * c["min_shares"] > size or size < c["min_buy_inr"]:
                 continue
-            if r["sector_pct_now"] + 100 * inr / stock_val > c["max_sector_pct"]:
+            if r["sector_pct_now"] + 100 * size / stock_val > c["max_sector_pct"]:
                 continue
             pick = r
             break
@@ -585,14 +610,20 @@ def make_plan(book: dict, day: str, feats: pd.DataFrame, exit_rows: list[dict], 
             continue
         used.add(pick["symbol"])
         room -= 1
-        alts = [a["symbol"] for _, a in cands.iterrows() if a["symbol"] not in used and a["close"] * c["min_shares"] <= inr][:2]
-        buys.append({"symbol": pick["symbol"], "inr": round(inr), "for_cut": cut["symbol"], "industry": pick["industry"], "reasons": reasons(pick, n500), "also_considered": alts,
+        if size < inr - 1:
+            notes.append(f"{pick['symbol']}: sized at ₹{size:,.0f} of {cut['symbol']}'s ₹{inr:,.0f}; ₹{inr - size:,.0f} stays in cash (fixed-risk sizing)")
+        alts = [a["symbol"] for _, a in cands.iterrows() if a["symbol"] not in used and a["close"] * c["min_shares"] <= size][:2]
+        buys.append({"symbol": pick["symbol"], "inr": round(size), "cut_inr": round(inr), "sized": sized, "for_cut": cut["symbol"], "industry": pick["industry"],
+                     "reasons": reasons(pick, n500), "also_considered": alts,
                      "why": f"replaces {cut['symbol']}: " + "; ".join(reasons(pick, n500)[:2]), "stop_pct": c["stop_pct"], "min_hold_sessions": c["min_hold_sessions"]})
     if pool_small >= c["min_buy_inr"] and room > 0:
-        pick = next((r for _, r in cands.iterrows() if r["symbol"] not in used and r["close"] * c["min_shares"] <= pool_small and r["sector_pct_now"] + 100 * pool_small / stock_val <= c["max_sector_pct"]), None)
+        pick = next((r for _, r in cands.iterrows() if r["symbol"] not in used and r["close"] * c["min_shares"] <= size_for(book, r, pool_small, c)[0]
+                     and size_for(book, r, pool_small, c)[0] >= c["min_buy_inr"]
+                     and r["sector_pct_now"] + 100 * size_for(book, r, pool_small, c)[0] / stock_val <= c["max_sector_pct"]), None)
         if pick is not None:
             small = [x["symbol"] for x in cuts if float(x["inr"]) < c["min_buy_inr"]]
-            buys.append({"symbol": pick["symbol"], "inr": round(pool_small), "for_cut": "+".join(small), "industry": pick["industry"], "reasons": reasons(pick, n500), "also_considered": [],
+            size, sized = size_for(book, pick, pool_small, c)
+            buys.append({"symbol": pick["symbol"], "inr": round(size), "cut_inr": round(pool_small), "sized": sized, "for_cut": "+".join(small), "industry": pick["industry"], "reasons": reasons(pick, n500), "also_considered": [],
                          "why": f"replaces the small stakes {', '.join(small)} together: " + "; ".join(reasons(pick, n500)[:2]), "stop_pct": c["stop_pct"], "min_hold_sessions": c["min_hold_sessions"]})
     park(book, day, feats, cuts, buys, trend, c)
     plans = _plans()

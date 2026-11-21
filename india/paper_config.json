@@ -80,10 +80,10 @@
    "note": "recorded at 1 minute from 21 Oct 2026; research phase SP-FX before any forex decisions (Madhav 19 Oct)"
   },
   "managed": {
-   "version": "managed-v2 (17 Nov 2026)",
+   "version": "managed-v3 (21 Nov 2026)",
    "what": "The managed paper book: starts from the account twin's holdings and acts on the evening cut list; each cut's rupees buy a replacement from the Nifty 500 chosen by the proved not-losing rules; tracked against the twin, the frozen portfolio and the Nifty 500 (india/managed.py).",
    "universe": "Nifty 500 (NSE's newest constituent list, bronze/indices)",
-   "one_replacement_per_cut_same_rupees": true,
+   "one_replacement_per_cut_same_rupees": false,
    "max_new_per_week": 3,
    "stop_pct": 7.0,
    "min_hold_sessions": 20,
@@ -113,7 +113,12 @@
    "park_after_sessions": 5,
    "park_reserve_pct": 5,
    "park_min_inr": 3000,
-   "v2_approved": "Madhav, 17 Nov 2026 18:54 Toronto (in chat), to the four changes of 14 Nov (cut on weakness against the market, no grade cuts in a downtrend, at most 3 cuts a week, idle cash parked in the Nifty index fund in an uptrend): \"Yes to it\""
+   "v2_approved": "Madhav, 17 Nov 2026 18:54 Toronto (in chat), to the four changes of 14 Nov (cut on weakness against the market, no grade cuts in a downtrend, at most 3 cuts a week, idle cash parked in the Nifty index fund in an uptrend): \"Yes to it\"",
+   "size_risk_pct": 0.5,
+   "size_atr_mult": 2,
+   "max_name_pct": 15,
+   "sizing": "managed-v3: a replacement gets at most the rupees that risk size_risk_pct of the stocks-and-cash book if it falls size_atr_mult of its daily ranges (ATR 14), and at most max_name_pct of the book; never more than its cut freed; the rest stays in cash for the park rule (india/sizingstudy.py, 20 Nov 2026)",
+   "v3_approved": "Madhav, 21 Nov 2026 07:43 Toronto (in chat), after the sizing study of 20 Nov: \"Yes let's do the sizing changes and others we found\""
   }
  }
 }

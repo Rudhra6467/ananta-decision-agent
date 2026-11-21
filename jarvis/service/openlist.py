@@ -85,6 +85,44 @@ def _day(t) -> str:
     return time.strftime("%Y-%m-%d", time.gmtime(float(t or 0)))
 
 
+_NOTE_PREFIX = re.compile(r"^(First answer[^:]*:|Morning review[^:]*:|Advice:)\s*", re.I)
+_NOTE_DATE = re.compile(r"^\d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*[:,]\s*")
+_BUILT = re.compile(r"^(built|done|fixed and live|live|finished)\b", re.I)
+_FIRST = re.compile(r"^do this first\b", re.I)
+
+
+def whole_clip(text, n: int) -> str:
+    """At most n characters, cut at the last full sentence, else the last whole word (a stored line was cut mid-word: "no sto", "stays fr")."""
+    s = str(text or "")
+    if len(s) <= n:
+        return s
+    head = s[:n]
+    cut = max(head.rfind(". "), head.rfind("! "), head.rfind("? "))
+    if cut >= n // 2:
+        return head[: cut + 1]
+    return head[: head.rfind(" ")].rstrip(",;:( ") + "…" if " " in head else head
+
+
+def latest_step(note) -> str:
+    """The newest step of an item's note: the first part before " | ", without its label or its date."""
+    s = _NOTE_PREFIX.sub("", str(note or "").split(" | ")[0]).strip()
+    return _NOTE_DATE.sub("", s).strip()
+
+
+def scenario_of(kind: str, built: bool = False) -> str:
+    """Where an item stands, which decides the sheet's words and buttons: DECIDE (waits for his yes), BUILDING (Ananta is doing it), CHECK
+    (its latest step says it is built or done, so he looks it over), DATE (waits for a day or for evidence), PARKED."""
+    return {"YOU": "DECIDE", "DATE": "DATE", "PARKED": "PARKED"}.get(kind) or ("CHECK" if built else "BUILDING")
+
+
+def to_you(text) -> str:
+    """The list is written for him: \"Madhav said yes\" reads \"You said yes\"."""
+    s = re.sub(r"(^|[.:;|]\s+)Madhav's\b", r"\1Your", str(text or ""))
+    s = re.sub(r"Madhav's\b", "your", s)
+    s = re.sub(r"(^|[.:;|]\s+)Madhav\b", r"\1You", s)
+    return re.sub(r"\bMadhav\b", "you", s)
+
+
 def _board(j, now: float) -> list[dict]:
     from jarvis.service import requests_log
 
@@ -104,6 +142,13 @@ def _board(j, now: float) -> list[dict]:
         if r.get("due"):
             it["due"] = r["due"]
         note = str(r.get("note") or "")
+        step = latest_step(note)
+        if kind == "WORK":
+            if _FIRST.match(step):
+                it["first"] = True
+            elif _BUILT.match(step):
+                it["built"] = True
+        it["scenario"] = scenario_of(kind, bool(it.get("built")))
         if advice_of(note):
             it["advice"] = advice_of(note)
         if kind in ("YOU", "WORK") and now - last > STALE_DAYS * 86400:
@@ -171,7 +216,7 @@ def collect(j, now: float | None = None) -> dict:
             "count": int(x.get("count") or 1), "source": {"drafts": "India research drafts", "needs": "crypto Needs you"}.get(x.get("kind"), "board"),
             **({"on_yes": x["on_yes"]} if x.get("on_yes") else {}),
             **({"advice": (x.get("review") or {}).get("proposal")} if (x.get("review") or {}).get("proposal") else {})} for x in w["items"]]
-    work = [x for x in board if x["kind"] == "WORK"]
+    work = sorted([x for x in board if x["kind"] == "WORK"], key=lambda x: not x.get("first"))        # his "do this first" items lead
     dated = sorted([x for x in board if x["kind"] == "DATE"] + [x for x in due if x["kind"] == "DATE"], key=lambda x: (x.get("due") or "9999", str(x["id"])))
     parked = [x for x in board if x["kind"] == "PARKED"] + [x for x in due if x["kind"] == "PARKED"] + _strategies()
     nxt = next((x for x in dated if x.get("due") and x["due"] >= _day(now)), None)
@@ -340,7 +385,10 @@ def open_item(j, text: str, waits: str, market: str = "crypto", due: str | None 
 # Not now. Not now clears it from his notifications (the bell, Home's Needs you, the phone reminders) for QUIET_DAYS; it stays on the open
 # list and comes back once after that. Every answer is kept in owner_answers.
 QUIET_DAYS = 7
-ANSWER_LABEL = {"yes": "Yes", "no": "No", "done": "Done", "later": "Not now", "postpone": "Postpone"}
+ANSWER_LABEL = {"yes": "Yes", "no": "No", "done": "Done", "later": "Not now", "postpone": "Postpone",
+                "first": "Do this one first", "pause": "Pause it", "drop": "Drop it", "reopen": "Not right, reopen it",
+                "check": "Check it earlier", "bring_back": "Bring it back"}
+ITEM_ANSWERS = ("done", "postpone", "first", "pause", "drop", "reopen", "check", "bring_back")
 # 11 Nov 2026 (Madhav, 07:51: "I couldn't get to know their status or. Mark it done or postpone it. I couldn't do anything here"): every item
 # on the open list can be marked done or postponed from its sheet; a postponed item waits for its date and is due again that day. 14 Dec is
 # the day the crypto scorecard freeze ends, when the rule questions open again.
@@ -354,7 +402,14 @@ def postpone_options(today=None) -> list[dict]:
 
 
 POSTPONE_ROW = {"tomorrow": "Postpone to tomorrow", "week": "Postpone a week", "2026-12-14": "Postpone to 14 Dec"}
-ANSWER_ICON = {"yes": "check", "no": "close", "done": "check", "later": "pause", "postpone": "clock"}
+# 21 Nov 2026 (Madhav: the sheet's options did not fit the item; "refine and go with scenario based"): the sheet's buttons depend on where
+# the item stands. A decision is answered Yes / No / ask me again; work Ananta is doing is pushed first, paused or dropped (never "marked
+# done" by him); built work is checked by him and closed or sent back; a dated item is checked earlier or moved; a parked one is brought back.
+ASK_ROW = {"tomorrow": "Ask me again tomorrow", "week": "Ask me again in a week", "2026-12-14": "Ask me again on 14 Dec"}
+MOVE_ROW = {"tomorrow": "Move it to tomorrow", "week": "Move it a week on", "2026-12-14": "Move it to 14 Dec"}
+DECIDE_LABEL = {"yes": "Yes, go ahead", "no": "No, don't do it", "done": "I did it", "later": "Not now"}
+ANSWER_ICON = {"yes": "check", "no": "close", "done": "check", "later": "pause", "postpone": "clock",
+               "first": "up", "pause": "pause", "drop": "close", "reopen": "flag", "check": "eye", "bring_back": "play"}
 
 
 def answer_words(said: str, kind: str = "ask", on_yes: str | None = None, due: str | None = None, today=None) -> str:
@@ -366,9 +421,16 @@ def answer_words(said: str, kind: str = "ask", on_yes: str | None = None, due: s
         return "Ananta writes the study down first, then tests it on past years only. Nothing trades from it. Your yes is kept with the time."
     if kind == "draft" and said == "no":
         return "The draft closes as skipped and is not raised again. Your answer is kept with the time."
+    if kind == "item" and said in ("first", "pause", "drop", "reopen", "check", "bring_back"):
+        return {"first": "It moves to the top of the work list with your words on it. Nothing else is dropped.",
+                "pause": "It moves to Parked and Ananta stops working on it. Nothing happens until you bring it back. Nothing is lost.",
+                "drop": "It closes as dropped and leaves the list. Ananta does no more work on it. Your answer is kept with the time.",
+                "reopen": "It goes back to work to do, marked not right, at the top of the list. Your words stay on it.",
+                "check": "It leaves its wait and goes to the top of the work list now, so Ananta looks at it before its date.",
+                "bring_back": "It moves back to work to do and Ananta takes it up again."}[said]
     if said == "postpone" and kind != "item":
         d = dt.date.fromisoformat(_postpone_to(due or "tomorrow", today))
-        return f"It leaves your notifications until {d:%a} {d.day} {d:%b}, then comes back. It stays on the open list. Nothing is lost."
+        return f"It leaves your notifications until {d:%a} {d.day} {d:%b}, then comes back to ask you again. It stays on the open list. Nothing is lost."
     if said == "yes":
         if kind == "needs":
             return "Ananta does what the card asks, on paper, as if you had said yes in Ask. Your yes is kept with the time."
@@ -377,7 +439,7 @@ def answer_words(said: str, kind: str = "ask", on_yes: str | None = None, due: s
     if said == "no":
         return "It closes with your no, and Ananta does nothing more about it. Your answer is kept with the time."
     if said == "done":
-        return ("It comes off the open list as done, and Ananta does no more work on it. Your answer is kept with the time." if kind == "item"
+        return ("It closes as done, checked by you, and leaves the open list. Your answer is kept with the time." if kind == "item"
                 else "Your step is marked done and the item closes. Your answer is kept with the time.")
     if said == "later":
         return (f"It leaves your notifications for {QUIET_DAYS} days: the bell, Home and the phone reminders. It stays on the open list "
@@ -400,24 +462,35 @@ def answer_rows(key: str | None, step: bool = False, on_yes: str | None = None, 
     for a in answers_for(key, step):
         if a == "postpone":
             for o in postpone_options(today)[:2]:                       # tomorrow, next week
-                rows.append({"id": "postpone", "due": o["id"], "label": POSTPONE_ROW.get(o["id"], f"Postpone: {o['label']}"), "icon": "clock",
+                rows.append({"id": "postpone", "due": o["id"], "label": ASK_ROW.get(o["id"], f"Ask me again: {o['label']}"), "icon": "clock",
                              "explain": answer_words("postpone", kind=kind, due=o["id"], today=today)})
             continue
-        label = DRAFT_LABEL.get(a, ANSWER_LABEL[a]) if kind == "draft" else LATER_LABEL if a == "later" else ANSWER_LABEL[a]
-        rows.append({"id": a, "label": LATER_LABEL if a == "later" else label, "icon": ANSWER_ICON[a], "explain": answer_words(a, kind=kind, on_yes=on_yes)})
+        label = DRAFT_LABEL.get(a, DECIDE_LABEL[a]) if kind == "draft" else DECIDE_LABEL.get(a, ANSWER_LABEL[a])
+        rows.append({"id": a, "label": label, "icon": ANSWER_ICON[a], "explain": answer_words(a, kind=kind, on_yes=on_yes)})
     return rows
 
 
-def item_answers(today=None, after: str | None = None) -> list[dict]:
-    """An open-list item's answers as rows: Mark done, then each postpone day as its own row (one tap does it). after: the day a dated
-    item already waits for; a day not later than that is not offered."""
-    rows = [{"id": "done", "label": "Mark done", "icon": "check", "explain": answer_words("done", kind="item")}]
-    for o in postpone_options(today):
-        if after and _postpone_to(o["id"], today) <= str(after)[:10]:
-            continue
-        rows.append({"id": "postpone", "due": o["id"], "label": POSTPONE_ROW.get(o["id"], f"Postpone: {o['label']}"), "icon": "clock",
-                     "explain": answer_words("postpone", kind="item", due=o["id"], today=today)})
-    return rows
+def item_answers(today=None, after: str | None = None, scenario: str = "BUILDING") -> list[dict]:
+    """An open-list item's answers as rows, by where it stands (scenario_of). BUILDING (Ananta is doing it): do it first, pause it, drop it.
+    CHECK (Ananta says it is built): looks right, close it / not right, reopen it. DATE (waits for a day or evidence): check it earlier, move
+    it (one row per day), drop it. PARKED: bring it back, drop it. after: the day a dated item already waits for; a day not later than that
+    is not offered."""
+    def row(i, label, **kw):
+        return {"id": i, "label": label, "icon": ANSWER_ICON[i], "explain": answer_words(i, kind="item"), **kw}
+    drop = row("drop", "Drop it")
+    if scenario == "CHECK":
+        return [row("done", "Looks right, close it"), row("reopen", "Not right, reopen it")]
+    if scenario == "DATE":
+        rows = [row("check", "Check it earlier")]
+        for o in postpone_options(today):
+            if after and _postpone_to(o["id"], today) <= str(after)[:10]:
+                continue
+            rows.append({"id": "postpone", "due": o["id"], "label": MOVE_ROW.get(o["id"], f"Move it: {o['label']}"), "icon": "clock",
+                         "explain": answer_words("postpone", kind="item", due=o["id"], today=today)})
+        return rows + [drop]
+    if scenario == "PARKED":
+        return [row("bring_back", "Bring it back"), drop]
+    return [row("first", "Do this one first"), row("pause", "Pause it"), drop]
 
 
 def _postpone_to(when: str, today=None) -> str:
@@ -479,7 +552,7 @@ def answer(j, key: str, said: str, by: str = "Madhav", now: float | None = None,
     done (closed, by him) or postpone (dated: `due` is tomorrow, week or a day). Every answer is logged."""
     said = str(said or "").strip().lower()
     if said not in ANSWER_LABEL:
-        raise ValueError("the answer is yes, no, done, later or postpone")
+        raise ValueError("the answer is yes, no, done, later, postpone, first, pause, drop, reopen, check or bring_back")
     _answer_tables(j)
     now = int(now or j.now())
     when = _when(now)
@@ -515,14 +588,39 @@ def answer(j, key: str, said: str, by: str = "Madhav", now: float | None = None,
             note = f"You said yes in the app ({when})" + (" | " + r["note"] if r.get("note") else "")
             j.db.execute("UPDATE owner_requests SET waits='WORK', note=?, updated_t=? WHERE id=?", (note[:400], now, r["id"]))
             out["words"] = "Saved: you said yes. It is now work to do, and stays on the list until it is done."
-    elif kind == "item" and ref.isdigit() and said in ("done", "postpone"):
+    elif kind == "item" and ref.isdigit() and said in ITEM_ANSWERS:
         num = int(ref)
         r = _get(j, num)
         if not r or r["status"] in ("DONE", "WONT"):
             raise ValueError("that one is already closed")
+        old = (" | " + r["note"]) if r.get("note") else ""
+
+        def _note(text: str) -> None:
+            j.db.execute("UPDATE owner_requests SET note=?, updated_t=? WHERE id=?", ((text + old)[:400], now, r["id"]))
         if said == "done":
-            close(j, num, f"You marked it done in the app ({when}).", done=True, by=f"{by}, in the app", quiet=True)
+            close(j, num, f"You checked it and closed it in the app ({when}).", done=True, by=f"{by}, in the app", quiet=True)
             out["words"] = "Saved: done. It is off the open list, and your answer is kept."
+        elif said == "drop":
+            close(j, num, f"You dropped it in the app ({when}). Ananta does no more work on it.", done=False, by=f"{by}, in the app", quiet=True)
+            out["words"] = "Saved: dropped. It is off the open list, and your answer is kept."
+        elif said == "pause":
+            set_kind(j, num, "PARKED")
+            _note(f"You paused it in the app ({when}). Nothing happens until you bring it back.")
+            out["words"] = "Saved: paused. It is under Parked until you bring it back."
+        elif said == "bring_back":
+            set_kind(j, num, "WORK")
+            _note(f"You brought it back in the app ({when}).")
+            out["words"] = "Saved: it is work to do again."
+        elif said in ("first", "check", "reopen"):
+            set_kind(j, num, "WORK")
+            j.db.execute("UPDATE owner_requests SET due=NULL WHERE id=?", (r["id"],))
+            if said == "reopen":
+                j.db.execute("UPDATE owner_requests SET status='OPEN' WHERE id=?", (r["id"],))
+            _note({"first": f"Do this first: you asked for it in the app ({when}).",
+                   "check": f"Do this first: you asked for an earlier look in the app ({when}).",
+                   "reopen": f"Do this first: not right, you reopened it in the app ({when})."}[said])
+            out["words"] = {"first": "Saved: it is at the top of the work list.", "check": "Saved: it is at the top of the work list now.",
+                            "reopen": "Saved: it is back at the top of the work list, marked not right."}[said]
         else:
             import datetime as dt
             from zoneinfo import ZoneInfo
@@ -581,7 +679,7 @@ def set_kind(j, num: int, waits: str, due: str | None = None, topic: str | None 
     if advice:
         j.db.execute("UPDATE owner_requests SET note=? WHERE id=?", (("Advice: " + advice)[:400], r["id"]))
     if line:
-        j.db.execute("UPDATE owner_requests SET line=? WHERE id=?", (line[:300], r["id"]))
+        j.db.execute("UPDATE owner_requests SET line=? WHERE id=?", (whole_clip(line, 300), r["id"]))
     if touch:
         j.db.execute("UPDATE owner_requests SET updated_t=? WHERE id=?", (int(j.now()), r["id"]))
     j.db.commit()

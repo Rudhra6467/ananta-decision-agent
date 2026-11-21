@@ -38,7 +38,7 @@ def test_mark_done_in_the_app_closes_the_item_and_keeps_his_answer(j):
     assert out["words"] == "Saved: done. It is off the open list, and your answer is kept."
     r = openlist._get(j, it["num"])
     assert r["status"] == "DONE" and r["closed_by"] == "Madhav, in the app"
-    assert r["note"].startswith("You marked it done in the app (Tue 10 Nov, 11:00 am Toronto)")
+    assert r["note"].startswith("You checked it and closed it in the app (Tue 10 Nov, 11:00 am Toronto)")
     assert it["num"] not in {x["num"] for x in openlist.collect(j, NOW)["work"]}
     assert j.db.execute("SELECT key, answer FROM owner_answers").fetchall() == [(f"item:{it['num']}", "done")]
     with pytest.raises(ValueError):
@@ -64,9 +64,9 @@ def test_postpone_dates_the_item_says_the_day_and_keeps_the_old_note(j):
 
 
 def test_a_dated_item_is_offered_only_later_days():
-    rows = openlist.item_answers(dt.date(2026, 11, 11), after="2026-11-12")
-    assert [(a["id"], a.get("due")) for a in rows] == [("done", None), ("postpone", "week"), ("postpone", "2026-12-14")]
-    assert [a["id"] for a in openlist.item_answers(dt.date(2026, 11, 11), after="2026-12-14")] == ["done"]
+    rows = openlist.item_answers(dt.date(2026, 11, 11), after="2026-11-12", scenario="DATE")
+    assert [(a["id"], a.get("due")) for a in rows] == [("check", None), ("postpone", "week"), ("postpone", "2026-12-14"), ("drop", None)]
+    assert [a["id"] for a in openlist.item_answers(dt.date(2026, 11, 11), after="2026-12-14", scenario="DATE")] == ["check", "drop"]
 
 
 def test_postpone_offers_only_days_still_ahead():
@@ -79,27 +79,29 @@ def test_the_sheet_says_where_an_item_stands():
     d = dt.date(2026, 11, 11)
     w = places.item_sheet_parts({"kind": "WORK", "since": "2026-11-08"},
                                 {"note": "11 Nov: 1 of 3 parts built: the checks run in the self-check (cc682e4) | 10 Nov: started"}, today=d)
-    assert w["label"] == "Work to do" and w["status"] == "Ananta is working on it. Nothing is needed from you."
+    assert w["label"] == "Work to do" and w["status"] == "Ananta is working on this. You don't need to act."
     assert w["cards"][0] == {"label": "Open since", "value": "Sun 8 Nov", "sub": "3 days"}
     assert w["cards"][1] == {"label": "Latest", "value": "1 of 3 parts built: the checks run in the self-check", "sub": "11 Nov", "progress": [1, 3]}
     dd = places.item_sheet_parts({"kind": "DATE", "since": "2026-11-11", "due": "2026-11-12"}, {}, today=d)
-    assert dd["status"] == "It waits until Thu 12 Nov. That day it is due again."
+    assert dd["status"] == "Nothing to do until Thu 12 Nov. That day Ananta checks it."
     assert dd["cards"] == [{"label": "Open since", "value": "Wed 11 Nov", "sub": "today"}, {"label": "Comes back", "value": "Thu 12 Nov", "sub": "tomorrow"}]
     p = places.item_sheet_parts({"kind": "PARKED"}, {"note": "Waits for the India lock to lift."}, today=d)
-    assert p["status"] == "Parked on purpose. Nothing happens until someone opens it again." and "progress" not in p["cards"][0]
+    assert p["status"] == "Parked on purpose. Nothing happens until you bring it back." and "progress" not in p["cards"][0]
 
 
 def test_a_board_item_takes_done_and_postpone_and_a_due_list_item_does_not(j):
     it = openlist.open_item(j, "Study the rupee against flows: 3 parts.", "WORK", market="india")
     row = next(x for x in openlist.collect(j, NOW)["work"] if x["num"] == it["num"])
     sh = places._item_sheet(j, row, "tool", today=dt.date(2026, 11, 10))["sheet"]
-    assert sh["key"] == f"item:{it['num']}" and [a["id"] for a in sh["answers"]] == ["done", "postpone", "postpone", "postpone"]
-    assert [a.get("due") for a in sh["answers"]] == [None, "tomorrow", "week", "2026-12-14"]
-    assert [a["label"] for a in sh["answers"]] == ["Mark done", "Postpone to tomorrow", "Postpone a week", "Postpone to 14 Dec"]
+    assert sh["key"] == f"item:{it['num']}" and [a["id"] for a in sh["answers"]] == ["first", "pause", "drop"]
+    assert [a["label"] for a in sh["answers"]] == ["Do this one first", "Pause it", "Drop it"], "work Ananta is doing is never marked done by him"
     # Madhav, 11 Nov 08:13: each choice says what it does under its arrow
-    assert sh["answers"][1]["explain"] == "It waits on the open list until Wed 11 Nov, and that day it is due again. Nothing is lost."
-    assert sh["answers"][3]["explain"].endswith("That is the day the crypto scorecard freeze ends.")
-    assert sh["answers"][0]["explain"].startswith("It comes off the open list as done") and sh["primary"]["explain"]
+    assert sh["answers"][0]["explain"].startswith("It moves to the top of the work list") and sh["primary"]["explain"]
+    assert [a["label"] for a in openlist.item_answers(dt.date(2026, 11, 10), scenario="DATE")] == [
+        "Check it earlier", "Move it to tomorrow", "Move it a week on", "Move it to 14 Dec", "Drop it"]
+    mv = openlist.item_answers(dt.date(2026, 11, 10), scenario="DATE")
+    assert mv[1]["explain"] == "It waits on the open list until Wed 11 Nov, and that day it is due again. Nothing is lost."
+    assert mv[3]["explain"].endswith("That is the day the crypto scorecard freeze ends.")
     assert sh["label"].startswith("Work to do · ") and sh["status"] and sh["cards"][0]["label"] == "Open since"
     due = next(x for x in openlist.collect(j, NOW)["dated"] if x["id"] == "CHECKPOINT-30")
     sd = places._item_sheet(j, due, "clock", today=dt.date(2026, 11, 10))["sheet"]
@@ -116,7 +118,7 @@ def test_every_notification_answer_says_what_it_does():
     dec = openlist.answer_rows("ask:6")
     assert dec[0]["explain"].startswith("Ananta goes ahead. It becomes work to do") and dec[1]["icon"] == "close"
     assert dec[2]["label"] == "Not now" and "for 7 days" in dec[2]["explain"] and "stays on the open list" in dec[2]["explain"]
-    assert openlist.answer_rows("ask:7", step=True)[0] == {"id": "done", "label": "Done", "icon": "check",
+    assert openlist.answer_rows("ask:7", step=True)[0] == {"id": "done", "label": "I did it", "icon": "check",
                                                            "explain": "Your step is marked done and the item closes. Your answer is kept with the time."}
     assert openlist.answer_rows("needs:x")[0]["explain"].startswith("Ananta does what the card asks, on paper")
     assert all(a["explain"] for a in openlist.answer_rows("india:drafts"))

@@ -87,6 +87,7 @@ def item_sheet_parts(it: dict, row: dict | None = None, today=None) -> dict:
     small cards: how long it has been open, when it comes back (a dated one), its latest step, and a progress bar when its note says
     "N of M"."""
     import datetime as dt
+    from jarvis.service import openlist
     row = row or {}
     kind = str(it.get("kind") or row.get("waits") or "WORK").upper()
     short, long_ = KIND_WORDS.get(kind, ("Open", "Open"))
@@ -110,6 +111,9 @@ def item_sheet_parts(it: dict, row: dict | None = None, today=None) -> dict:
     note = re.sub(r"^(First answer[^:]*:|Morning review[^:]*:|Advice:)\s*", "", str(row.get("note") or ""), flags=re.I).strip()
     note = re.sub(r"\s*\((?:[0-9a-f]{7,40}|commit [0-9a-f]{7,40})\)", "", note)          # a commit's code is for the record, not the sheet
     note = note.split(" | ")[0].strip()                                                     # the newest step comes first; older ones are history
+    if "Proposal:" in note:                                                                  # a review's first answer is a label; the proposal says what happens
+        note = note.split("Proposal:", 1)[1].strip()
+    note = openlist.to_you(note)
     when = re.match(r"^(\d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\s*[:,]\s*", note)
     if when:
         note = note[when.end():]
@@ -120,28 +124,71 @@ def item_sheet_parts(it: dict, row: dict | None = None, today=None) -> dict:
         if m and int(m.group(2)) > 0:
             card["progress"] = [int(m.group(1)), int(m.group(2))]
         cards.append({k: v for k, v in card.items() if v is not None})
-    status = {"YOU": "It waits for your answer.", "WORK": "Ananta is working on it. Nothing is needed from you.",
-              "DATE": (f"It waits until {S._dw(due)}. That day it is due again." if due else "It waits for its date."),
-              "PARKED": "Parked on purpose. Nothing happens until someone opens it again."}.get(kind, "")
+    scen = str(it.get("scenario") or openlist.scenario_of(kind, bool(it.get("built"))))
+    status = {"DECIDE": "Ananta needs your answer. Nothing changes until you give it.",
+              "BUILDING": ("You asked for this one first. Ananta is working on it and you don't need to act." if it.get("first")
+                           else "Ananta is working on this. You don't need to act."),
+              "CHECK": "Ananta says this is done. Look it over, then close it or send it back.",
+              "DATE": (f"Nothing to do until {S._dw(due)}. That day Ananta checks it." if due
+                       else "Waiting for evidence, not for a date. Ananta checks it when the data is in."),
+              "PARKED": "Parked on purpose. Nothing happens until you bring it back."}.get(scen, "")
     return {"label": short, "status": status, "cards": cards}
+
+
+_SOURCE_LABEL = re.compile(r"^From the [^:()]{3,50}(?:\s*\([^)]*\))?:\s*")
+
+
+def _plain_title(line: str) -> tuple[str, str]:
+    """A sheet's title from an item's line, and the title as the line begins (to cut it from the text; empty when the whole line should show):
+    a clause, never a cut-off fragment. A label naming where the item came from ("From the builder's register (R-217): ...") is not a title.
+    The first clause up to a colon or full stop; a long bracket in it is left out of the title (then the whole line shows); else the first
+    nine words (and the whole line shows)."""
+    s = _SOURCE_LABEL.sub("", re.sub(r"\s+", " ", str(line or "")).strip())
+    first = re.split(r"(?<=[a-z0-9)\"'])[.;]\s+|:\s+|\s+[—–]\s+", s, maxsplit=1)[0].strip() or s
+    raw = first
+    if len(first) > 56:
+        short = re.sub(r"\s*\([^)]*\)?", "", first).strip()
+        if short and short != first:
+            first, raw = short, ""
+    if len(first) > 80 or len(first.split()) > 14:
+        first = " ".join(first.split()[:9]).rstrip(",;:(")
+        raw = ""
+    first = first.rstrip(". ")
+    return (first[:1].upper() + first[1:]) if first else "An open item", raw
+
+
+def _norm(x: str) -> str:
+    return re.sub(r"[^a-z0-9 ]+", "", str(x or "").lower()).strip()
 
 
 def _item_sheet(j, it: dict, icon: str, today=None) -> dict:
     from jarvis.service import openlist
-    t, _sub = K.title_sub(it.get("line") or "")
+    line = openlist.to_you(it.get("line") or "")
+    t, raw = _plain_title(line)
+    if _SOURCE_LABEL.match(line):                       # the label stays in the text; the title came from what follows it
+        raw = ""
     num = it.get("num")
     row = _board(j, num) if num and str(num).isdigit() else {}
     parts = item_sheet_parts(it, row, today)
-    adv = str(it.get("advice") or "")
+    adv = openlist.to_you(it.get("advice") or "")
+    latest = next((c.get("value") for c in parts["cards"] if c.get("label") == "Latest"), "")
+    if adv and latest and (_norm(adv) in _norm(latest) or _norm(latest) in _norm(adv)):        # the advice said it twice (14 Nov, flags 97 and 124)
+        adv = ""
+    scen = str(it.get("scenario") or openlist.scenario_of(str(it.get("kind")), bool(it.get("built"))))
     answers = None
     key = None
     if str(it.get("kind")) != "YOU" and num and str(num).isdigit() and it.get("source") == "board":
         key = f"item:{int(num)}"
-        answers = openlist.item_answers(today, after=it.get("due") if str(it.get("kind")) == "DATE" else None)
-    full = " ".join(str(row.get("line") or "").split()) or openlist.plain(row.get("text") or it.get("line") or "", 420)   # the sheet has room for all of it
-    return K.sheet(t, _rest(full, t), advice=(adv[:1].upper() + adv[1:]) if adv else None, icon=icon,
-                   primary={"label": "Ask Ananta about it", "to": K.ask(f"Tell me about {it.get('id')} on the open list."),
-                            "explain": "Opens Ask with this item, so you can ask what it is, where it stands and what happens next."},
+        answers = openlist.item_answers(today, after=it.get("due") if str(it.get("kind")) == "DATE" else None, scenario=scen)
+    full = openlist.to_you(" ".join(str(row.get("line") or "").split()) or openlist.plain(row.get("text") or it.get("line") or "", 420))   # the sheet has room for all of it
+    show = (_rest(full, raw) if raw else full) or full
+    check = scen == "CHECK"
+    return K.sheet(t, show, advice=(adv[:1].upper() + adv[1:]) if adv else None, icon=icon,
+                   primary={"label": "Ask Ananta to show me" if check else "Ask Ananta about it",
+                            "to": K.ask(f"Show me what was done for {it.get('id')} on the open list, and how I can check it." if check
+                                        else f"Tell me about {it.get('id')} on the open list."),
+                            "explain": ("Opens Ask so Ananta can show you what was built and how to check it." if check
+                                        else "Opens Ask with this item, so you can ask what it is, where it stands and what happens next.")},
                    key=key, answers=answers, status=parts["status"], label=f"{parts['label']} · {it.get('id')}", cards=parts["cards"])
 
 
@@ -159,7 +206,7 @@ def _draft_rows(quiet: set) -> list[dict]:
         w = india_views.draft_plain(d)
         out.append(K.row(w["title"], f"Research idea · {S._dw(d.get('day'))}" if d.get("day") else "Research idea", right="Your yes", icon="you", tint="bronze", tag="you",
                          to=K.sheet(w["title"], w["noticed"], advice=None, icon="you",
-                                    primary={"label": "Talk to Ananta about it", "to": K.ask(f"About the research draft '{w['title']}': {w['noticed']} What would the study test, and what happens after my yes or my skip?"),
+                                    primary={"label": "Ask Ananta about it", "to": K.ask(f"About the research draft '{w['title']}': {w['noticed']} What would the study test, and what happens after my yes or my skip?"),
                                              "explain": "Opens Ask with this draft, so you can ask what the study would test before you answer."},
                                     key=key, answers=openlist.answer_rows(key), status="It waits for your yes or skip. Nothing trades from it either way.",
                                     label="Needs you · a research idea")))
@@ -201,7 +248,7 @@ def you_rows(col: dict, market: str = "crypto") -> list[dict]:
         own_place = str(it.get("key") or "").split(":", 1)[0] not in ("ask", "needs")
         out.append(K.row(t, sub, right="Your step" if step else "Your yes", icon="you", tint="bronze", tag="you",
                          to=K.sheet(st, text, advice=(adv[:1].upper() + adv[1:]) if adv else None, icon="you",
-                                    primary={"label": "Talk to Ananta about it", "to": K.ask(f"About {it.get('id')}: {t}. What do I need to do, and what happens after?"),
+                                    primary={"label": "Ask Ananta about it", "to": K.ask(f"About {it.get('id')}: {t}. What do I need to do, and what happens after?"),
                                              "explain": "Opens Ask with this, so you can ask what it means and what happens after each answer."},
                                     key=it.get("key"), answers=ans,
                                     status=("It waits for your answer. This one is answered by telling Ananta; you can put it off here." if own_place else parts["status"]),
@@ -219,11 +266,11 @@ def openlist_page(j, c: dict | None = None, market: str = "crypto") -> dict:
         items = [x for x in col.get(key) or [] if x.get("market") in (market, "both", None)]
         rs = []
         for it in items[:40]:
-            t, sub = K.title_sub(it.get("line") or "")
+            t, sub = K.title_sub(_SOURCE_LABEL.sub("", openlist.to_you(it.get("line") or "")))
             if key == "you":                       # his answers live in the Needs-you rows' sheets
                 rs.append(next((r for r in you if r.get("title") == t), None) or K.row(t, sub, right=str(it.get("id") or ""), icon=right))
                 continue
-            rs.append(K.row(t, sub, right=(S._dm(it["due"]) if it.get("due") else str(it.get("id") or "")), icon=right,
+            rs.append(K.row(t, sub, right=(S._dm(it["due"]) if it.get("due") else "On evidence" if key == "dated" else "First" if it.get("first") else "Built" if it.get("built") else str(it.get("id") or "")), icon=right,
                             to=_item_sheet(j, it, right)))
         return K.rows(title, rs, count=len(items)) if rs else None
     n = col.get("counts") or {}
@@ -926,12 +973,20 @@ def people(j, is_owner: bool = True) -> dict:
     return K.page("People", parts, ask_q="Who can talk to you, and what can each of them do?", second={"label": "Invite someone", "route": "/people"})
 
 
+def _nothing_new(c: dict) -> str:
+    """"Nothing needs you right now" only when nothing does: an item he put off with Not now still counts on the open list, so say so."""
+    held = int(((c.get("list") or {}).get("counts") or {}).get("YOU") or 0)
+    if not held:
+        return "Nothing needs you right now."
+    return f"Nothing new. {held} {'item is' if held == 1 else 'items are'} on hold from your notifications and still on the open list."
+
+
 def notices(j, market: str = "crypto", c: dict | None = None) -> dict:
     c = c or _ctx(j)
     if market != "crypto":
         you = you_rows(c["list"], market)
         n = c["list"].get("counts") or {}
-        return K.page("Notices", [K.rows("For you", you, count=len(you), badge=True) if you else K.line("Nothing needs you right now."),
+        return K.page("Notices", [K.rows("For you", you, count=len(you), badge=True) if you else K.line(_nothing_new(c)),
                                   K.link("Clear all from notifications", {"action": "clear_needs"}) if you else None,
                                   K.counts("The open list", [{"n": n.get("YOU", 0), "label": "Need you", "accent": True}, {"n": n.get("WORK", 0), "label": "To do"},
                                                              {"n": n.get("DATE", 0), "label": "Wait for a date"}, {"n": n.get("PARKED", 0), "label": "Parked"}], to=K.place("openlist"))],
@@ -940,7 +995,7 @@ def notices(j, market: str = "crypto", c: dict | None = None) -> dict:
     new = [K.row(K.clip(n["line"].split(":")[0], 5, 30), K.clip(n["line"].split(": ", 1)[-1] if ": " in n["line"] else "", 8, 44) or None, right="Today", icon="bell", to=n.get("to")) for n in home_notices(j, c)] if market == "crypto" else []
     ev = [r for _d, _o, r in _events(j, c)[:3]]
     n = c["list"].get("counts") or {}
-    parts = [K.rows("For you", you, count=len(you), badge=True) if you else K.line("Nothing needs you right now."),
+    parts = [K.rows("For you", you, count=len(you), badge=True) if you else K.line(_nothing_new(c)),
              K.link("Clear all from notifications", {"action": "clear_needs"}) if you else None,
              K.rows("New", new) if new else None,
              K.rows("Latest", ev, more=K.tab("activity")) if ev else None,

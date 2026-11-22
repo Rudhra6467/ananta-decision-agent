@@ -1,15 +1,32 @@
 // Cockpit › Additional features (plan 3.8; Madhav, Oct 14): simple outside, details on tap.
 // Every feature is one card with a one-line summary in plain words; the full detail opens in place (Expand).
 import { useCallback, useState } from "react";
-import { Text, View } from "react-native";
+import { Platform, Switch, Text, View } from "react-native";
 import { Stack, router, useFocusEffect } from "expo-router";
 import { setScreen } from "../src/context";
 import { Busy, Card, Divider, Dot, ErrorBox, Expand, Line, Screen, T } from "../src/ui";
 import { useData } from "../src/useData";
 import { api } from "../src/api";
 import { showToast } from "../src/blocks";
-import { C } from "../src/theme";
+import { C, glassHeldOff, glassSwitch, setGlass, useThemeVersion } from "../src/theme";
 import { VoiceSettings } from "../src/voicesettings";
+
+// 22 Nov 2026 (the glass look): the same switch as the drop beside the sun on More, with what it does in words
+function GlassCard() {
+  useThemeVersion();
+  const on = glassSwitch();
+  const flip = (v: boolean) => {
+    setGlass(v);
+    if (v && glassHeldOff()) { showToast("Glass look is on, but it waits while Reduce Transparency is on in your phone's settings"); return; }
+    if (Platform.OS === "web" && typeof window !== "undefined") setTimeout(() => window.location.reload(), 120);
+  };
+  return (
+    <Card title="Glass look" sub={"A frosted glass finish on cards and the tab bar; text stays solid. Dark mode: dark titanium. Light mode: liquid sapphire."
+      + (glassHeldOff() ? " Waiting: Reduce Transparency is on in your phone's settings." : "")}
+      right={<Switch value={on} onValueChange={flip} accessibilityLabel="Glass look"
+        trackColor={{ false: C.line2, true: C.gold }} />} />
+  );
+}
 
 export default function More() {
   const { data: d, err, loading, reload } = useData("/v3/cockpit");
@@ -48,6 +65,7 @@ export default function More() {
   return (
     <>{head}
       <Screen loading={loading} onRefresh={reload}>
+        <GlassCard />
         <Card>
           <Expand title="Voice and model" sub="The voice that speaks and the model that answers">
             <VoiceSettings />

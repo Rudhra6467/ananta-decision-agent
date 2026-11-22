@@ -10,6 +10,7 @@ import { getVoiceApi, goTab, tourCommand, useHere, useNarrating, useTour, useVoi
 import * as TTS from "../src/tts";
 import { C, deviceTheme, setTheme, useThemeVersion } from "../src/theme";
 import { ScreenError } from "../src/safe";
+import { watchReduceTransparency } from "../src/glass";
 import { SheetHost, SheetStage } from "../src/place";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMe } from "../src/visitor";
@@ -23,6 +24,7 @@ export default function Root() {
   const path = usePathname();
   const nav = useRootNavigationState();                // wait until the app's navigation is ready, or the move to sign-in is lost
   const checked = useRef(false);
+  useEffect(() => { watchReduceTransparency(); }, []);   // 22 Nov 2026: the glass look waits while Reduce Transparency is on
   useEffect(() => {
     if (!nav?.key || checked.current) return;
     checked.current = true;

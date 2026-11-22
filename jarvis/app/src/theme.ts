@@ -20,6 +20,9 @@ const LIGHT = {
   gold: "#8A5A2B", goldSoft: "#F5ECE2", onGold: "#FFFFFF", twin: "#4A6FD6", glow: "#8A5A2B22",
   bronzeTint: "#F5ECE2", blueTint: "#E8EEFC", blue: "#2952CC", violetTint: "#F0EBFB", violet: "#6B4FC4", line2: "#D5DAE1", overlay: "#10182866",
   bar: "dark" as "dark" | "light",
+  // 22 Nov 2026 (the glass look): screen is what a page paints behind its cards (bg, or nothing so the glass backdrop shows); edge and
+  // edgeTop are a card's outline (the same as line until the glass look turns them into a thin light rim)
+  screen: "#F5F6F8", edge: "#E4E7EC", edgeTop: "#E4E7EC",
 };
 export type Palette = typeof LIGHT;
 
@@ -36,6 +39,7 @@ const BAT: Palette = {
   gold: "#C2925F", goldSoft: "#2E251B", onGold: "#141518", twin: "#8CA6E8", glow: "#C2925F33",
   bronzeTint: "#2E251B", blueTint: "#1F2636", blue: "#8CA6E8", violetTint: "#2A2438", violet: "#B7A0EA", line2: "#2B2E33", overlay: "#000000A6",
   bar: "light",
+  screen: "#141518", edge: "#33363C", edgeTop: "#33363C",
 };
 
 export type ThemeName = "light" | "bat";
@@ -48,8 +52,24 @@ let current: ThemeName = "bat";
 let version = 0;
 const subs = new Set<() => void>();
 
+// 22 Nov 2026 (Madhav, after the preview canvas: "Good to lock. Let's build it into website and app"): the glass look, an on/off switch
+// beside the sun on More and under All settings. Dark: dark titanium (smoky glass on a cool steel glow). Light: liquid sapphire (frosted
+// white on a faint blue glow, kept soft: "blue feels a bit strong in white background"). Only surfaces change: cards turn translucent
+// with a thin light rim, the page shows the glow (src/glass.tsx), and the tab bar is real frosted glass. Text and numbers keep their
+// colours. Off by default; this device remembers; it stays off while the phone's Reduce Transparency is on.
+const GLASS: Record<ThemeName, Partial<Palette>> = {
+  light: { bg: "#F1F4F9", screen: "transparent", card: "rgba(255,255,255,0.62)", card2: "rgba(16,24,40,0.045)", line: "rgba(16,24,40,0.08)",
+           line2: "rgba(16,24,40,0.12)", edge: "rgba(255,255,255,0.8)", edgeTop: "#FFFFFF" },
+  bat: { bg: "#0E0F12", screen: "transparent", card: "rgba(255,255,255,0.075)", card2: "rgba(255,255,255,0.06)", line: "rgba(255,255,255,0.10)",
+         line2: "rgba(255,255,255,0.16)", edge: "rgba(255,255,255,0.13)", edgeTop: "rgba(255,255,255,0.24)" },
+};
+const GLASS_KEY = "ananta_glass";
+let glassWanted = false;                 // the switch
+let reduceTransparency = false;          // the phone's (or browser's) accessibility setting
+const glassNow = () => glassWanted && !reduceTransparency;
+
 function apply(n: ThemeName) {
-  Object.assign(C, PALETTES[n], { shades: [...PALETTES[n].shades] });
+  Object.assign(C, PALETTES[n], { shades: [...PALETTES[n].shades] }, glassNow() ? GLASS[n] : null);
   current = n;
   version += 1;
   subs.forEach((f) => f());
@@ -59,12 +79,32 @@ function apply(n: ThemeName) {
 export const deviceTheme = (): ThemeName | null => {
   try { const s = (SecureStore as any).getItem?.(KEY); return s === "bat" || s === "light" ? s : null; } catch { return null; }
 };
-{ const s = deviceTheme(); if (s) apply(s); }
+{
+  try { glassWanted = (SecureStore as any).getItem?.(GLASS_KEY) === "on"; } catch { /* */ }
+  const s = deviceTheme();
+  apply(s ?? current);
+}
 
 export const themeName = () => current;
 export function setTheme(n: ThemeName, save = true) {
   if (save) SecureStore.setItemAsync(KEY, n).catch(() => {});
   if (n !== current) apply(n);
+}
+
+// the glass look: glassOn() is what is drawn now; glassSwitch() is the switch (it can be on while Reduce Transparency holds it off)
+export const glassOn = () => glassNow();
+export const glassSwitch = () => glassWanted;
+export const glassHeldOff = () => glassWanted && reduceTransparency;
+export function setGlass(on: boolean, save = true) {
+  if (save) SecureStore.setItemAsync(GLASS_KEY, on ? "on" : "off").catch(() => {});
+  if (on === glassWanted) return;
+  glassWanted = on;
+  apply(current);
+}
+export function setReduceTransparency(on: boolean) {
+  if (on === reduceTransparency) return;
+  reduceTransparency = on;
+  apply(current);
 }
 // the root redraws the app when this changes
 export function useThemeVersion() {

@@ -7,7 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, PanResponder, Pressable, Text, View } from "react-native";
 import { soft, tap } from "../../src/haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { C, useThemeVersion } from "../../src/theme";
+import { C, glassOn, useThemeVersion } from "../../src/theme";
+import { GlassBackdrop, GlassBarFill, barBackground, barBorder } from "../../src/glass";
 import { Orb } from "../../src/newui";
 import { Icon } from "../../src/place";
 import { ScreenError } from "../../src/safe";
@@ -152,8 +153,10 @@ function Bar({ state, navigation, position }: any) {
         style={{ width: "100%", maxWidth: 520, paddingHorizontal: 16, transform: [{ translateY: barY }, { scale: barS }] }}>
         <Animated.View ref={barRef as any} {...pan.panHandlers}
           onLayout={(e) => { setW(e.nativeEvent.layout.width / TABS.length); barRef.current?.measureInWindow((x) => { left.current = x; }); }}
-          style={{ height: BAR_H, borderRadius: BAR_H / 2, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, flexDirection: "row", alignItems: "center",
-            shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}>
+          style={{ height: BAR_H, borderRadius: BAR_H / 2, backgroundColor: barBackground(), borderWidth: 1, borderColor: barBorder(), flexDirection: "row", alignItems: "center",
+            shadowColor: "#000", shadowOpacity: glassOn() ? 0.18 : 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}>
+          {/* 22 Nov 2026: with the glass look on, the bar is frosted glass (src/glass.tsx) */}
+          <GlassBarFill radius={BAR_H / 2} />
           {w ? (
             <Animated.View pointerEvents="none" style={{ position: "absolute", top: PILL_INSET - 1, height: BAR_H - 2 * PILL_INSET, width: w - 2 * PILL_INSET + 6, left: PILL_INSET - 3,
               borderRadius: (BAR_H - 2 * PILL_INSET) / 2, opacity: hop, transform: [{ translateX: hx }, { scale: lift }] }}>
@@ -197,14 +200,19 @@ const NO_PAGER_SWIPE = ["more", "ask"];
 
 export default function NewLayout() {
   useThemeVersion();
+  // 22 Nov 2026 (the glass look): the glow sits behind every place and stays still while the pages swipe over it; the places themselves
+  // paint nothing (C.screen is transparent then), so the translucent cards sit on the glow. Off: C.screen is C.bg, as before.
   return (
-    <SwipeTabs tabBarPosition="bottom" initialRouteName="home" tabBar={(p: any) => <Bar {...p} />}
-      screenOptions={({ route }: any) => ({ lazy: true, swipeEnabled: !NO_PAGER_SWIPE.includes(route.name), animationEnabled: true, sceneStyle: { backgroundColor: C.bg } }) as any}>
-      <SwipeTabs.Screen name="home" />
-      <SwipeTabs.Screen name="markets" />
-      <SwipeTabs.Screen name="activity" />
-      <SwipeTabs.Screen name="more" />
-      <SwipeTabs.Screen name="ask" />
-    </SwipeTabs>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <GlassBackdrop />
+      <SwipeTabs tabBarPosition="bottom" initialRouteName="home" tabBar={(p: any) => <Bar {...p} />}
+        screenOptions={({ route }: any) => ({ lazy: true, swipeEnabled: !NO_PAGER_SWIPE.includes(route.name), animationEnabled: true, sceneStyle: { backgroundColor: C.screen } }) as any}>
+        <SwipeTabs.Screen name="home" />
+        <SwipeTabs.Screen name="markets" />
+        <SwipeTabs.Screen name="activity" />
+        <SwipeTabs.Screen name="more" />
+        <SwipeTabs.Screen name="ask" />
+      </SwipeTabs>
+    </View>
   );
 }

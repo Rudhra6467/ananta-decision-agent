@@ -4,7 +4,7 @@
 import { Pressable, Text, View, type ViewStyle } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { AnantaMark, MARK_COLORS } from "./logo";
-import { C } from "./theme";
+import { C, glassOn } from "./theme";
 
 // tokens the palettes do not carry yet (gold is C.accent in Bat, blue in Light: here the brand is gold in both)
 export const G = {
@@ -31,9 +31,12 @@ export const Body = ({ children, dim, style, numberOfLines }: { children: React.
 export const H = ({ children, style }: { children: React.ReactNode; style?: any }) => <Text style={[TY.card, { color: C.text }, style]}>{children}</Text>;
 export const Title = ({ children }: { children: React.ReactNode }) => <Text style={[TY.title, { color: C.text }]}>{children}</Text>;
 
+// 22 Nov 2026: with the glass look on, a card gets glass's thin light rim (these cards have no outline otherwise)
+const rim = () => ({ borderWidth: 1, borderColor: C.edge, borderTopColor: C.edgeTop });
+
 export function NCard({ children, style, onPress, pad = 16 }: { children: React.ReactNode; style?: ViewStyle; onPress?: () => void; pad?: number }) {
   const { flex: _f, flexBasis: _b, minWidth: _m, ...rest } = (style || {}) as any;
-  const inner = <View style={[{ backgroundColor: C.card, borderRadius: 16, padding: pad }, onPress && style?.flex != null ? [rest, { flexGrow: 1 }] : style]}>{children}</View>;
+  const inner = <View style={[{ backgroundColor: C.card, borderRadius: 16, padding: pad }, glassOn() ? rim() : null, onPress && style?.flex != null ? [rest, { flexGrow: 1 }] : style]}>{children}</View>;
   // 1 Nov: a tappable card in a row takes its share of the row on the Pressable, or the row overflows and the card collapses
   const outer: ViewStyle | undefined = style?.flex != null ? { flex: style.flex, flexBasis: style.flexBasis ?? 0, minWidth: 0 } : undefined;
   return onPress ? <Pressable onPress={onPress} accessibilityRole="button" style={outer}>{inner}</Pressable> : inner;
@@ -110,7 +113,7 @@ export function Dot({ color }: { color: string }) {
 
 export function RowLink({ left, right, onPress }: { left: React.ReactNode; right?: React.ReactNode; onPress?: () => void }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={{ backgroundColor: C.card, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 52 }}>
+    <Pressable onPress={onPress} accessibilityRole="button" style={[{ backgroundColor: C.card, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 52 }, glassOn() ? rim() : null]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>{left}</View>
       {right ?? <Chev />}
     </Pressable>

@@ -96,7 +96,9 @@ export const T = {
 };
 const cap = (s: any) => { const t = String(s ?? ""); return t ? t[0].toUpperCase() + t.slice(1) : t; };
 const toneColor = (t?: string | null) => (t === "good" ? C.good : t === "bad" ? C.bad : t === "warn" ? C.warn : undefined);
-export const card = () => ({ backgroundColor: C.card, borderRadius: 20, borderWidth: 1, borderColor: C.line });
+// 22 Nov 2026 (the glass look): a card's outline is C.edge with a brighter top (C.edgeTop), the thin light rim of glass; both equal
+// C.line while the look is off, so nothing changes then
+export const card = () => ({ backgroundColor: C.card, borderRadius: 20, borderWidth: 1, borderColor: C.edge, borderTopColor: C.edgeTop });
 
 const ICONS: Record<string, string> = {
   up: "M12 19V5M6 11l6-6 6 6", down: "M12 5v14M6 13l6 6 6-6", note: "M7 4h7l4 4v12H7zM14 4v4h4M10 13h5M10 16h5",

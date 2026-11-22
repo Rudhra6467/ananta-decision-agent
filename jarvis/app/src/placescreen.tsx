@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, useThemeVersion } from "./theme";
 import { Bell, HideButton, Icon, MarketChip, Parts, Pinned, useNeeds, usePlace } from "./place";
 import { ThemeToggle } from "./themetoggle";
+import { GlassBackdrop, GlassToggle } from "./glass";
+import { showToast } from "./blocks";
 import { reportScroll } from "./once";
 // 11 Nov 2026 (Madhav, 07:51: "there is no need of hide symbol in all the pages right? Only in home tab"): the eye is on Home only.
 
@@ -27,12 +29,12 @@ export function PlaceScreen({ name, title }: { name: string; title: string }) {
   useScrollToTop(ref);
   const count = needs.data?.count ?? 0;
   return (
-    <ScrollView ref={ref} style={{ flex: 1, backgroundColor: C.bg }} onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)} scrollEventThrottle={32}
+    <ScrollView ref={ref} style={{ flex: 1, backgroundColor: C.screen }} onScroll={(e) => reportScroll(e.nativeEvent.contentOffset.y)} scrollEventThrottle={32}
       contentContainerStyle={{ paddingTop: ins.top + 12, paddingHorizontal: 16, paddingBottom: 132, gap: 16, width: "100%", maxWidth: 720, alignSelf: "center" }}
       refreshControl={<RefreshControl refreshing={!!loading && !!data} onRefresh={() => { reload(); needs.reload(); }} tintColor={C.dim} />}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 }}>
         {name === "home" ? <MarketChip /> : <Text accessibilityRole="header" style={{ color: C.text, fontSize: 24, lineHeight: 30, fontWeight: "700", letterSpacing: -0.2 }}>{title}</Text>}
-        <View style={{ flexDirection: "row", alignItems: "center" }}>{name === "home" ? <HideButton /> : null}{name === "more" ? <ThemeToggle /> : null}<Bell count={count} /></View>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>{name === "home" ? <HideButton /> : null}{name === "more" ? <GlassToggle onHeldOff={() => showToast("Glass look is on, but it waits while Reduce Transparency is on in your phone's settings")} /> : null}{name === "more" ? <ThemeToggle /> : null}<Bell count={count} /></View>
       </View>
       {err && !data ? <Problem err={err} /> : null}
       {data && data.ready === false ? <Problem words={data.words} /> : null}
@@ -52,6 +54,7 @@ export function PageScreen({ page, place, onClose }: { page?: any; place?: strin
   const isClose = data?.bar === "close";
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <GlassBackdrop />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: ins.top + 12, paddingHorizontal: 16, paddingBottom: 24, gap: 16, width: "100%", maxWidth: 720, alignSelf: "center" }}
         refreshControl={place ? <RefreshControl refreshing={!!got.loading && !!got.data} onRefresh={got.reload} tintColor={C.dim} /> : undefined}>
         <View style={{ flexDirection: "row", alignItems: "center", minHeight: 44 }}>

@@ -1,0 +1,112 @@
+{
+ "market": "crypto",
+ "day": "2026-11-22",
+ "t": 1795308683,
+ "budget_usd": 0.4,
+ "asked": 9,
+ "right": 0,
+ "wrong": [],
+ "look": [],
+ "ungraded": 9,
+ "cost_usd": 0.0,
+ "cost_answers_usd": 0.0,
+ "cost_grader_usd": 0.0,
+ "stopped_for_budget": false,
+ "not_asked": 0,
+ "rows": [
+  {
+   "id": "account",
+   "name": "the account's figures",
+   "question": "Five things about the 500 dollar book, each with its number: what it is worth now in Canadian dollars; how much is cash and how much is in coins; its return since the start in percent and whether that is up or down; how many trades it has closed and how many of them made money; and which coins it holds right now.",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "dial",
+   "name": "the dial and what turns buying on",
+   "question": "At what price did Bitcoin last close for the dial, is the dial open or closed, and what are the two average levels (50-day and 200-day) it has to close above for buying to be on?",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "rules",
+   "name": "the core rule, no shorts, paper only",
+   "question": "Three short things: when buying turns on, what share of the 500 dollar book goes to Bitcoin and to Ethereum, and is it bought at once or in steps? Can the book sell short or bet on a fall? Do you place real orders on NDAX with my money?",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "brief3",
+   "name": "the briefing",
+   "question": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "dial_why",
+   "name": "why buying is off or on",
+   "question": "Why is buying on or off right now, and exactly what would change it? How far is Bitcoin from that level today?",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "clean",
+   "name": "clean nights",
+   "question": "How many clean nights in a row does the crypto scorecard show so far, and how many are needed?",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "two_weeks",
+   "name": "the last two weeks",
+   "question": "What did the $500 book do in the last two weeks, trade by trade, and what is it worth now?",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "market_now",
+   "name": "the market and the book",
+   "question": "Hey Ananta, how is the crypto market and how is our book doing?",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "mother",
+   "name": "plain words",
+   "question": "Explain to my mother, in two sentences, what it means that buying is on or off.",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  }
+ ],
+ "grader": "haiku",
+ "dial": false,
+ "minutes": 0.0,
+ "line": "Night test: 0 of 9 answers right. 9 could not be marked."
+}

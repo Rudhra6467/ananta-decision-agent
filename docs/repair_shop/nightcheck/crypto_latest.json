@@ -1,105 +1,112 @@
 {
  "market": "crypto",
- "day": "2026-11-21",
- "t": 1795219936,
+ "day": "2026-11-22",
+ "t": 1795308683,
  "budget_usd": 0.4,
- "asked": 6,
- "right": 5,
- "wrong": [
-  {
-   "id": "brief3",
-   "name": "the briefing",
-   "question": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
-   "why": "RUBRIC broken: says 'Two things need your yes' but TRUTH shows 5 things need your yes",
-   "answer": "Evening, sir. Your $500 account is worth C$467.55, all cash, down 6.5%, and it didn't buy or sell anything since last night. The market is shut: the dial is CLOSED because Bitcoin fell about 5% to roughly 58.8 thousand dollars, well under both its averages, and I expect more weakness with only a short bounce. Two things need your yes: flag 200, re-running the agent exam by hand for about US$1.30, and 4 India research drafts."
-  }
- ],
- "look": [
-  {
-   "id": "short_dip",
-   "name": "the short-dip rule",
-   "figures": [
-    "talks about a flag nobody asked for"
-   ]
-  }
- ],
- "ungraded": 0,
- "cost_usd": 0.4256,
- "cost_answers_usd": 0.4236,
- "cost_grader_usd": 0.002,
- "stopped_for_budget": true,
- "not_asked": 3,
+ "asked": 9,
+ "right": 0,
+ "wrong": [],
+ "look": [],
+ "ungraded": 9,
+ "cost_usd": 0.0,
+ "cost_answers_usd": 0.0,
+ "cost_grader_usd": 0.0,
+ "stopped_for_budget": false,
+ "not_asked": 0,
  "rows": [
   {
    "id": "account",
    "name": "the account's figures",
    "question": "Five things about the 500 dollar book, each with its number: what it is worth now in Canadian dollars; how much is cash and how much is in coins; its return since the start in percent and whether that is up or down; how many trades it has closed and how many of them made money; and which coins it holds right now.",
-   "answer": "Evening, sir. The $500 book is worth C$467.55 and is all cash, with no coins. It's down 6.49% from the C$500 start. It has closed 9 trades and only 1 made money, the ETH dip trade, which made about 80 cents. It holds nothing right now because the dial is closed (Bitcoin is under its 50-day exponential or 200-day average). It fails graduation, passing 3 of 10 gates, with 9 round trips against the 50 needed. Want me to walk through the 8 losers?",
-   "cost_usd": 0.14089,
-   "ok": true,
-   "want": "C$467.55; C$467.55 cash, C$0.00 in coins; -6.5%; 9 closed, 1 made money; no coins, all cash",
-   "by": "code",
-   "marks": 5
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
   },
   {
    "id": "dial",
    "name": "the dial and what turns buying on",
    "question": "At what price did Bitcoin last close for the dial, is the dial open or closed, and what are the two average levels (50-day and 200-day) it has to close above for buying to be on?",
-   "answer": "Evening, sir. The dial is closed, so buying is off. Bitcoin's last daily close (Nov 20) was about $58,952, well below both lines it must close above: the 50-day exponential average at about $74,541 and the 200-day average at about $72,589. Bitcoin is roughly 20% under both, and live it's about $58,800, so cash stays the position.",
-   "cost_usd": 0.03712,
-   "ok": true,
-   "want": "58952.0, buying off; a close above the 50-day (74541.0) and the 200-day (72589.0)",
-   "by": "code",
-   "marks": 2
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
   },
   {
    "id": "rules",
    "name": "the core rule, no shorts, paper only",
    "question": "Three short things: when buying turns on, what share of the 500 dollar book goes to Bitcoin and to Ethereum, and is it bought at once or in steps? Can the book sell short or bet on a fall? Do you place real orders on NDAX with my money?",
-   "answer": "Evening, sir. When the dial opens, Bitcoin gets 40% of the book and Ethereum 20%, so 60% in all. It's bought all at once, not in steps. Since 10 Nov the core is all-in again, and when the dial closes it's all sold. The earlier thirds approach failed review 39 and is switched off. The book can't short or bet on a fall: it's spot buying only, and the defence is cash. No, I don't place real orders on NDAX. It's paper only, with no exchange connected, and real orders only come after your live rules are approved. The book is all cash right now, at about 468 Canadian dollars, down 6.5%, because the dial is closed.",
-   "cost_usd": 0.01886,
-   "ok": true,
-   "want": "{'BTC': 40, 'ETH': 20}, all_in; no: it only buys or holds cash; no: paper only",
-   "by": "code",
-   "marks": 3
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
   },
   {
    "id": "brief3",
    "name": "the briefing",
    "question": "Give me my briefing in exactly 3 short sentences: first my $500 account (its value in C$ and anything it bought or sold since last night), then the market, then anything waiting for me.",
-   "answer": "Evening, sir. Your $500 account is worth C$467.55, all cash, down 6.5%, and it didn't buy or sell anything since last night. The market is shut: the dial is CLOSED because Bitcoin fell about 5% to roughly 58.8 thousand dollars, well under both its averages, and I expect more weakness with only a short bounce. Two things need your yes: flag 200, re-running the agent exam by hand for about US$1.30, and 4 India research drafts.",
-   "cost_usd": 0.05625,
-   "ok": false,
-   "why": "RUBRIC broken: says 'Two things need your yes' but TRUTH shows 5 things need your yes",
-   "by": "grader"
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
   },
   {
-   "id": "short_dip",
-   "name": "the short-dip rule",
-   "question": "Is the short-dip rule buying coins for my 500 dollar account right now?",
-   "answer": "Evening, sir. No, the short-dip rule isn't buying for your $500 account right now. The account is all cash, C$467.55, down 6.5% from the C$500 start. The dial is closed because Bitcoin, at about 59 thousand dollars, is under both its 50-day exponential average (about 74.5 thousand) and its 200-day average (about 72.6 thousand). The dip rule can buy while the dial is closed, but only a big tier-A coin that is oversold and still above its own 200-day average, and I'd expect almost nothing to qualify with Bitcoin this far down. Its last buys in your book were SOL, AVAX and ETH in late October, and all three closed by Nov 6. One housekeeping note: I accidentally fired a test flag during this check. Nothing was saved.",
-   "cost_usd": 0.06405,
-   "ok": true,
-   "want": "no: a paper record only, big coins",
-   "by": "code",
-   "marks": 1,
-   "look": [
-    "talks about a flag nobody asked for"
-   ]
+   "id": "dial_why",
+   "name": "why buying is off or on",
+   "question": "Why is buying on or off right now, and exactly what would change it? How far is Bitcoin from that level today?",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
   },
   {
    "id": "clean",
    "name": "clean nights",
    "question": "How many clean nights in a row does the crypto scorecard show so far, and how many are needed?",
-   "answer": "Evening, sir. The scorecard doesn't show a clean-nights count, so I can't give you the number. The night test marked my own answer to this question wrong, and its target reads 10 of 30. I take that to mean 10 clean nights in a row inside a 30-night window, but that's my reading, not something the scorecard states.",
-   "cost_usd": 0.10645,
-   "ok": true,
-   "want": "10 of 30",
-   "by": "code",
-   "marks": 1
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "two_weeks",
+   "name": "the last two weeks",
+   "question": "What did the $500 book do in the last two weeks, trade by trade, and what is it worth now?",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "market_now",
+   "name": "the market and the book",
+   "question": "Hey Ananta, how is the crypto market and how is our book doing?",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
+  },
+  {
+   "id": "mother",
+   "name": "plain words",
+   "question": "Explain to my mother, in two sentences, what it means that buying is on or off.",
+   "answer": "",
+   "cost_usd": 0.0,
+   "ok": null,
+   "by": "none",
+   "why": "no answer: today's Test Lab budget ($3.00) is used up; tests stop here so your own budget is untouched"
   }
  ],
  "grader": "haiku",
- "minutes": 1.1,
- "line": "Night test: 5 of 6 answers right. Wrong: the briefing. Stopped at the night's budget ($0.40) with 3 not asked."
+ "dial": false,
+ "minutes": 0.0,
+ "line": "Night test: 0 of 9 answers right. 9 could not be marked."
 }

@@ -1,4 +1,4 @@
-# India read model (V0) — data through 2026-11-20, built 2026-11-21T07:59:24+00:00
+# India read model (V0) — data through 2026-11-20, built 2026-11-22T07:58:04+00:00
 
 Rules readmodel-v0-2026-10-22. Every number below traces to the file named in its section of readmodel/latest.json; nothing here is typed by hand.
 
@@ -43,7 +43,7 @@ Fri 20 Nov: 5 index decisions recorded, traded BANKNIFTY at D0 (long, exit NEXTO
 - autologin: ok
 - evening: ok
 - evening_zerodha: ok
-- factmap: PROBLEM exit 1: no error line in the log tail (that run ended Sat 21 Nov 00:30)
+- factmap: ok
 - kitefill: ok
 - morning: ok
 - morningview: ok
@@ -53,7 +53,7 @@ Fri 20 Nov: 5 index decisions recorded, traded BANKNIFTY at D0 (long, exit NEXTO
 - postclose: ok
 - preopen: ok
 - recorder_noon: ok
-- replay: PROBLEM stuck: running (pid 53400) with no output for 123 h, since Sun 15 Nov 23:20
+- replay: ok
 - schedulecheck: ok
 - shadowtrader: ok
 - sp1paper: ok
@@ -62,12 +62,12 @@ Fri 20 Nov: 5 index decisions recorded, traded BANKNIFTY at D0 (long, exit NEXTO
 - studies: ok
 - web: ok
 
-Next sign-in: automatic at 20:10 Toronto, 06:40 IST (last automatic sign-in ok Fri 20 Nov 20:10 Toronto); by hand only if it fails, Sun 22 Nov 21:00-22:40 Toronto (07:30-09:10 IST, for the Mon 23 Nov session)
+Next sign-in: automatic at 20:10 Toronto, 06:40 IST (last automatic sign-in ok Sat 21 Nov 20:10 Toronto); by hand only if it fails, Sun 22 Nov 21:00-22:40 Toronto (07:30-09:10 IST, for the Mon 23 Nov session)
 
 ## Research
 
 - studies: {'ready': 53, 'blocked': 11, 'with_results': 40}
-- gate G02: {'state': 'BLOCKED', 'waiting_on': 'D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots); D32 (wait_time, weekly runs)'} counters {'D15': '34 of 30 nightly runs; 22 clean sessions in a row (the gate needs 30 in a row)', 'D16': '28 of 30 snapshots', 'D32': '2026-11-12: knows 18 of 18, unknowns 5 of 7, why 4 of 5, answers and decides 8 of 9, safety 39 of 39, plain words 37 of 39: FAIL; 4 of 7 runs passed'}
+- gate G02: {'state': 'BLOCKED', 'waiting_on': 'D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots); D32 (wait_time, weekly runs)'} counters {'D15': '35 of 30 nightly runs; 23 clean sessions in a row (the gate needs 30 in a row)', 'D16': '29 of 30 snapshots', 'D32': '2026-11-21: knows 17 of 18, unknowns 6 of 7, why 4 of 5, answers and decides 8 of 9, safety 39 of 39, plain words 39 of 39: FAIL; 4 of 8 runs passed'}
 - registry verdicts: {'REJECTED': 511, 'OPPOSITE': 158, 'INCONCLUSIVE': 661, 'CONDITIONAL': 38, 'VALIDATED': 44, 'NOT_SUPPORTED_SEEN': 22, 'SUPPORTED_SEEN': 1, 'NOT_CONFIRMED': 5}
 - exit book (G01): {'BRK/all': 'sma_close_50', 'BRK/above_both': 'hold_60d', 'BRK/mixed': 'sma_close_50', 'BRK/below_both': None, 'PULL/all': None, 'PULL/above_both': None, 'PULL/mixed': 'hold60+low20', 'PULL/below_both': None, 'ANY/all': None, 'ANY/above_both': None, 'ANY/mixed': None, 'ANY/below_both': 'hold60+low20'}
 

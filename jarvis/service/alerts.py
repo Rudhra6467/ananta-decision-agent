@@ -176,6 +176,12 @@ class Alerts:
         kind = "evening" if (now.hour, now.minute) >= (21, 30) else "morning" if now.hour >= 8 else None
         if not kind:
             return None
+        try:                                    # 23 Nov 2026 (Madhav): crypto on hold, one brief a week (Sunday morning)
+            from jarvis.service import crypto_hold
+            if crypto_hold.on() and (now.weekday() != crypto_hold.WEEKLY_DAY or kind != "morning"):
+                return None
+        except ImportError:
+            pass
         if self.db.execute("SELECT 1 FROM briefings WHERE day=? AND kind=?", (day, kind)).fetchone():
             return None
         return kind

@@ -391,11 +391,58 @@ def _ntfy_direct(title: str, body: str) -> str:
     return "failed: no phone topic"
 
 
+CADENCE = Path(__file__).resolve().parents[2] / "docs" / "knowledge" / "india_cadence.json"
+ASK_CODE = ("jarvis/india/ask.py", "jarvis/india/askprompt.py", "jarvis/india/askwords.py", "jarvis/india/answerguide.py",
+            "jarvis/india/livesession.py", "jarvis/india/numcheck.py", "jarvis/india/neveragain.py", "jarvis/india/lookup.py")
+
+
+def cadence() -> dict:
+    try:
+        return json.loads(CADENCE.read_text())
+    except (OSError, ValueError):
+        return {"replay": "nightly"}
+
+
+def _ask_changed_since(t: float) -> bool:
+    """A commit touching the India Ask's code after time t (the last replay)."""
+    import subprocess
+    try:
+        out = subprocess.run(["git", "log", "-1", "--format=%ct", "--", *ASK_CODE], cwd=str(Path(__file__).resolve().parents[2]),
+                             capture_output=True, text=True, timeout=20).stdout.strip()
+        return bool(out) and float(out) > t
+    except Exception:  # noqa: BLE001  cannot tell: run, the safe side
+        return True
+
+
+def due_tonight(today: dt.date | None = None, last_t: float | None = None) -> tuple[bool, str, float]:
+    """23 Nov 2026 (Madhav's cost review): (run?, why, hours). Weekly on the cadence's day, and on any night after the Ask's code changed."""
+    c = cadence()
+    if c.get("replay") != "weekly":
+        return True, "nightly", 24.0
+    today = today or dt.date.today()
+    hrs = float(c.get("replay_hours", 168))
+    if today.weekday() == int(c.get("replay_day", 5)):
+        return True, "the weekly replay night", hrs
+    if last_t is None:
+        try:
+            last_t = (OUT / "latest.json").stat().st_mtime
+        except OSError:
+            last_t = 0.0
+    if _ask_changed_since(last_t):
+        return True, "the India Ask's code changed since the last replay", hrs
+    return False, "weekly: not the replay night and the Ask's code has not changed", 0.0
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "run"
     if cmd == "seed":
         print("seeded", seed())
     else:
+        go, why, week_hrs = due_tonight()
+        if not go and "--force" not in sys.argv:
+            print(f"replay skipped: {why}")
+            sys.exit(0)
         hrs = float(sys.argv[sys.argv.index("--hours") + 1]) if "--hours" in sys.argv else 24.0
+        hrs = max(hrs, week_hrs)
         _cap_the_run()
         print(json.dumps(run(hrs, use_bank="--no-bank" not in sys.argv, notify=_ntfy), indent=1))

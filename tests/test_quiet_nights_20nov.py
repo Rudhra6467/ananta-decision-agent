@@ -95,6 +95,8 @@ def test_start_night_test_does_not_start_the_paid_run_on_a_quiet_night(world, mo
 
     j, db, t0, out = world
     monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    from jarvis.service import crypto_hold                 # 23 Nov: this test is about quiet nights, not the crypto hold
+    monkeypatch.setattr(crypto_hold, "settings", lambda: {"on": False})
     started = []
     monkeypatch.setattr("subprocess.Popen", lambda *a, **k: started.append(a))
     assert U.start_night_test(j) is False and not started

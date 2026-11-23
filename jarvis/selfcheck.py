@@ -124,7 +124,11 @@ def _answers(root: Path | None = None, today=None) -> list[dict]:
         s = r.get("summary") or {}
         night = s.get("night")
         age = _replay_age_days(night, today)
-        old = age is not None and age > 2          # the 24-hour replay of night N lands on N+1 or N+2
+        try:                                       # 23 Nov 2026 (Madhav's cost review): the replay may run weekly; then 8 days is not late
+            weekly = json.loads((base / "docs" / "knowledge" / "india_cadence.json").read_text()).get("replay") == "weekly"
+        except (OSError, ValueError):
+            weekly = False
+        old = age is not None and age > (8 if weekly else 2)   # the 24-hour replay of night N lands on N+1 or N+2
         if old:                                    # 18 Nov: a replay stuck since 15 Nov was still called "last night's"
             out.append({"market": "india", "severity": "medium", "source": "nightly replay",
                         "what": (f"the nightly replay has not finished since the night of {night} ({age} days ago); "

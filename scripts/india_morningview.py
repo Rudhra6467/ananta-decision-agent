@@ -19,6 +19,7 @@ import os
 import re
 import sys
 import urllib.request
+from pathlib import Path
 
 INDIA = "http://127.0.0.1:8110"
 MODEL = os.getenv("MORNING_MODEL", "claude-sonnet-5-5")
@@ -263,6 +264,14 @@ def opening() -> int:
             facts["second_look"] = {"changed": look.get("changed"), "points": look.get("points")}
     except Exception as exc:  # noqa: BLE001
         print(f"opening update: second look skipped ({exc})")
+    if _opening_by_code():
+        # 23 Nov 2026 (Madhav's cost review, "why are we not depending on the code to extract the answers"): the 10:20 update is numbers the
+        # code already has, so the code writes it, every day, with no model call.
+        words = opening_from_facts(facts, by_code=True)
+        _post(INDIA + "/v3/morning/words", {"session": f["session"], "words": "", "opening": words})
+        _push(f"Opening · {f['session'][5:]}", words[:220])
+        print(f"opening update {f['session']} (by code): {words[:120]}")
+        return 0
     try:
         words = claude(OPENING.format(facts=json.dumps(facts, default=str)[:6000]), MODEL, 1500)
     except Exception as exc:  # noqa: BLE001
@@ -292,13 +301,29 @@ def opening() -> int:
     return 0
 
 
-def opening_from_facts(facts: dict, why: str = "") -> str:
+def _opening_by_code() -> bool:
+    try:
+        p = Path(__file__).resolve().parents[1] / "docs" / "knowledge" / "india_cadence.json"
+        return json.loads(p.read_text()).get("opening") == "code"
+    except (OSError, ValueError):
+        return False
+
+
+def opening_from_facts(facts: dict, why: str = "", by_code: bool = False) -> str:
     """The 10:20 update without the model: today's clock, the index now and the options line's own words, as the live block gives them."""
     rows = facts.get("opening_decisions")
     rows = rows if isinstance(rows, dict) else {}
     parts = [str(rows.get(k)).strip() for k in ("clock", "index_now", "options_today", "managed_today") if rows.get(k)]
+    look = facts.get("second_look") or {}
+    pts = look.get("points") if isinstance(look.get("points"), list) else []
+    for p in pts[:3]:
+        w = p if isinstance(p, str) else (p.get("words") or p.get("what")) if isinstance(p, dict) else None
+        if w:
+            parts.append(str(w).strip())
     if not parts:
         parts = ["today's live block could not be read, so I have no opening prices to give"]
+    if by_code:
+        return "Sir, the open: " + " ".join(p.rstrip(".") + "." for p in parts)
     head = "Sir, the model that writes this update could not run" + (" (Claude's API credit has run out)" if "400" in why or "credit" in why.lower() else "")
     return head + ", so here are the facts as they stand: " + " ".join(p.rstrip(".") + "." for p in parts)
 

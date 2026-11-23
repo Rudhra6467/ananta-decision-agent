@@ -823,6 +823,8 @@ def run_daily(j) -> dict:
         if _step(out, "weekly_review", lambda: learning.weekly_review(j).get("file")) and out.get("weekly_review"):
             _step(out, "sunday_review_ticked", lambda: due_list.mark_done_through(j, "SUNDAY-REVIEW", str(out["weekly_review"])))
     _step(out, "due_list", lambda: {k: v for k, v in due_list.nightly(j).items() if k != "rows"})   # the lock's due list: overdue items become requests
+    from jarvis.service import crypto_hold                                  # 23 Nov 2026 (Madhav): on hold, one note when the dial opens
+    _step(out, "crypto_hold", lambda: crypto_hold.turnover(j, _phone_push()))
     try:  # Oct 15 (gate ops_reconstructable): every evidence trade's entry and exit re-checked on the day's candles
         from jarvis.service import learning
 
@@ -920,6 +922,10 @@ def start_night_test(j) -> bool:
         return False
     j.db.execute("INSERT OR REPLACE INTO engine_state VALUES (?,?)", (key, str(int(j.now()))))
     j.db.commit()
+    from jarvis.service import crypto_hold            # 23 Nov 2026 (Madhav): crypto on hold, the paid night test runs on Sundays only
+    from datetime import datetime, timezone
+    if not crypto_hold.weekly_day(datetime.fromtimestamp(j.now(), timezone.utc)):
+        return False
     from jarvis.service import quietnight             # 20 Nov 2026 (Madhav): on a quiet night the paid test is not run
     why = quietnight.quiet_night(j)
     if why:

@@ -878,6 +878,7 @@
     "jarvis/service/exam.py",
     "jarvis/service/nightcheck.py",
     "jarvis/service/quietnight.py",
+    "jarvis/service/crypto_hold.py",
     "jarvis/service/openlist.py",
     "scripts/open_list.py",
     "scripts/commit_records.py",

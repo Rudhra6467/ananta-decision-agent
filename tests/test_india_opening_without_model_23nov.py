@@ -26,6 +26,7 @@ def test_the_opening_update_goes_out_with_the_facts_when_the_model_fails(monkeyp
 
     sent, pushed = [], []
     monkeypatch.setattr(mv, "_get", get)
+    monkeypatch.setattr(mv, "_opening_by_code", lambda: False)
     monkeypatch.setattr(mv, "_ist_today", lambda: "2026-11-23")
     monkeypatch.setattr(mv, "claude", broken)
     monkeypatch.setattr(mv, "_post", lambda url, body, *a, **k: sent.append(body) or {})
@@ -41,3 +42,27 @@ def test_no_live_block_says_so():
     mv = _load()
     w = mv.opening_from_facts({"opening_decisions": [{"note": "x"}]}, "timeout")
     assert "could not be read" in w and "credit" not in w
+
+
+def test_by_code_the_opening_update_makes_no_model_call(monkeypatch):
+    """23 Nov 2026 (Madhav's cost review): the 10:20 update is written by code, every day."""
+    mv = _load()
+    live = {"clock": {"words": "Monday 23 Nov, 10:20 in India"}, "index_now": {"words": "Nifty 25,900 (+0.4%)"},
+            "options_today": {"words": "8 decisions, no trade", "taken": []}}
+    monkeypatch.setattr(mv, "_get", lambda path: {"session": "2026-11-23", "lines": {}} if path == "/v3/morning/facts" else live)
+    monkeypatch.setattr(mv, "_ist_today", lambda: "2026-11-23")
+    monkeypatch.setattr(mv, "_opening_by_code", lambda: True)
+
+    def never(*a, **k):
+        raise AssertionError("no model call")
+    sent = []
+    monkeypatch.setattr(mv, "claude", never)
+    monkeypatch.setattr(mv, "_post", lambda url, body, *a, **k: sent.append(body) or {})
+    monkeypatch.setattr(mv, "_push", lambda t, b: None)
+    assert mv.opening() == 0
+    w = sent[-1]["opening"]
+    assert w.startswith("Sir, the open:") and "Nifty 25,900" in w and "could not run" not in w
+
+
+def test_the_cadence_file_asks_for_code():
+    assert _load()._opening_by_code()

@@ -1645,7 +1645,7 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
         return ((waiting_flow(t, wait) if (commands and owner_here) else None) or garbled_flow(t) or (nav_flow(t) if commands else None)
                 or (comment_flow(t, thread, token, post=flag_post, get=flag_get) if (commands and owner_here) else None)
                 or (fix_flow(t, thread, token, context, post=flag_post, get=flag_get) if (commands and owner_here) else None)
-                or fragment_flow(t) or readiness_flow(t) or morning_flow(t, who) or _not_a_repeat(technicals.technicals_flow(t), thread) or marketcontext.market_context_flow(t)
+                or fragment_flow(t) or health_flow(t) or readiness_flow(t) or morning_flow(t, who) or _not_a_repeat(technicals.technicals_flow(t), thread) or marketcontext.market_context_flow(t)
                 or (allocation_flow(t, who) if (commands and owner_here) else None) or (_and_question(draft_flow(t, who), t) if commands else None)
                 or (downtime_flow(t, who) if (commands and owner_here) else None)
                 or portfolio_flow(t, who) or mover_flow(t) or book_flow(t) or decide_flow(t))
@@ -2495,6 +2495,45 @@ def portfolio_flow(text: str, who: str) -> dict | None:
                ["account ratings (paper/allocation_view.json), rebuilt every few minutes"], {"show": ["home.value"]})
     r["breakdown"] = brk
     return r
+
+
+HEALTH_Q = re.compile(r"\b(?:is )?(?:everything|all|every job|it all) (?:running|working|up)\b|\b(?:anything|something|what(?:'s| is)) (?:down|broken|failing)\b"
+                      r"|\bsystems? (?:ok|okay|up|running|status)\b|\bhealth ?check\b", re.I)
+
+
+def health_flow(text: str) -> dict | None:
+    """23 Nov 2026 (Madhav's cost review, "why are we not depending on the code to extract the answers"): "Is everything running?" was asked 5
+    times in 30 days and went to the model 4 times, for an answer that is only the job list. It is answered in code: every India job's last
+    run from the read model (india/morning.py), the self-scan, and the next Kite sign-in."""
+    if not HEALTH_Q.search(text or "") or len(text) > 220:
+        return None
+    try:
+        rm = views.readmodel()
+        j = rm.get("jobs") or {}
+        jobs = j.get("jobs") or []
+        bad = [x for x in jobs if not x.get("ok")]
+        try:
+            from jarvis.india import selfparts
+            scan = [s for s in selfparts.scan() if s.get("market") in ("india", "both")]
+        except Exception:  # noqa: BLE001
+            scan = []
+    except Exception:  # noqa: BLE001  the model answers with the same facts
+        return None
+    if not jobs:
+        return None
+    try:
+        b = dt.datetime.fromisoformat(str(rm.get("built_at")).replace("Z", "+00:00")).astimezone(dt.timezone(dt.timedelta(hours=5, minutes=30)))
+        when = b.strftime("%a %-d %b, %H:%M IST")
+    except (TypeError, ValueError):
+        when = "the last read-model build"
+    head = (f"Sir, {len(jobs) - len(bad)} of {len(jobs)} India jobs ran cleanly at their last run (as of {when})."
+            if bad else f"Sir, yes: all {len(jobs)} India jobs ran cleanly at their last run (as of {when}).")
+    lines = [f"{x['label']}: {'; '.join(x.get('problems') or ['failed'])}" for x in bad[:5]]
+    lines += [s.get("what", "") for s in scan[:3] if s.get("what")]
+    body = (" Off: " + " | ".join(lines) + "." if lines else " Nothing is off in my own scan either.")
+    sign = f" Kite sign-in: {j['signin']}." if j.get("signin") else ""
+    return _reply((head + body + sign)[:1900], ["What does the morning review say?", "What is waiting for me?"],
+                  ["readmodel jobs (india/morning.py)", "self-scan (jarvis/india/selfparts.py)"], {"route": "india", "show": []})
 
 
 def readiness_flow(text: str) -> dict | None:

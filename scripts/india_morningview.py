@@ -263,7 +263,17 @@ def opening() -> int:
             facts["second_look"] = {"changed": look.get("changed"), "points": look.get("points")}
     except Exception as exc:  # noqa: BLE001
         print(f"opening update: second look skipped ({exc})")
-    words = claude(OPENING.format(facts=json.dumps(facts, default=str)[:6000]), MODEL, 1500)
+    try:
+        words = claude(OPENING.format(facts=json.dumps(facts, default=str)[:6000]), MODEL, 1500)
+    except Exception as exc:  # noqa: BLE001
+        # 23 Nov 2026 (India morning review): with the Claude credit empty the 10:20 update crashed (HTTP 400) and no update was written
+        # for Monday's session. The facts still go out, in their own words, and the note says the model could not write it.
+        words = opening_from_facts(facts, str(exc))
+        print(f"opening update: the model could not run ({str(exc)[:80]}); sent the facts only")
+        _post(INDIA + "/v3/morning/words", {"session": f["session"], "words": "", "opening": words})
+        _push(f"Opening · {f['session'][5:]}", words[:220])
+        print(f"opening update {f['session']}: {words[:120]}")
+        return 0
     # 2 Nov 2026: the same check the Ask runs - nothing goes out that contradicts today's clock, prices or the options line's ledger
     try:
         from jarvis.india import livesession as _ls
@@ -280,6 +290,17 @@ def opening() -> int:
     _push(f"Opening · {f['session'][5:]}", words[:220])
     print(f"opening update {f['session']}: {words[:120]}")
     return 0
+
+
+def opening_from_facts(facts: dict, why: str = "") -> str:
+    """The 10:20 update without the model: today's clock, the index now and the options line's own words, as the live block gives them."""
+    rows = facts.get("opening_decisions")
+    rows = rows if isinstance(rows, dict) else {}
+    parts = [str(rows.get(k)).strip() for k in ("clock", "index_now", "options_today", "managed_today") if rows.get(k)]
+    if not parts:
+        parts = ["today's live block could not be read, so I have no opening prices to give"]
+    head = "Sir, the model that writes this update could not run" + (" (Claude's API credit has run out)" if "400" in why or "credit" in why.lower() else "")
+    return head + ", so here are the facts as they stand: " + " ".join(p.rstrip(".") + "." for p in parts)
 
 
 def _opening_rows(session: str) -> list[dict] | dict:

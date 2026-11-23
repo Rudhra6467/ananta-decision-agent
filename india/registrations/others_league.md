@@ -6,7 +6,7 @@ picks over the same horizon. Coverage counts, among the best 20 rises per horizo
 a family fired but did not hold (PASSED), or nothing fired (NOT_COVERED). INFORMED hit rates score each participant's index-futures stance and that
 day's change on the next session's Nifty move; Ananta's daily call is scored the same way. Ratings are decision quality, not rupees.
 
-## League, trailing 20 review sessions (through 2026-11-21; 20 sessions)
+## League, trailing 20 review sessions (through 2026-11-22; 20 sessions)
 
 | H | sessions | HINDSIGHT | MARKET | RANDOM (median) | ANANTA | Ananta pct vs random | TAKEN | CONTROL | PASSED | NOT_COVERED | had a rule | took |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -18,7 +18,6 @@ day's change on the next session's Nifty move; Ananta's daily call is scored the
 
 | date | status | H1 hindsight / market / Ananta | H5 | H20 | NOT_COVERED keys | drafts |
 |---|---|---|---|---|---|---|
-| 2026-10-23 | ok | +0.73% / -2.63% / -2.86% |  |  | 2 | 0 |
 | 2026-10-24 | no session (weekend) | | | | | |
 | 2026-10-25 | no session (weekend) | | | | | |
 | 2026-10-26 | ok | +6.41% / +0.91% / +1.21% | +3.44% / -5.02% /  |  | 6 | 0 |
@@ -48,3 +47,4 @@ day's change on the next session's Nifty move; Ananta's daily call is scored the
 | 2026-11-19 | ok | +4.86% / +0.72% / +0.62% | +6.71% / -1.26% / -1.55% | +23.10% / +6.64% / -1.81% | 5 | 1 |
 | 2026-11-20 | ok | +3.53% / -0.21% / -0.64% | +8.17% / -0.73% / -1.90% | +23.69% / +7.57% / -0.36% | 4 | 0 |
 | 2026-11-21 | no session (weekend) | | | | | |
+| 2026-11-22 | no session (weekend) | | | | | |

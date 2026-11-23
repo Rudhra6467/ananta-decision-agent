@@ -65,6 +65,22 @@ def _done(days, start: dt.date, through: dt.date | None) -> int:
     return sum(1 for d in days if start <= d <= through)
 
 
+def practice_words(st: dict) -> str:
+    """23 Nov 2026 (the audit re-check): this line said "every close so far has been a stop-loss; no trade has reached its hold yet" for
+    good, written once on 29 Oct, while the book had 33 closes by time or target. It now reads the book (india/bookstats.py split)."""
+    try:
+        from india import bookstats
+        s = bookstats.split(bookstats.trade_rows(st))
+        c, o, k = s["total"]["closed"], s["total"]["open"], s["closes"]
+    except Exception as exc:  # noqa: BLE001
+        return f"the book's closes could not be read ({type(exc).__name__})"
+    if not c["n"]:
+        return "no trade has closed yet"
+    avg = f"{100 * c['avg']:+.1f}%" if c["avg"] is not None else "n/a"
+    return (f"{c['n']} closed so far ({k['stops']} by stop-loss, {k['time_or_target']} by time or target): {c['winners']} won, average {avg}; "
+            f"{o['n']} still open, {o['winners']} of them up")
+
+
 def build() -> dict:
     D = paths.data_dir()
     days = _sessions()
@@ -101,7 +117,7 @@ def build() -> dict:
     if first:
         f0 = dt.date.fromisoformat(first)
         add("the practice book's first 20-day holds", "the first trades reach their 20-session hold, so the book's win rate starts to mean something", f0, 21,
-            _done(days, f0, through), "every close so far has been a stop-loss; no trade has reached its hold yet", judge="win rate and expectancy per family at 20 sessions")
+            _done(days, f0, through), practice_words(st), judge="win rate and expectancy per family at 20 sessions")
 
     # 3. RX1 (avoid / exit stocks falling 2%+ under the 200-day)
     rx = _load(D / "paper" / "rx1_trial.json", {}) or {}

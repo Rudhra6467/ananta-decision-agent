@@ -2196,6 +2196,12 @@ CLAUDE_OUT_BUDGET = ("I can't answer that right now: today's Claude budget is us
                      "model. Ask me again after midnight, or raise the budget under More › Voice and model and ask again.")
 CLAUDE_OUT_GUEST = ("I can't answer that right now: your Claude allowance for today is used up until midnight Toronto time. Ask me "
                     "again after midnight.")
+# 23 Nov 2026 (morning review): when the Anthropic credit has run out, "ask me again in a few minutes" was untrue (it does not come
+# back by itself). The owner is told where it is topped up; a visitor is only told to ask later.
+CLAUDE_OUT_CREDIT = ("I can't answer that right now: Claude's API credit has run out, and I have no backup model. It is topped up in "
+                     "the Anthropic Console under Plans & Billing; ask me again after that.")
+CLAUDE_OUT_LATER = ("I can't answer that right now: the main model isn't available, and I have no backup model. Please ask me again "
+                    "later.")
 
 
 NO_BACKUP = json.dumps({"kind": "answer", "answer": "", "follow_ups": []})   # what stands in for an answer when no model is asked
@@ -2216,9 +2222,11 @@ def claude_is_out(reply: dict, planned: str, used: str, note: str = "", guest: b
     if not fell_back:
         return False
     budget = "budget" in str(note or "").lower()
+    credit = "no anthropic credit left" in str(note or "").lower()
     reply["backup_withheld"] = reply.get("answer") or None          # kept for the record; with no model asked there is nothing in it
     reply["backup_withheld_why"] = "no backup model: " + ("the day's Claude budget is used up" if budget else "the main model was not available")
-    reply["answer"] = ((CLAUDE_OUT_GUEST if budget and guest else CLAUDE_OUT_BUDGET if budget else CLAUDE_OUT)
+    reply["answer"] = ((CLAUDE_OUT_GUEST if budget and guest else CLAUDE_OUT_BUDGET if budget
+                        else CLAUDE_OUT_LATER if credit and guest else CLAUDE_OUT_CREDIT if credit else CLAUDE_OUT)
                        # 13 Nov (N1, N2): what the main model did before it failed stands, and is said
                        + (f" Before it failed, the main model {', '.join(before)}; that stands, so there is no need to ask for it again."
                           if before else " Nothing was saved or done."))

@@ -1866,13 +1866,18 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             who_note += ("\n\n[The voice print says this speaker is NOT Madhav and no handover is active: do not call them sir; answer the question "
                          "neutrally and just as plainly. Approvals, flags and changes stay Madhav's. Do not mention the voice print or who is "
                          "speaking unless they ask or they ask for something only Madhav can give.]")
-        user = (f"QUESTION: {text_q}{length}{who_note}\n\nFACTS (today_live is today; the rest is the nightly read model, full data through {f.get('data_through')}):\n{json.dumps(f, default=str)}\n\n"
+        fp = f                     # 23 Nov 2026 (Madhav's cost review): the four big sections go to the model only when the question is about them
+        try:
+            fp = lean_facts(f, " ".join([text_q] + [str(m.get("content") or "")[:400] for m in (hist or [])[-4:] if isinstance(m, dict) and m.get("role") == "user"]))
+        except Exception:  # noqa: BLE001  never lose an answer over the trim: the whole page goes
+            fp = f
+        user = (f"QUESTION: {text_q}{length}{who_note}\n\nFACTS (today_live is today; the rest is the nightly read model, full data through {f.get('data_through')}):\n{json.dumps(fp, default=str)}\n\n"
                 "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
         # 27 Oct (voice latency): the same facts, cached. The big block (identical turn after turn) becomes a cached system part; the per-turn
         # extras (who is talking, reconstruction detail) stay in the user turn with the question
         per_turn = ("today_live", "talking_to", "lookup", "answer_guide", "waiting_for_you", "open_list", "knowledge_map", "trader_desk", "about_ananta", "ananta_brief")
         facts_text = (f"FACTS (the nightly read model, full data through {f.get('data_through')}; today_live, in the user turn, is today). This is the FACTS block your rules refer to; this turn's few "
-                      f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in f.items() if k not in per_turn}, default=str)}")
+                      f"extra facts are in the user turn.\n{json.dumps({k: v for k, v in fp.items() if k not in per_turn}, default=str)}")
         user_c = (f"QUESTION: {text_q}{length}{who_note}\n\nEXTRA FACTS FOR THIS TURN (the rest of the FACTS block is in the system part above):\n"
                   f"{json.dumps({k: f[k] for k in per_turn if k in f}, default=str)}\n\n"
                   "Reply with the JSON object only: begin with { and end with }, no markdown, no text outside it.")
@@ -2499,6 +2504,26 @@ def portfolio_flow(text: str, who: str) -> dict | None:
 
 HEALTH_Q = re.compile(r"\b(?:is )?(?:everything|all|every job|it all) (?:running|working|up)\b|\b(?:anything|something|what(?:'s| is)) (?:down|broken|failing)\b"
                       r"|\bsystems? (?:ok|okay|up|running|status)\b|\bhealth ?check\b", re.I)
+
+
+LEAN_TOPICS = {
+    "teacher_libraries": r"teacher|library|libraries|lesson|card|trader'?s? (?:rule|idea|book)|minervini|o'?neil|weinstein|darvas|book (?:he|she|they) wrote|tested idea|studied",
+    "technicals": r"rsi|macd|moving average|\d+[- ]day|average|support|resistance|indicator|technical|chart|bollinger|stochastic|breakout|candle|pattern|volume|momentum|overbought|oversold|trend",
+    "account_allocation": r"portfolio|holding|my stocks?|my shares|account|allocation|allocat|rating|rated|grade|trim|cash|invest|my money|father|dad|jio|tata|reliance|sell|buy|weight|worth|value|p&l|profit|loss",
+    "reference_traders_league": r"reference|other traders|traders|league|percentile|random|copy|who (?:else|beat)|compare|benchmark",
+}
+
+
+def lean_facts(f: dict, text: str) -> dict:
+    """23 Nov 2026 (Madhav's cost review: "why are we not depending on the code"): the four biggest sections of the fact page (about half of it:
+    the teachers' library, the technicals, the account ratings, the reference traders) go to the model only when the question or the last
+    turns are about them; otherwise one line says each is there and how to get it. Every other section always goes."""
+    t = (text or "").lower()
+    out = dict(f)
+    for k, pat in LEAN_TOPICS.items():
+        if k in out and not re.search(pat, t):
+            out[k] = f"(left out of this turn to save cost: {k.replace('_', ' ')}. If the question truly needs it, answer with what the other facts hold and say plainly which part was not loaded.)"
+    return out
 
 
 def health_flow(text: str) -> dict | None:

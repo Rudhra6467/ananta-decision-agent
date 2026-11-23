@@ -1,0 +1,562 @@
+{
+ "summary": {
+  "night": "2026-11-22",
+  "hours": 24.0,
+  "today_turns": 0,
+  "today_failed": 0,
+  "bank_checked": 4,
+  "bank_failed": 4,
+  "bank_open": 4,
+  "bank_fixed": 28,
+  "never_again_checked": 39,
+  "never_again_failed": 5,
+  "words": "Nightly check 2026-11-22: 0 of 0 of today's answers passed; the regression bank: 0 of 4 passed (28 fixed for good, 4 still open); the never-again cases of 1-2 Nov: 34 of 39 passed. The India exam (weekly, last run 2026-11-21): knows 17 of 18, unknowns 6 of 7, why 4 of 5, answers and decides 8 of 9, safety 39 of 39, plain words 39 of 39: FAIL.",
+  "exam": {
+   "day": "2026-11-21",
+   "pass": false,
+   "words": "The India exam (weekly, last run 2026-11-21): knows 17 of 18, unknowns 6 of 7, why 4 of 5, answers and decides 8 of 9, safety 39 of 39, plain words 39 of 39: FAIL."
+  },
+  "new_failures": 5
+ },
+ "failures": [
+  {
+   "source": "bank",
+   "text": "How does an idea get from a draft all the way to paper trading with real allocated capital?",
+   "answer": "Sir, an idea climbs six steps, each with a bar fixed before any data. A repeated situation on the nightly card becomes a draft, and your yes registers it. It is then tested on 2000-2023 against the strict pass mark, and survivors run as a paper book on live sessions for 20 recorded sessions. Only if it beats the random picks and the average stock on 10 separate sessions after costs, passes the check that no future data leaked in, and you say yes again is it admitted, and only then may the allocated capital use it (still paper; the final real-money gate is separate). Today no rule has been admitted yet, and the stock rules are still in the live paper stage. One thing that isn't right, sir: 2 options trades scored this week at an entry more than 0.1% from the decision's own (the widest: BANKNIFTY on 2026-11-17, decided at 61,559.95, scored at 61,741.05, 181 points apart); and on the crypto side, 39 NDAX coins cost more a side than the paper books charge (measured by the worker, 13 days): SAND 31.445% against 1.0%, VIRTUAL 7.253% against 0.6%, A 7.472% against 1.0%; the books against their random twins pay the same, so comparisons hold, but small coins' own results are flattered. Ask me what's wrong for the details.",
+   "problems": [
+    {
+     "code": "TOO_LONG",
+     "why": "A simple process question gets about seven dense sentences, including a long unrelated tangent on options scoring and crypto fees with many figures."
+    },
+    {
+     "code": "JARGON",
+     "why": "Phrases like 'random twins', 'scored at an entry', 'the worker', 'a side' and 'NDAX coins' are unexplained, and the six steps are never laid out clearly for a beginner."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "bank",
+   "text": "Yeah Ananta, open it. But in the meanwhile, I have already done an exercise there, like only one exercise. But like couldn't you remind, like remember my voice and say who you are talking to. Last time you asked me, like when you are not talking to me, you asked if you are talking to a grader, outside grader or vamsi. That's why I was asking, just inquiring about this question.",
+   "answer": "Hello, grader. I'm Ananta, Madhav's paper-trading assistant for the Indian market. Ask me anything about the market, the practice books or my tests; anything that needs a yes stays with Madhav.",
+   "problems": [
+    {
+     "code": "WRONG_PERSON",
+     "why": "The message is from Madhav, who is asking why Ananta asks who it is talking to, but Ananta greets him as 'grader' and treats him as a stranger."
+    },
+    {
+     "code": "MISREAD",
+     "why": "It never answers his question about whether it can remember his voice and say who it is talking to, and it gives a generic introduction instead."
+    },
+    {
+     "code": "PART_MISSED",
+     "why": "He also said 'open it' and mentioned he had already done one exercise, and the answer acknowledges neither."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "bank",
+   "text": "Yeah, okay Ananta. I just wanted to ask you like, you know, how about like, you know, you're managing my portfolio, right? From the past few days, how do you rate my portfolio and like, how do you rate the sessions you did and is there anything more you want to do about it? I'm not sure if you're a luxury portfolio, but I'll be right back.",
+   "answer": "Sir, the one change I would make first: trim Jio Financial (about Rs 9,400). Why: Middling (51/100) but 23% of your stocks, -17% on what you paid: more than a middling stock should be. Trim it toward 15%. Overall: 14 stocks worth Rs 115,888, +16.3% on what you paid; 6 changes suggested in all (details below). Paper only: nothing is sold until you say so. From the Zerodha snapshot of 2026-11-23.",
+   "problems": [
+    {
+     "code": "PART_MISSED",
+     "why": "He asked how Ananta rates the sessions it ran over the past few days, and the answer never mentions the sessions or rates them."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "bank",
+   "text": "How Is so for your portfolio analysis, \nModifications suggestions, and those area work going on ?",
+   "answer": "Sir, the one change I would make first: trim Jio Financial (about Rs 9,400). Why: Middling (51/100) but 23% of your stocks, -17% on what you paid: more than a middling stock should be. Trim it toward 15%. Overall: 14 stocks worth Rs 115,888, +16.3% on what you paid; 6 changes suggested in all (details below). Paper only: nothing is sold until you say so. From the Zerodha snapshot of 2026-11-23.",
+   "problems": [
+    {
+     "code": "PART_MISSED",
+     "why": "He also asked how the other areas of work going on are doing, such as the data gaps being fixed; the answer covers only the portfolio analysis and the suggested changes and never mentions that work."
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "never_again",
+   "text": "As the Indian market is going to start in 30-40 minutes, I want to know what is that you are ready for.",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 08:48 in India (Sunday 1 Nov, 10:18 pm in Toronto): today's NSE session has not started; it opens at 09:15 IST (pre-open from 09:00) (27 min from now). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /\\b(managed book|plan)\\b/"
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "never_again",
+   "text": "What did the options line do this morning?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 11:30 in India (Monday 2 Nov, 1:00 am in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 2 Nov, live at 11:30 IST: Nifty 23,331.40, say 23,331 (+1.21% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 54,910.60, say 54,911 (+0.41% on the previous close 54,686.95; opened 54,837.20); India VIX 15.10 (-1.31% on the previous close 15.30; opened 15.30).",
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /09:30|09:45|9:30|9:45/"
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, how is the relative strength trial going?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 23 Nov, 09:51 in India (Sunday 22 Nov, 11:21 pm in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 23 Nov, live at 09:51 IST: Nifty 25,670.65, say 25,671 (-0.50% on the previous close 25,800.60; opened 25,929.15); Bank Nifty 63,563.95, say 63,564 (-1.66% on the previous close 64,635.20; opened 65,012.05); India VIX 18.28 (+5.54% on the previous close 17.32; opened 17.32).",
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /relative.strength|strength/ (from the feature's own file)"
+    },
+    {
+     "code": "MISSING",
+     "why": "must say /\\b13\\b|no scored|not (?:yet )?scored|first scored|starts/ (from the feature's own file)"
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, what big events are coming up that could move the market?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 23 Nov, 09:51 in India (Sunday 22 Nov, 11:21 pm in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 23 Nov, live at 09:51 IST: Nifty 25,670.65, say 25,671 (-0.50% on the previous close 25,800.60; opened 25,929.15); Bank Nifty 63,563.95, say 63,564 (-1.66% on the previous close 64,635.20; opened 65,012.05); India VIX 18.28 (+5.54% on the previous close 17.32; opened 17.32).",
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /\\bRBI\\b|Reserve Bank|\\bFed\\b|Federal Reserve|inflation|CPI|jobs report|GDP|budget/ (from the feature's own file)"
+    }
+   ],
+   "error": null
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, when do you ask me which one I mean?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 23 Nov, 09:51 in India (Sunday 22 Nov, 11:21 pm in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 23 Nov, live at 09:51 IST: Nifty 25,670.65, say 25,671 (-0.50% on the previous close 25,800.60; opened 25,929.15); Bank Nifty 63,563.95, say 63,564 (-1.66% on the previous close 64,635.20; opened 65,012.05); India VIX 18.28 (+5.54% on the previous close 17.32; opened 17.32).",
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /draft|book|flag/ (from the feature's own file)"
+    },
+    {
+     "code": "MISSING",
+     "why": "must say /wrong guess|choices?|which one/ (from the feature's own file)"
+    }
+   ],
+   "error": null
+  }
+ ],
+ "results": [
+  {
+   "source": "bank",
+   "text": "How does an idea get from a draft all the way to paper trading with real allocated capital?",
+   "answer": "Sir, an idea climbs six steps, each with a bar fixed before any data. A repeated situation on the nightly card becomes a draft, and your yes registers it. It is then tested on 2000-2023 against the strict pass mark, and survivors run as a paper book on live sessions for 20 recorded sessions. Only if it beats the random picks and the average stock on 10 separate sessions after costs, passes the check that no future data leaked in, and you say yes again is it admitted, and only then may the allocated capital use it (still paper; the final real-money gate is separate). Today no rule has been admitted yet, and the stock rules are still in the live paper stage. One thing that isn't right, sir: 2 options trades scored this week at an entry more than 0.1% from the decision's own (the widest: BANKNIFTY on 2026-11-17, decided at 61,559.95, scored at 61,741.05, 181 points apart); and on the crypto side, 39 NDAX coins cost more a side than the paper books charge (measured by the worker, 13 days): SAND 31.445% against 1.0%, VIRTUAL 7.253% against 0.6%, A 7.472% against 1.0%; the books against their random twins pay the same, so comparisons hold, but small coins' own results are flattered. Ask me what's wrong for the details.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "TOO_LONG",
+     "why": "A simple process question gets about seven dense sentences, including a long unrelated tangent on options scoring and crypto fees with many figures."
+    },
+    {
+     "code": "JARGON",
+     "why": "Phrases like 'random twins', 'scored at an entry', 'the worker', 'a side' and 'NDAX coins' are unexplained, and the six steps are never laid out clearly for a beginner."
+    }
+   ],
+   "ms": 8531
+  },
+  {
+   "source": "bank",
+   "text": "Yeah Ananta, open it. But in the meanwhile, I have already done an exercise there, like only one exercise. But like couldn't you remind, like remember my voice and say who you are talking to. Last time you asked me, like when you are not talking to me, you asked if you are talking to a grader, outside grader or vamsi. That's why I was asking, just inquiring about this question.",
+   "answer": "Hello, grader. I'm Ananta, Madhav's paper-trading assistant for the Indian market. Ask me anything about the market, the practice books or my tests; anything that needs a yes stays with Madhav.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "WRONG_PERSON",
+     "why": "The message is from Madhav, who is asking why Ananta asks who it is talking to, but Ananta greets him as 'grader' and treats him as a stranger."
+    },
+    {
+     "code": "MISREAD",
+     "why": "It never answers his question about whether it can remember his voice and say who it is talking to, and it gives a generic introduction instead."
+    },
+    {
+     "code": "PART_MISSED",
+     "why": "He also said 'open it' and mentioned he had already done one exercise, and the answer acknowledges neither."
+    }
+   ],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "Yeah, okay Ananta. I just wanted to ask you like, you know, how about like, you know, you're managing my portfolio, right? From the past few days, how do you rate my portfolio and like, how do you rate the sessions you did and is there anything more you want to do about it? I'm not sure if you're a luxury portfolio, but I'll be right back.",
+   "answer": "Sir, the one change I would make first: trim Jio Financial (about Rs 9,400). Why: Middling (51/100) but 23% of your stocks, -17% on what you paid: more than a middling stock should be. Trim it toward 15%. Overall: 14 stocks worth Rs 115,888, +16.3% on what you paid; 6 changes suggested in all (details below). Paper only: nothing is sold until you say so. From the Zerodha snapshot of 2026-11-23.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "PART_MISSED",
+     "why": "He asked how Ananta rates the sessions it ran over the past few days, and the answer never mentions the sessions or rates them."
+    }
+   ],
+   "ms": 0
+  },
+  {
+   "source": "bank",
+   "text": "How Is so for your portfolio analysis, \nModifications suggestions, and those area work going on ?",
+   "answer": "Sir, the one change I would make first: trim Jio Financial (about Rs 9,400). Why: Middling (51/100) but 23% of your stocks, -17% on what you paid: more than a middling stock should be. Trim it toward 15%. Overall: 14 stocks worth Rs 115,888, +16.3% on what you paid; 6 changes suggested in all (details below). Paper only: nothing is sold until you say so. From the Zerodha snapshot of 2026-11-23.",
+   "pass": false,
+   "problems": [
+    {
+     "code": "PART_MISSED",
+     "why": "He also asked how the other areas of work going on are doing, such as the data gaps being fixed; the answer covers only the portfolio analysis and the suggested changes and never mentions that work."
+    }
+   ],
+   "ms": 0
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta. What happened with the market yesterday? What did we do and what did you see and what did you find?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 16:38 in India (Monday 2 Nov, 6:08 am in Toronto): today's NSE session has CLOSED (it closed at 15:30 IST), 1 h 8 min ago. Monday 2 Nov, at today's close (Kite's closing price; the official NSE file lands later the same day): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 292
+  },
+  {
+   "source": "never_again",
+   "text": "So, what happened on the Monday market? Why are you still telling about the Friday? What about the Monday?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 16:38 in India (Monday 2 Nov, 6:08 am in Toronto): today's NSE session has CLOSED (it closed at 15:30 IST), 1 h 8 min ago. Monday 2 Nov, at today's close (Kite's closing price; the official NSE file lands later the same day): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 182
+  },
+  {
+   "source": "never_again",
+   "text": "But Monday, Monday already happened in India, right? Why didn't you have that data?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 16:38 in India (Monday 2 Nov, 6:08 am in Toronto): today's NSE session has CLOSED (it closed at 15:30 IST), 1 h 8 min ago. Monday 2 Nov, at today's close (Kite's closing price; the official NSE file lands later the same day): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 179
+  },
+  {
+   "source": "never_again",
+   "text": "What's up with the market now? Ananta, how is it going? What did you watch?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 08:48 in India (Sunday 1 Nov, 10:18 pm in Toronto): today's NSE session has not started; it opens at 09:15 IST (pre-open from 09:00) (27 min from now). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 198
+  },
+  {
+   "source": "never_again",
+   "text": "As the Indian market is going to start in 30-40 minutes, I want to know what is that you are ready for.",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 08:48 in India (Sunday 1 Nov, 10:18 pm in Toronto): today's NSE session has not started; it opens at 09:15 IST (pre-open from 09:00) (27 min from now). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": false,
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /\\b(managed book|plan)\\b/"
+    }
+   ],
+   "ms": 269
+  },
+  {
+   "source": "never_again",
+   "text": "How is the market doing right now?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 11:30 in India (Monday 2 Nov, 1:00 am in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 2 Nov, live at 11:30 IST: Nifty 23,331.40, say 23,331 (+1.21% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 54,910.60, say 54,911 (+0.41% on the previous close 54,686.95; opened 54,837.20); India VIX 15.10 (-1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 178
+  },
+  {
+   "source": "never_again",
+   "text": "What did the options line do this morning?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 11:30 in India (Monday 2 Nov, 1:00 am in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 2 Nov, live at 11:30 IST: Nifty 23,331.40, say 23,331 (+1.21% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 54,910.60, say 54,911 (+0.41% on the previous close 54,686.95; opened 54,837.20); India VIX 15.10 (-1.31% on the previous close 15.30; opened 15.30).",
+   "pass": false,
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /09:30|09:45|9:30|9:45/"
+    }
+   ],
+   "ms": 200
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 08:45 in India (Sunday 1 Nov, 10:15 pm in Toronto): today's NSE session has not started; it opens at 09:15 IST (pre-open from 09:00) (30 min from now). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 199
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 08:45 in India (Sunday 1 Nov, 10:15 pm in Toronto): today's NSE session has not started; it opens at 09:15 IST (pre-open from 09:00) (30 min from now). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 192
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 08:45 in India (Sunday 1 Nov, 10:15 pm in Toronto): today's NSE session has not started; it opens at 09:15 IST (pre-open from 09:00) (30 min from now). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 171
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 09:05 in India (Sunday 1 Nov, 10:35 pm in Toronto): NSE is in its pre-open (09:00-09:15 IST); trading starts at 09:15 (10 min from now). Friday 30 Oct, in the pre-open at 09:05 IST (indicative; trading starts 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 170
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 09:05 in India (Sunday 1 Nov, 10:35 pm in Toronto): NSE is in its pre-open (09:00-09:15 IST); trading starts at 09:15 (10 min from now). Friday 30 Oct, in the pre-open at 09:05 IST (indicative; trading starts 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 176
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 09:05 in India (Sunday 1 Nov, 10:35 pm in Toronto): NSE is in its pre-open (09:00-09:15 IST); trading starts at 09:15 (10 min from now). Friday 30 Oct, in the pre-open at 09:05 IST (indicative; trading starts 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 180
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 11:30 in India (Monday 2 Nov, 1:00 am in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 2 Nov, live at 11:30 IST: Nifty 23,331.40, say 23,331 (+1.21% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 54,910.60, say 54,911 (+0.41% on the previous close 54,686.95; opened 54,837.20); India VIX 15.10 (-1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 188
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 11:30 in India (Monday 2 Nov, 1:00 am in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 2 Nov, live at 11:30 IST: Nifty 23,331.40, say 23,331 (+1.21% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 54,910.60, say 54,911 (+0.41% on the previous close 54,686.95; opened 54,837.20); India VIX 15.10 (-1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 182
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 11:30 in India (Monday 2 Nov, 1:00 am in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 2 Nov, live at 11:30 IST: Nifty 23,331.40, say 23,331 (+1.21% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 54,910.60, say 54,911 (+0.41% on the previous close 54,686.95; opened 54,837.20); India VIX 15.10 (-1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 203
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 15:45 in India (Monday 2 Nov, 5:15 am in Toronto): today's NSE session has CLOSED (it closed at 15:30 IST), 15 min ago. Monday 2 Nov, at today's close (Kite's closing price; the official NSE file lands later the same day): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 169
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 15:45 in India (Monday 2 Nov, 5:15 am in Toronto): today's NSE session has CLOSED (it closed at 15:30 IST), 15 min ago. Monday 2 Nov, at today's close (Kite's closing price; the official NSE file lands later the same day): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 196
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 15:45 in India (Monday 2 Nov, 5:15 am in Toronto): today's NSE session has CLOSED (it closed at 15:30 IST), 15 min ago. Monday 2 Nov, at today's close (Kite's closing price; the official NSE file lands later the same day): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 187
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 19:00 in India (Monday 2 Nov, 8:30 am in Toronto): today's NSE session has CLOSED (it closed at 15:30 IST), 3 h 30 min ago. Monday 2 Nov, at today's close (Kite's closing price; the official NSE file lands later the same day): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 190
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 19:00 in India (Monday 2 Nov, 8:30 am in Toronto): today's NSE session has CLOSED (it closed at 15:30 IST), 3 h 30 min ago. Monday 2 Nov, at today's close (Kite's closing price; the official NSE file lands later the same day): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 174
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 2 Nov, 19:00 in India (Monday 2 Nov, 8:30 am in Toronto): today's NSE session has CLOSED (it closed at 15:30 IST), 3 h 30 min ago. Monday 2 Nov, at today's close (Kite's closing price; the official NSE file lands later the same day): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 177
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Tuesday 3 Nov, 00:30 in India (Monday 2 Nov, 2:00 pm in Toronto): today's NSE session has not started; it opens at 09:15 IST (pre-open from 09:00) (8 h 45 min from now). Monday 2 Nov, at the close of Monday 2 Nov, the last session (the next opens Tuesday 3 Nov 09:15 IST): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 190
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Tuesday 3 Nov, 00:30 in India (Monday 2 Nov, 2:00 pm in Toronto): today's NSE session has not started; it opens at 09:15 IST (pre-open from 09:00) (8 h 45 min from now). Monday 2 Nov, at the close of Monday 2 Nov, the last session (the next opens Tuesday 3 Nov 09:15 IST): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 199
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Tuesday 3 Nov, 00:30 in India (Monday 2 Nov, 2:00 pm in Toronto): today's NSE session has not started; it opens at 09:15 IST (pre-open from 09:00) (8 h 45 min from now). Monday 2 Nov, at the close of Monday 2 Nov, the last session (the next opens Tuesday 3 Nov 09:15 IST): Nifty 23,440.80, say 23,441 (+1.68% on the previous close 23,053.10; opened 23,222.30); Bank Nifty 55,002.20, say 55,002 (+0.58% on the previous close 54,686.95; opened 54,837.20); India VIX 15.50 (+1.31% on the previous close 15.30; opened 15.30).",
+   "pass": true,
+   "problems": [],
+   "ms": 192
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Saturday 31 Oct, 19:30 in India (Saturday 31 Oct, 10:00 am in Toronto): there is no NSE session today (Saturday 31 Oct is a weekend or exchange holiday). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 166
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Saturday 31 Oct, 19:30 in India (Saturday 31 Oct, 10:00 am in Toronto): there is no NSE session today (Saturday 31 Oct is a weekend or exchange holiday). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 191
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Saturday 31 Oct, 19:30 in India (Saturday 31 Oct, 10:00 am in Toronto): there is no NSE session today (Saturday 31 Oct is a weekend or exchange holiday). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 187
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta how is the market right now, like where is the Nifty?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Sunday 1 Nov, 22:30 in India (Sunday 1 Nov, 12:00 pm in Toronto): there is no NSE session today (Sunday 1 Nov is a weekend or exchange holiday). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 182
+  },
+  {
+   "source": "never_again",
+   "text": "Hey Ananta, what happened today in the market and what did we do?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Sunday 1 Nov, 22:30 in India (Sunday 1 Nov, 12:00 pm in Toronto): there is no NSE session today (Sunday 1 Nov is a weekend or exchange holiday). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 181
+  },
+  {
+   "source": "never_again",
+   "text": "Is the Indian market open now or closed? When does it open next?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Sunday 1 Nov, 22:30 in India (Sunday 1 Nov, 12:00 pm in Toronto): there is no NSE session today (Sunday 1 Nov is a weekend or exchange holiday). Friday 30 Oct, at the close of Friday 30 Oct, the last session (the next opens Monday 2 Nov 09:15 IST): Nifty 23,053.10, say 23,053 (+0.51% on the previous close 22,937.00; opened 22,937.00); Bank Nifty 54,686.95, say 54,687 (-0.40% on the previous close 54,906.60; opened 54,906.60); India VIX 15.30 (+2.00% on the previous close 15.00; opened 15.00).",
+   "pass": true,
+   "problems": [],
+   "ms": 186
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, how is the relative strength trial going?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 23 Nov, 09:51 in India (Sunday 22 Nov, 11:21 pm in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 23 Nov, live at 09:51 IST: Nifty 25,670.65, say 25,671 (-0.50% on the previous close 25,800.60; opened 25,929.15); Bank Nifty 63,563.95, say 63,564 (-1.66% on the previous close 64,635.20; opened 65,012.05); India VIX 18.28 (+5.54% on the previous close 17.32; opened 17.32).",
+   "pass": false,
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /relative.strength|strength/ (from the feature's own file)"
+    },
+    {
+     "code": "MISSING",
+     "why": "must say /\\b13\\b|no scored|not (?:yet )?scored|first scored|starts/ (from the feature's own file)"
+    }
+   ],
+   "ms": 173
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, what big events are coming up that could move the market?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 23 Nov, 09:51 in India (Sunday 22 Nov, 11:21 pm in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 23 Nov, live at 09:51 IST: Nifty 25,670.65, say 25,671 (-0.50% on the previous close 25,800.60; opened 25,929.15); Bank Nifty 63,563.95, say 63,564 (-1.66% on the previous close 64,635.20; opened 65,012.05); India VIX 18.28 (+5.54% on the previous close 17.32; opened 17.32).",
+   "pass": false,
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /\\bRBI\\b|Reserve Bank|\\bFed\\b|Federal Reserve|inflation|CPI|jobs report|GDP|budget/ (from the feature's own file)"
+    }
+   ],
+   "ms": 190
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, how is the book doing?",
+   "answer": "Which book do you mean, sir? 1. the practice book (the research trades). 2. my account on paper (the managed book). 3. the index options line.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, when do you ask me which one I mean?",
+   "answer": "Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts. Once the credit is topped up in the Anthropic Console, under Plans and Billing, ask me again. It is Monday 23 Nov, 09:51 in India (Sunday 22 Nov, 11:21 pm in Toronto): today's NSE session is OPEN now (09:15 to 15:30 IST). Monday 23 Nov, live at 09:51 IST: Nifty 25,670.65, say 25,671 (-0.50% on the previous close 25,800.60; opened 25,929.15); Bank Nifty 63,563.95, say 63,564 (-1.66% on the previous close 64,635.20; opened 65,012.05); India VIX 18.28 (+5.54% on the previous close 17.32; opened 17.32).",
+   "pass": false,
+   "problems": [
+    {
+     "code": "MISSING",
+     "why": "must say /draft|book|flag/ (from the feature's own file)"
+    },
+    {
+     "code": "MISSING",
+     "why": "must say /wrong guess|choices?|which one/ (from the feature's own file)"
+    }
+   ],
+   "ms": 183
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, how will the market open?",
+   "answer": "Sir, pre-open read at 09:09 IST, before the 09:15 open: Nifty indicated near 25,929 (+0.5% on yesterday's close); Bank Nifty indicated near 65,012 (+0.6% on yesterday's close); 9 of 10 heavy stocks indicated higher, 1 lower, +0.7% on average (the four big banks +0.8%). These are pre-open matched prices, an indication of the gap; the 09:15 open can differ, and nothing trades on them. Against the 08:30 morning view: The pre-open (Nifty +0.5%, Bank Nifty +0.6%) agrees with what GIFT Nifty showed at 08:30 (+0.6%): the view stands. Nifty would open near 25,929, already above the line that makes it an up day (25,878). Options line: Nifty is indicated +0.5% (up): for that open the plan says no trade. Options line: Bank Nifty is indicated +0.6% (up): for that open the plan says no trade.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, what will the options line do at the open?",
+   "answer": "Sir, the options line's plan for the 09:15 open (written 07:31 IST, on paper, one lot): Nifty: no trade at the open, whichever way it opens. Bank Nifty: if it opens 0.25% or more down or flat (inside 0.25% either way), a long (a call option, one lot), closing at the next session's open; if it opens up, no trade. It looks again at 09:30, 09:45 and 10:15 from the first hour's bars, so a pass at the open is not a pass for the day. It was planned with the trend up, the fear gauge high, the US down overnight (the Nasdaq -5.7% on Fri 20 Nov), foreign investors' futures positioning low, no scheduled event, expiry day for Nifty and Bank Nifty options. No input was stale. For the open as it is indicated now: Nifty is indicated +0.5% (up): for that open the plan says no trade. Bank Nifty is indicated +0.6% (up): for that open the plan says no trade.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, did any of my stocks file anything?",
+   "answer": "The options line on Monday 23 Nov decided at 6 points: took nothing; passed on Nifty at 09:15, Bank Nifty at 09:15, Nifty at 09:30, Bank Nifty at 09:30, Nifty at 09:45, Bank Nifty at 09:45. Paper only; one lot each. Sir, on your holdings (filings read up to 13:28 IST on Sun 22 Nov): None of your 13 stocks has filed results, an order, a deal or a dividend since Fri 20 Nov's close: Vodafone Idea, IRFC, Jio Financial, Karur Vysya, LIC, Marico, National Aluminium, Network18, Tata Chemicals, Tata Power, Tata Motors CV, Tata Motors, United Spirits. Moved 2% or more on Fri 20 Nov with no filing: Tata Motors CV +2.4%, Network18 -2.1%.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  },
+  {
+   "source": "never_again",
+   "text": "Ananta, has anything changed since the morning view?",
+   "answer": "Nothing that overturns it, sir. At the 09:09 second look: The pre-open (Nifty +0.5%, Bank Nifty +0.6%) agrees with what GIFT Nifty showed at 08:30 (+0.6%): the view stands. Nifty would open near 25,929, already above the line that makes it an up day (25,878). Options line: Nifty is indicated +0.5% (up): for that open the plan says no trade. Options line: Bank Nifty is indicated +0.6% (up): for that open the plan says no trade. What adjusts by itself is what I read and say; the options line and the books keep their written rules, and a change to a rule waits for your yes.",
+   "pass": true,
+   "problems": [],
+   "ms": 0
+  }
+ ]
+}

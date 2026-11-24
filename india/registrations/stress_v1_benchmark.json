@@ -1,0 +1,200 @@
+{
+ "run": "2026-11-24",
+ "book": {
+  "positions": {
+   "JIOFIN": {
+    "qty": 14,
+    "last": 219.7,
+    "stop": null,
+    "source": "twin",
+    "entered": "2026-10-22",
+    "last_on": "2026-11-23"
+   },
+   "KARURVYSYA": {
+    "qty": 7,
+    "last": 384.1,
+    "stop": null,
+    "source": "twin",
+    "entered": "2026-10-22",
+    "last_on": "2026-11-23"
+   },
+   "LICI": {
+    "qty": 23,
+    "last": 407.3,
+    "stop": null,
+    "source": "twin",
+    "entered": "2026-10-22",
+    "last_on": "2026-11-23"
+   },
+   "MARICO": {
+    "qty": 9,
+    "last": 919.5,
+    "stop": null,
+    "source": "twin",
+    "entered": "2026-10-22",
+    "last_on": "2026-11-23"
+   },
+   "NATIONALUM": {
+    "qty": 10,
+    "last": 298.65,
+    "stop": null,
+    "source": "twin",
+    "entered": "2026-10-22",
+    "last_on": "2026-11-23"
+   },
+   "TATAPOWER": {
+    "qty": 48,
+    "last": 328.0,
+    "stop": null,
+    "source": "twin",
+    "entered": "2026-10-22",
+    "last_on": "2026-11-23"
+   },
+   "TMCV": {
+    "qty": 14,
+    "last": 453.8,
+    "stop": null,
+    "source": "twin",
+    "entered": "2026-10-22",
+    "last_on": "2026-11-23"
+   },
+   "TMPV": {
+    "qty": 27,
+    "last": 259.0,
+    "stop": null,
+    "source": "twin",
+    "entered": "2026-10-22",
+    "last_on": "2026-11-23"
+   },
+   "AJANTPHARM": {
+    "qty": 3,
+    "last": 3310.4,
+    "stop": 3237.12,
+    "source": "replacement",
+    "entered": "2026-11-02",
+    "last_on": "2026-11-23"
+   },
+   "ETERNAL": {
+    "qty": 30,
+    "last": 362.1,
+    "stop": 319.59,
+    "source": "replacement",
+    "entered": "2026-11-02",
+    "last_on": "2026-11-23"
+   },
+   "CIPLA": {
+    "qty": 6,
+    "last": 1399.9,
+    "stop": 1287.48,
+    "source": "replacement",
+    "entered": "2026-11-02",
+    "last_on": "2026-11-23"
+   },
+   "NIFTYBEES": {
+    "qty": 75,
+    "last": 289.43,
+    "stop": null,
+    "source": "park",
+    "entered": "2026-11-18",
+    "last_on": "2026-11-23"
+   }
+  },
+  "cash_inr": 5893.01,
+  "options_inr": 50000.0,
+  "stocks_and_cash_inr": 112278.46,
+  "last_marked": "2026-11-23"
+ },
+ "money": {
+  "H1": {
+   "book_fall": 31.03,
+   "market_fall": 37.39,
+   "book_total": -26.5,
+   "ratio": 0.83
+  },
+  "H2": {
+   "book_fall": 10.83,
+   "market_fall": 12.81,
+   "book_total": -8.8,
+   "ratio": 0.85
+  },
+  "H3": {
+   "book_fall": 29.66,
+   "market_fall": 36.82,
+   "book_total": -29.66,
+   "ratio": 0.81
+  },
+  "H4": {
+   "book_fall": 20.28,
+   "market_fall": 23.23,
+   "book_total": -12.65,
+   "ratio": 0.87
+  },
+  "H5": {
+   "book_fall": 19.42,
+   "market_fall": 19.93,
+   "book_total": -13.98,
+   "ratio": 0.97
+  },
+  "H6": {
+   "book_fall": 7.96,
+   "market_fall": 8.21,
+   "book_total": -6.63,
+   "ratio": 0.97
+  },
+  "H7": {
+   "book_fall": 46.44,
+   "market_fall": 64.13,
+   "book_total": -46.05,
+   "ratio": 0.72
+  },
+  "H8": {
+   "book_fall": 15.36,
+   "market_fall": 15.76,
+   "book_total": -14.1,
+   "ratio": 0.97
+  },
+  "H9": {
+   "book_fall": 0.0,
+   "market_fall": 0.0,
+   "book_total": 13.23,
+   "ratio": null
+  },
+  "H10": {
+   "book_fall": 11.38,
+   "market_fall": 9.6,
+   "book_total": -9.84,
+   "ratio": 1.19
+  },
+  "C1": {
+   "book_fall": 19.68,
+   "market_fall": 23.19,
+   "book_total": -19.68,
+   "ratio": null
+  },
+  "B1": {
+   "book_fall_p99": 23.08,
+   "nifty500_fall_p99": 27.87,
+   "ratio_p99": 0.83
+  }
+ },
+ "marks": {
+  "M1": true,
+  "M1_failed": [],
+  "M2": true,
+  "M3": true,
+  "O1": false,
+  "O2": false,
+  "X": true,
+  "W_a": null,
+  "W_b": null
+ },
+ "options": {
+  "O1_worst_night": 51329,
+  "O2_worst_night": 42889
+ },
+ "words": {
+  "turns": 9,
+  "passed": 4,
+  "grader_passed": 3
+ }
+}

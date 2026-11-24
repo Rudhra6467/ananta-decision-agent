@@ -1,33 +1,43 @@
-# Reconstruction, session 2026-11-20 (rules rx-in-v2-2026-11-06, built 2026-11-23T02:30Z)
+# Reconstruction, session 2026-11-23 (rules rx-in-v2-2026-11-06, built 2026-11-24T02:30Z)
 
-20 Nov: Nifty in an uptrend. Ananta picked 4 stocks; of the day's 24 biggest rises it held 11 and missed 3 that no rule was watching, and it held 21 of the 25 biggest falls. 1 closed trade reviewed (1 gave back). 1 small fix went to the repair shop; no new idea tonight; nothing waits for you. Value since 22 Oct: 0 findings changed a rule; 25 approved and 2 skipped drafts started 4 studies (RX1, RX2, RX3, K02-R1); in a paper trial: falls under the 200-day (RX1) 16/20; relative strength (RS) 13/20.
+23 Nov: Nifty in an uptrend. Ananta picked 4 stocks; of the day's 25 biggest rises it held 14 and missed 7 that no rule was watching, and it held 19 of the 25 biggest falls. 11 closed trades reviewed (3 lost small, 5 clean, 2 gave back, 1 never worked). 1 small fix went to the repair shop; 1 new idea tonight; 1 draft waits for your yes or skip. Value since 22 Oct: 0 findings changed a rule; 25 approved and 2 skipped drafts started 4 studies (RX1, RX2, RX3, K02-R1); in a paper trial: falls under the 200-day (RX1) 17/20; relative strength (RS) 14/20.
 
 ## A. The market
-Nifty 25,801, uptrend: above its 50- and 200-day averages (+9.7% vs 50-day, +7.5% vs 200-day); 64% of the liquid 250 above their 200-day; VIX 17.3.
-- Up: INDUSINDBK +8.6% (caught_by_control); WELSPUNLIV +6.2% (missed, class a); ASTERDM +5.4% (caught); APOLLOHOSP +5.3% (caught_by_control); AXISBANK +4.7% (caught); UNIONBANK +4.2% (missed, class a)
-- Down: MTARTECH -5.7% (held_into_fall); SKYGOLD -5.5% (held_into_fall); PFOCUS -5.4% (held_into_fall); IIFL -5.0% (held_into_fall); APOLLO -4.8% (held_into_fall); E2E -4.8% (held_into_fall)
+Nifty 25,366, uptrend: above its 50- and 200-day averages (+7.7% vs 50-day, +5.7% vs 200-day); 63% of the liquid 250 above their 200-day; VIX 17.6.
+- Up: RATNAVEER +8.9% (caught); POLICYBZR +6.5% (caught); JSWINFRA +3.6% (caught_by_control); TCS +3.5% (missed, class b); LAURUSLABS +3.3% (caught); PVRINOX +2.9% (missed, class b)
+- Down: APLAPOLLO -21.3% (held_into_fall); TATASTEEL -8.4% (missed, class b); PFOCUS -6.3% (held_into_fall); SKYGOLD -6.3% (held_into_fall); E2E -5.0% (held_into_fall); FCL -4.9% (held_into_fall)
 
 ## B. What people did (public records, stamped at their public time; yardstick only)
-FII net bought ₹10,308 crore; DII net sold ₹4,860 crore; 0 bulk/block deals in our universe; 69 announcements on universe names, 6 on today's movers (the news read (FinBERT): 1 positive, 0 negative, 68 neutral announcements; a note, never a reason to trade).
-- League: Of the day's 20 best one-day trades, Ananta held 8, passed on 6 and had no rule for 1. Its 140 positions did -0.6% against -0.2% for the average stock (better than 20% of random picks); the best possible was +3.5%.
+FII net bought ₹5,673 crore; DII net sold ₹2,760 crore; 11 bulk/block deals in our universe (largest: STEADVIEW CAPITAL MAURITIUS LIMITED-FDI SELL LENSKART ₹835.2 crore); 76 announcements on universe names, 12 on today's movers (the news read (FinBERT): 2 positive, 4 negative, 70 neutral announcements; a note, never a reason to trade).
+- League: Of the day's 20 best one-day trades, Ananta held 13, passed on 1 and had no rule for 4. Its 143 positions did -1.2% against -1.4% for the average stock (better than 64% of random picks); the best possible was +2.6%.
 
 ## C. What Ananta did
-Chose 4 research signals and 5 random controls from 188 candidates; 179 rejected (most often: PULL outside_liq_top x48, REV outside_liq_top x40); 12 fills, 15 exits at the reference exit; called the next session BEARISH; index line: 6 decisions, 0 error; allocation (autonomous): 0 paper move(s).
+Chose 4 research signals and 5 random controls from 198 candidates; 189 rejected (most often: PULL outside_liq_top x70, REV outside_liq_top x55); 9 fills, 20 exits at the reference exit; called the next session BULLISH; index line: 9 decisions, 0 error; allocation: no row.
 
 ## D. What it did not do, and was that right
-Of the top 24 rises the book held 11 (plus 5 by the random control), missed 5 after a family fired (class a), 3 with no family positioned (b), 0 untradeable (c); it held into 21 of the top 25 falls (₹51,128 against it so far). 
+Of the top 25 rises the book held 14 (plus 1 by the random control), missed 3 after a family fired (class a), 7 with no family positioned (b), 0 untradeable (c); it held into 19 of the top 25 falls (₹17,684 against it so far). 
 
-## E. Trade reviews (1 trades closed 3 sessions ago, exit day 2026-11-17)
-- GAVE_BACK: HCLTECH (random control): exit stop, -5.8% net; was up one and a half risk units at some point and still closed at or under the entry (no plan to protect a winner)
+## E. Trade reviews (11 trades closed 3 sessions ago, exit day 2026-11-18)
+- LOST_SMALL: TECHM (20-session breakout on volume): exit time, -1.0% net; a loss smaller than a risk unit with no better path on record
+- CLEAN: BHARTIARTL (20-session breakout on volume): exit time, +11.5% net; a win that kept at least half of its best move
+- CLEAN: INDHOTEL (20-session breakout on volume): exit time, +16.2% net; a win that kept at least half of its best move
+- LOST_SMALL: HCLTECH (20-session breakout on volume): exit time, -2.7% net; a loss smaller than a risk unit with no better path on record
+- CLEAN: ICICIBANK (20-session breakout on volume): exit time, +13.6% net; a win that kept at least half of its best move
+- LOST_SMALL: AVALON (pullback in an uptrend): exit time, -8.9% net; a loss smaller than a risk unit with no better path on record
+- CLEAN: ACUTAAS (random control): exit time, +19.7% net; a win that kept at least half of its best move
+- CLEAN: PNB (random control): exit time, +23.9% net; a win that kept at least half of its best move
+- GAVE_BACK: FCL (pullback in an uptrend): exit stop, -12.7% net; was up one and a half risk units at some point and still closed at or under the entry (no plan to protect a winner)
+- GAVE_BACK: FCL (random control): exit stop, -11.4% net; was up one and a half risk units at some point and still closed at or under the entry (no plan to protect a winner)
+- NEVER_WORKED: SAIL (20-session breakout on volume): exit stop, -7.3% net; never got a quarter of a risk unit above the entry (the entry timing was poor)
 
 ## F. Findings
-- [DECISION · MISS_PATTERN · NOTE] No family was positioned for 'run reversal, intraday selloff' on 3 of the last 7 sessions (e.g. DIACABS). Noted, not asked: RX1-RX3 found no entry rule knowable before the move for situations of this kind; it becomes a draft at 5 of 10 sessions.
-- [SAFE · JOB_FAIL · to_file] One of Ananta's India jobs ('factmap') did not finish properly. It needs checking.
+- [SAFE · JOB_FAIL · to_file] One of Ananta's India jobs ('openingview') did not finish properly. It needs checking.
+- [DECISION · EXIT_LESSON · DRAFT] 5 closed random control trades in the last 20 sessions were tagged GAVE_BACK: was up one and a half risk units at some point and still closed at or under the entry (no plan to protect a winner). Question for the G01 exit book cell CTL: does the registered exit that fixes this hold up on the development and validation years?
 
 ## G. The staircase
-No rule has proved itself yet. The stock rules have 23 of 20 trial sessions; the options line has 18; Ananta beat chance and the average stock on 10 of the 10 days needed.
-- stock:BRK: SHADOW · shadow 19/20 sessions · beats RANDOM and MARKET on 10/10 independent sessions
-- stock:PULL: SHADOW · shadow 16/20 sessions · beats RANDOM and MARKET on 10/10 independent sessions
-- stock:REV: SHADOW · shadow 13/20 sessions · beats RANDOM and MARKET on 10/10 independent sessions
-- options:SP1: SHADOW · shadow 18/20 sessions · beats RANDOM and MARKET on 0/10 independent sessions
-- queue: {'to_file': 13, 'APPROVED': 25, 'SKIPPED': 2, 'NOTE': 1}
+No rule has proved itself yet. The stock rules have 24 of 20 trial sessions; the options line has 19; Ananta beat chance and the average stock on 11 of the 10 days needed.
+- stock:BRK: SHADOW · shadow 20/20 sessions · beats RANDOM and MARKET on 11/10 independent sessions
+- stock:PULL: SHADOW · shadow 17/20 sessions · beats RANDOM and MARKET on 11/10 independent sessions
+- stock:REV: SHADOW · shadow 13/20 sessions · beats RANDOM and MARKET on 11/10 independent sessions
+- options:SP1: SHADOW · shadow 19/20 sessions · beats RANDOM and MARKET on 0/10 independent sessions
+- queue: {'to_file': 14, 'APPROVED': 25, 'SKIPPED': 2, 'NOTE': 1, 'DRAFT': 1}

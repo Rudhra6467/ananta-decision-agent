@@ -6,20 +6,20 @@ Rule: an options result can feed a decision only if it is positive at 2x, and it
 
 | study | group | period | trades | ret 0x | ret 1x (t) | ret 2x (t) | ret 4x | spread share of gross | breakeven x (half-spread %) | measured x | verdict |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| F01 | F01 k1|BANKNIFTY | dev 2005-2017 | 175 | -0.330% | -0.368% (-0.6) | -0.406% (-0.7) | -0.481% | n/a | below zero | 0.70 | no edge even with zero spread |
-| F01 | F01 k1|BANKNIFTY | val 2018-2023 | 312 | +1.543% | +1.478% (+2.3) | +1.412% (+2.2) | +1.280% | 4% | 23.2x (9.26%) | 0.70 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k1|BANKNIFTY | dev 2005-2017 | 175 | -0.330% | -0.368% (-0.6) | -0.406% (-0.7) | -0.481% | n/a | below zero | 0.71 | no edge even with zero spread |
+| F01 | F01 k1|BANKNIFTY | val 2018-2023 | 312 | +1.543% | +1.478% (+2.3) | +1.412% (+2.2) | +1.280% | 4% | 23.2x (9.26%) | 0.71 | spread-robust (breakeven > 1.5x measured) |
 | F01 | F01 k1|NIFTY | dev 2001-2017 | 194 | +0.716% | +0.686% (+1.8) | +0.657% (+1.7) | +0.598% | 5% | 20.3x (8.13%) | 0.60 | spread-robust (breakeven > 1.5x measured) |
 | F01 | F01 k1|NIFTY | val 2018-2023 | 267 | +0.397% | +0.343% (+0.6) | +0.290% (+0.5) | +0.182% | 15% | 6.7x (2.70%) | 0.60 | spread-robust (breakeven > 1.5x measured) |
-| F01 | F01 k2|BANKNIFTY | dev 2005-2017 | 177 | -0.598% | -0.660% (-0.8) | -0.723% (-0.9) | -0.848% | n/a | below zero | 0.82 | no edge even with zero spread |
-| F01 | F01 k2|BANKNIFTY | val 2018-2023 | 312 | +2.849% | +2.756% (+2.7) | +2.662% (+2.7) | +2.475% | 3% | 30.3x (12.13%) | 0.82 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k2|BANKNIFTY | dev 2005-2017 | 177 | -0.598% | -0.660% (-0.8) | -0.723% (-0.9) | -0.848% | n/a | below zero | 0.83 | no edge even with zero spread |
+| F01 | F01 k2|BANKNIFTY | val 2018-2023 | 312 | +2.849% | +2.756% (+2.7) | +2.662% (+2.7) | +2.475% | 3% | 30.3x (12.13%) | 0.83 | spread-robust (breakeven > 1.5x measured) |
 | F01 | F01 k2|NIFTY | dev 2001-2017 | 194 | +0.044% | +0.007% (+0.0) | -0.030% (-0.1) | -0.104% | 223% | 0.4x (0.18%) | 0.59 | fragile: gone at 2x the assumed spread |
 | F01 | F01 k2|NIFTY | val 2018-2023 | 267 | +1.339% | +1.262% (+1.7) | +1.185% (+1.6) | +1.032% | 8% | 12.9x (5.16%) | 0.59 | spread-robust (breakeven > 1.5x measured) |
-| F01 | F01 k3|BANKNIFTY | dev 2005-2017 | 176 | -0.542% | -0.610% (-0.6) | -0.679% (-0.7) | -0.816% | n/a | below zero | 0.88 | no edge even with zero spread |
-| F01 | F01 k3|BANKNIFTY | val 2018-2023 | 311 | +4.143% | +4.026% (+2.9) | +3.910% (+2.9) | +3.678% | 3% | 35.6x (14.25%) | 0.88 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k3|BANKNIFTY | dev 2005-2017 | 176 | -0.542% | -0.610% (-0.6) | -0.679% (-0.7) | -0.816% | n/a | below zero | 0.89 | no edge even with zero spread |
+| F01 | F01 k3|BANKNIFTY | val 2018-2023 | 311 | +4.143% | +4.026% (+2.9) | +3.910% (+2.9) | +3.678% | 3% | 35.6x (14.25%) | 0.89 | spread-robust (breakeven > 1.5x measured) |
 | F01 | F01 k3|NIFTY | dev 2001-2017 | 194 | +0.404% | +0.360% (+0.6) | +0.315% (+0.5) | +0.225% | 27% | 3.7x (1.49%) | 0.60 | spread-robust (breakeven > 1.5x measured) |
 | F01 | F01 k3|NIFTY | val 2018-2023 | 267 | +1.172% | +1.076% (+0.9) | +0.980% (+0.8) | +0.788% | 17% | 5.8x (2.33%) | 0.60 | spread-robust (breakeven > 1.5x measured) |
-| F01 | F01 k5|BANKNIFTY | dev 2005-2017 | 177 | -1.471% | -1.561% (-0.9) | -1.651% (-1.0) | -1.831% | n/a | below zero | 0.98 | no edge even with zero spread |
-| F01 | F01 k5|BANKNIFTY | val 2018-2023 | 311 | +1.307% | +1.160% (+0.7) | +1.014% (+0.6) | +0.722% | 12% | 8.3x (3.32%) | 0.98 | spread-robust (breakeven > 1.5x measured) |
+| F01 | F01 k5|BANKNIFTY | dev 2005-2017 | 177 | -1.471% | -1.561% (-0.9) | -1.651% (-1.0) | -1.831% | n/a | below zero | 0.99 | no edge even with zero spread |
+| F01 | F01 k5|BANKNIFTY | val 2018-2023 | 311 | +1.307% | +1.160% (+0.7) | +1.014% (+0.6) | +0.722% | 12% | 8.3x (3.32%) | 0.99 | spread-robust (breakeven > 1.5x measured) |
 | F01 | F01 k5|NIFTY | dev 2001-2017 | 194 | +0.387% | +0.330% (+0.4) | +0.273% (+0.4) | +0.160% | 13% | 7.8x (3.13%) | 0.65 | spread-robust (breakeven > 1.5x measured) |
 | F01 | F01 k5|NIFTY | val 2018-2023 | 266 | -0.808% | -0.931% (-0.7) | -1.055% (-0.8) | -1.302% | n/a | below zero | 0.65 | no edge even with zero spread |
 | F02 | F02 eve_strangle|BANKNIFTY | dev 2008-2017 | 168 | +0.026% | +0.009% (+0.0) | -0.009% (-0.0) | -0.043% | n/a | below zero | 0.76 | fragile: gone at 2x the assumed spread |
@@ -50,7 +50,7 @@ Rule: an options result can feed a decision only if it is positive at 2x, and it
 - F05 (O-04 synthetic) loses even with zero spread, so spread realism cannot rescue it; its doubt is the synthetic price itself (flat IV through the afternoon, which if anything flatters a long straddle, since implied volatility usually falls into expiry). R01 on recorded expiry days settles it.
 - Nothing options-related feeds a decision until (a) measured spreads exist (india.spreads, needs a Kite sign-in after 20:30 Toronto) and (b) the expiry-eve settle check below has rows.
 
-## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-11-20, 25363 contract-days, 42 sessions)
+## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-11-23, 26002 contract-days, 43 sessions)
 
 Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule scored) against the volume-weighted price actually traded in the last 30 minutes (Kite minutes from the recorder). Signed gap > 0: settle above what traded (overstates a seller's credit).
 
@@ -58,24 +58,24 @@ Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule 
 |---|---|---|---|---|---|---|---|
 | BANKNIFTY | no | <2 | 37 | 59.5% | +0.26% | 3.15% | 87.25% |
 | BANKNIFTY | no | 2-5 | 75 | 12.0% | +0.00% | 1.26% | 6.55% |
-| BANKNIFTY | no | 5-20 | 266 | 8.6% | +0.87% | 2.52% | 9.19% |
-| BANKNIFTY | no | 20-50 | 203 | 0.5% | +0.23% | 1.40% | 6.66% |
+| BANKNIFTY | no | 5-20 | 275 | 8.4% | +1.01% | 2.52% | 9.10% |
+| BANKNIFTY | no | 20-50 | 219 | 0.5% | +0.32% | 1.52% | 6.68% |
 | BANKNIFTY | no | 50-150 | 512 | 0.6% | +0.29% | 1.40% | 5.52% |
-| BANKNIFTY | no | 150+ | 8880 | 27.5% | +0.00% | 0.67% | 3.03% |
+| BANKNIFTY | no | 150+ | 9116 | 27.3% | +0.00% | 0.66% | 3.01% |
 | BANKNIFTY | yes | 5-20 | 13 | 0.0% | +0.22% | 1.09% | 3.04% |
 | BANKNIFTY | yes | 20-50 | 9 | 0.0% | -4.62% | 4.62% | 7.09% |
 | BANKNIFTY | yes | 50-150 | 9 | 0.0% | -4.87% | 4.87% | 6.34% |
-| BANKNIFTY | yes | 150+ | 99 | 1.0% | +5744.74% | 5744.74% | 8843140.74% |
+| BANKNIFTY | yes | 150+ | 161 | 0.6% | +13428.59% | 13428.59% | 6170870.08% |
 | NIFTY | no | <2 | 393 | 26.7% | +0.97% | 3.09% | 10.80% |
-| NIFTY | no | 2-5 | 510 | 13.9% | +0.18% | 2.15% | 8.84% |
-| NIFTY | no | 5-20 | 1456 | 6.6% | +0.20% | 1.69% | 6.56% |
-| NIFTY | no | 20-50 | 1419 | 4.7% | +0.12% | 1.46% | 5.51% |
-| NIFTY | no | 50-150 | 2718 | 5.0% | +0.03% | 1.14% | 4.48% |
-| NIFTY | no | 150+ | 8096 | 18.7% | +0.00% | 0.68% | 3.11% |
+| NIFTY | no | 2-5 | 521 | 13.6% | +0.22% | 2.21% | 9.29% |
+| NIFTY | no | 5-20 | 1466 | 6.6% | +0.20% | 1.69% | 6.53% |
+| NIFTY | no | 20-50 | 1446 | 4.6% | +0.12% | 1.46% | 5.48% |
+| NIFTY | no | 50-150 | 2758 | 4.9% | +0.03% | 1.13% | 4.39% |
+| NIFTY | no | 150+ | 8242 | 18.6% | +0.00% | 0.68% | 3.07% |
 | NIFTY | yes | <2 | 41 | 0.0% | +4.34% | 4.43% | 9.43% |
 | NIFTY | yes | 2-5 | 34 | 0.0% | +0.72% | 3.58% | 6.17% |
 | NIFTY | yes | 5-20 | 28 | 0.0% | -6.89% | 8.20% | 13.06% |
 | NIFTY | yes | 20-50 | 18 | 0.0% | -3.20% | 9.18% | 15.05% |
 | NIFTY | yes | 50-150 | 24 | 0.0% | -5.01% | 7.34% | 10.55% |
-| NIFTY | yes | 150+ | 523 | 2.3% | +9330.29% | 9330.29% | 26545646.71% |
+| NIFTY | yes | 150+ | 605 | 2.0% | +11488.13% | 11488.13% | 24621377.88% |
 

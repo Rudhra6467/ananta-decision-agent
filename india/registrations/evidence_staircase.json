@@ -19,23 +19,23 @@
   "ADMITTED": "Madhav (beats RANDOM and MARKET on 10+ independent sessions net of costs; leak check passes; pinned in the lock)",
   "LIVE_ELIGIBLE": "Madhav (the India gate and the live-readiness rules)"
  },
- "built_at": "2026-11-23T02:30:26+00:00",
+ "built_at": "2026-11-24T02:30:31+00:00",
  "rules": {
   "stock:BRK": {
    "what": "20-session breakout on volume",
    "step": "SHADOW",
-   "shadow_sessions": 19,
+   "shadow_sessions": 20,
    "shadow_bar": 20,
-   "independent_sessions_beating_random_and_market": 10,
+   "independent_sessions_beating_random_and_market": 11,
    "independent_bar": 10,
    "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
   },
   "stock:PULL": {
    "what": "pullback in an uptrend",
    "step": "SHADOW",
-   "shadow_sessions": 16,
+   "shadow_sessions": 17,
    "shadow_bar": 20,
-   "independent_sessions_beating_random_and_market": 10,
+   "independent_sessions_beating_random_and_market": 11,
    "independent_bar": 10,
    "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
   },
@@ -44,14 +44,14 @@
    "step": "SHADOW",
    "shadow_sessions": 13,
    "shadow_bar": 20,
-   "independent_sessions_beating_random_and_market": 10,
+   "independent_sessions_beating_random_and_market": 11,
    "independent_bar": 10,
    "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
   },
   "options:SP1": {
    "what": "the index playbook's 1-lot option line",
    "step": "SHADOW",
-   "shadow_sessions": 18,
+   "shadow_sessions": 19,
    "shadow_bar": 20,
    "independent_sessions_beating_random_and_market": 0,
    "independent_bar": 10,
@@ -60,11 +60,12 @@
  },
  "admitted": [],
  "queue": {
-  "to_file": 13,
+  "to_file": 14,
   "APPROVED": 25,
   "SKIPPED": 2,
-  "NOTE": 1
+  "NOTE": 1,
+  "DRAFT": 1
  },
  "history": [],
- "words": "No rule has proved itself yet. The stock rules have 23 of 20 trial sessions; the options line has 18; Ananta beat chance and the average stock on 10 of the 10 days needed."
+ "words": "No rule has proved itself yet. The stock rules have 24 of 20 trial sessions; the options line has 19; Ananta beat chance and the average stock on 11 of the 10 days needed."
 }

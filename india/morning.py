@@ -511,7 +511,13 @@ def markdown(r: dict) -> str:
         note = j.get("problems_note") or ("; ".join(j["problems"]) if j["problems"] else "")
         L.append(f"| {j['label'][len(PREFIX):]} | {j['last_exit'] if j['last_exit'] is not None else '-'} | {_fmt(j['due'])} | {_fmt(j['last_output'])} | "
                  f"{pf}: {j['proof']} | {note} |")
-    L += ["", f"## Reference traders against Ananta ({r['missed_session']})", "", f"- {r.get('others_line') or 'no reference-traders result for the session'}",
+    try:                       # 23 Nov 2026 (Madhav: "Yes, let's do it"): the nightly yardstick, one line, options line included
+        from india import yardstick
+        yl = yardstick.line(str(r["missed_session"]))
+    except Exception as exc:  # noqa: BLE001
+        yl = f"the yardstick could not be read ({type(exc).__name__})"
+    L += ["", "## Yardstick: is Ananta better than luck?", "", f"- {yl}",
+          "", f"## Reference traders against Ananta ({r['missed_session']})", "", f"- {r.get('others_line') or 'no reference-traders result for the session'}",
           "", f"## Missed movers ({r['missed_session']})", ""]
     if r["missed_line"]:
         L += ["| date | gainers | catches (P&L so far) | gainer misses | losers | top (b) situations | drafts |", "|---|---|---|---|---|---|---|", r["missed_line"]]

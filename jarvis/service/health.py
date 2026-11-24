@@ -55,6 +55,7 @@ FIX = {"explorer": "Restart it from the main checkout (RUNBOOK_SAFETY.md, 'Explo
        "universe_feed": "Restart Jarvis (deploy_jarvis.sh); if it stays down, check the internet and Binance's public API (api.binance.com).",
        "worker": "Check that the old MacBook Air is plugged in, awake and on the home network, then run: ssh ananta-worker '~/ananta_worker/status'"}
 STATE: dict[str, Any] = {"last_run": None, "jobs_t": None, "running": False, "parts": {}}
+WORKER_QUIET_S = 2 * 3600       # the worker counts as down only after 2 hours unreachable (Madhav, 24 Nov 2026; was 15 minutes)
 # Oct 21: the time of the last round, kept as a row of health_state (last_push = the epoch time, fails = parts checked), so the run
 # checker can date it. A row, not a new column: the table keeps its six columns and older code that writes six values still works.
 LAST_CHECK = "_last_check"
@@ -221,7 +222,9 @@ def checks(j, get: Callable = _get, now: float | None = None) -> dict[str, dict]
         else:
             STATE.setdefault("worker_bad_t", now)
         quiet = now - STATE.get("worker_bad_t", now)
-        out["worker"] = {"ok": w["ok"] or quiet < 15 * 60,
+        # 24 Nov 2026 (Madhav: "Both"): the worker keeps recording while the main Mac cannot reach it, and the pull takes the missed
+        # days later, so a short gap loses nothing. It counts as down after 2 hours (was 15 minutes: three phone notes in one morning).
+        out["worker"] = {"ok": w["ok"] or quiet < WORKER_QUIET_S,
                          "detail": (w["line"][:120] if w["ok"] else f"{w['state'].lower()} for {_mins(quiet)}: {w['line'][:80]}")}
     return out
 

@@ -79,7 +79,8 @@ def test_measured_cost_per_side_against_the_assumed_one(tmp_path):
     assert ndax_spreads.summary(14, tmp_path, cost_fn=lambda c: 0.006)["dearer_than_assumed"] == ["XYZ"]
 
 
-def test_health_calls_the_worker_quiet_only_after_15_minutes(tmp_path, monkeypatch):
+def test_health_calls_the_worker_quiet_only_after_2_hours(tmp_path, monkeypatch):
+    """15 minutes until 24 Nov 2026; Madhav then chose 2 hours (the worker keeps recording, and the pull catches up)."""
     from jarvis.service import health, worker
 
     (tmp_path / ".ssh").mkdir()
@@ -92,9 +93,10 @@ def test_health_calls_the_worker_quiet_only_after_15_minutes(tmp_path, monkeypat
     get = lambda url, timeout=5.0: (200, {})  # noqa: E731
     t0 = 2_000_000_000
     assert health.checks(j, get=get, now=t0)["worker"]["ok"] is True                 # one bad answer is not an outage
-    assert health.checks(j, get=get, now=t0 + 14 * 60)["worker"]["ok"] is True
-    w = health.checks(j, get=get, now=t0 + 16 * 60)["worker"]
-    assert w["ok"] is False and "unreachable for 16 min" in w["detail"]
+    assert health.checks(j, get=get, now=t0 + 38 * 60)["worker"]["ok"] is True       # this morning's longest gap: no alarm
+    assert health.checks(j, get=get, now=t0 + 119 * 60)["worker"]["ok"] is True
+    w = health.checks(j, get=get, now=t0 + 121 * 60)["worker"]
+    assert w["ok"] is False and "unreachable for" in w["detail"]
     health.STATE.pop("worker_bad_t", None)
 
 

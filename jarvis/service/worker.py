@@ -18,6 +18,7 @@ Run by scripts/backup_db.py at 03:40 (pull and push) and by health.py (status).
 from __future__ import annotations
 
 import json
+import os
 import shlex
 import sqlite3
 import subprocess
@@ -34,8 +35,35 @@ SECRET_TABLES = ("users", "sessions", "owner_auth", "push_tokens", "web_push_sub
 _CACHE: dict = {}
 
 
+# 24 Nov 2026 (Madhav: "Both"): the main Mac reached the worker by its Bonjour name (Mahidhar-MacBook-Air.local), and that lookup
+# failed three times that morning (26, 12 and 37 minutes) while both Macs were awake, on power and online and the worker kept
+# recording. The worker is now asked at its fixed home-network address first (reserved in the router); the name is the fallback, so a
+# changed address costs one slower try, not an outage. ANANTA_WORKER_ADDR overrides it; empty means the name only.
+ADDR = os.getenv("ANANTA_WORKER_ADDR", "192.168.2.39")
+
+
+def _routes() -> list[list[str]]:
+    """ssh/scp options for each way to reach the worker, in order: the fixed address, then the name from ~/.ssh/config."""
+    return ([["-o", f"HostName={ADDR}"]] if ADDR else []) + [[]]
+
+
+def _run(build, timeout: int) -> subprocess.CompletedProcess:
+    """Runs build(route_options) for each route until one connects (ssh and scp return 255 when they cannot connect)."""
+    r = None
+    for i, route in enumerate(_routes()):
+        try:
+            r = subprocess.run(build(route), capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            if i == len(_routes()) - 1:
+                raise
+            continue
+        if r.returncode != 255:
+            return r
+    return r
+
+
 def _ssh(cmd: str, timeout: int = 20) -> subprocess.CompletedProcess:
-    return subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", HOST, cmd], capture_output=True, text=True, timeout=timeout)
+    return _run(lambda route: ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", *route, HOST, cmd], timeout)
 
 
 def status(max_age_s: int = 300) -> dict:
@@ -98,8 +126,8 @@ def pull(dest: Path | None = None) -> dict:
             skipped.append(day)
             continue
         part = dest / (name + ".part")
-        r = subprocess.run(["scp", "-q", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", f"{HOST}:{REMOTE_DATA}/{name}", str(part)],
-                           capture_output=True, text=True, timeout=600)
+        r = _run(lambda route: ["scp", "-q", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", *route, f"{HOST}:{REMOTE_DATA}/{name}", str(part)],
+                 600)
         if r.returncode != 0 or not part.exists() or part.stat().st_size != size:
             bad.append({"day": day, "file": name, "why": (r.stderr or "size differs").strip()[:120]})
             part.unlink(missing_ok=True)
@@ -156,8 +184,8 @@ def push_backups(n: int = 3, src: Path | None = None) -> dict:
                 b.commit()
                 b.execute("VACUUM")
         _ssh(f"rm -rf {REMOTE_BACKUPS}/{shlex.quote(d.name)}")          # each day's copy is replaced whole, never merged
-        r = subprocess.run(["scp", "-q", "-r", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", str(stage), f"{HOST}:{REMOTE_BACKUPS}/"],
-                           capture_output=True, text=True, timeout=1800)
+        r = _run(lambda route: ["scp", "-q", "-r", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", *route, str(stage), f"{HOST}:{REMOTE_BACKUPS}/"],
+                 1800)
         ok = r.returncode == 0
         chk = _ssh(f"sqlite3 {REMOTE_BACKUPS}/{d.name}/jarvis.sqlite 'PRAGMA integrity_check'", timeout=120).stdout.strip() if ok else ""
         pushed.append({"day": d.name, "ok": ok and chk == "ok", "check": chk[:40]})

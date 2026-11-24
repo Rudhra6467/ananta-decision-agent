@@ -552,10 +552,10 @@ def main(argv: list[str]) -> int:
     run = argv[1] if len(argv) > 1 and not argv[1].startswith("-") else None
     d = run_dir(run)
     if cmd == "money":
-        book = None
-        if "--book" in argv:
-            book = json.loads(Path(argv[argv.index("--book") + 1]).read_text())["book"]
-        print(_save(d, "money", money(book)))
+        book, name = None, "money"
+        if "--book" in argv:                                   # run 2: the benchmark's own book under the code of that day, kept apart
+            book, name = json.loads(Path(argv[argv.index("--book") + 1]).read_text())["book"], "money_benchmark_book"
+        print(_save(d, name, money(book)))
     elif cmd == "options":
         print(_save(d, "options", options()))
     elif cmd == "machine":

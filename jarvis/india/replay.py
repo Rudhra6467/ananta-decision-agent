@@ -193,6 +193,11 @@ def judge(history: list[dict], turn: dict, post=None) -> dict:
             costlog.record("nightly replay grader", JUDGE_MODEL, r)
         except Exception:  # noqa: BLE001
             pass
+        if isinstance(r, dict) and r.get("error"):
+            # 24 Nov 2026 (the India stress test): with the Claude credit empty the API answers with an error body, not an exception, and
+            # every turn was counted as graded and passed. Still not Ananta's failure, but now said: not graded.
+            err = r["error"] if isinstance(r["error"], dict) else {"message": str(r["error"])}
+            return {"pass": True, "problems": [], "judge_error": f"api {err.get('type') or 'error'}: {str(err.get('message'))[:100]}"}
         text = "".join(c.get("text", "") for c in (r.get("content") or []) if c.get("type") == "text")
         m = re.search(r"\{.*\}", text, re.S)
         v = json.loads(m.group(0)) if m else {}

@@ -1,0 +1,52 @@
+{
+ "note": "stand-in moments built from real days of 2004-2020 applied to today's books; not real prices",
+ "W1": {
+  "nifty": {
+   "ret": -0.1298,
+   "gap": -0.0914
+  },
+  "bank": {
+   "ret": -0.1673,
+   "gap": -0.0987
+  },
+  "vix": 71.99,
+  "holdings_words": "Stand-in moment: your stocks (the managed book's) moved -10.8% today: KARURVYSYA -14.6%, TMPV -14.4%, AJANTPHARM -13.7%, NATIONALUM -13.0%, NIFTYBEES -13.0%, JIOFIN -12.7%, LICI -12.7%, ETERNAL -12.7%, TMCV -11.4%, TATAPOWER -10.4%, MARICO -6.1%, CIPLA -4.5%.",
+  "managed_words": "Stops hit at today's close: AJANTPHARM, ETERNAL; a stop is sold at the next session's open, which can be below the stop."
+ },
+ "W2": {
+  "nifty": {
+   "ret": -0.1298,
+   "gap": -0.0914
+  },
+  "bank": {
+   "ret": -0.1673,
+   "gap": -0.0987
+  },
+  "vix": 71.99,
+  "no_prices": true
+ },
+ "W3": {
+  "nifty": {
+   "ret": 0.1774,
+   "gap": 0.0004
+  },
+  "bank": {
+   "ret": 0.1881,
+   "gap": 0.107
+  },
+  "vix": 52.01,
+  "holdings_words": "Stand-in moment: your stocks (the managed book's) moved +13.2% today: MARICO +2.2%, KARURVYSYA +4.0%, CIPLA +9.1%, NATIONALUM +10.6%, TMCV +13.4%, TMPV +13.6%, TATAPOWER +15.0%, ETERNAL +16.2%, JIOFIN +16.3%, LICI +16.3%, AJANTPHARM +17.0%, NIFTYBEES +17.7%."
+ },
+ "W4": {
+  "nifty": {
+   "ret": -0.021,
+   "gap": -0.006
+  },
+  "bank": {
+   "ret": -0.026,
+   "gap": -0.008
+  },
+  "vix": 38.0,
+  "holdings_words": "Stand-in moment: over the last 216 sessions the managed book's stocks and cash have fallen 46% from their high and the Nifty 500 64%; the 22% pause line was crossed on session 50 (on paper it is recorded, not acted on)."
+ }
+}

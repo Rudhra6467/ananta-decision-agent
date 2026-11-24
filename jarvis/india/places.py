@@ -604,6 +604,7 @@ def options_page(full: bool = True) -> dict:
     left = _left_out()                       # 12 Nov 2026 (audit repair 4, G-01): until it is scored late, every total says what it leaves out
     parts = [K.hero("Options, set aside", _rs(ob.get("set_aside_inr")), change=_rs(ob.get("pnl_inr"), sign=True) if ob.get("pnl_inr") is not None else None, tone=_tone(ob.get("pnl_inr")),
                     since=f"over {ob.get('sessions')} sessions, on paper" + (f"; {left}" if left else "")),
+             K.line(options_two_windows()) if options_two_windows() else None,
              K.pricechart("OPTIONS", "The options line", kind="line", private=True),
              K.line(str(ob.get("open_words") or "")), K.kv(rows, title="By index", foot=(left[:1].upper() + left[1:] + ".") if left else None),
              # 12 Nov 2026 (G-11): how the account counts this line, in the account's own sentence (its result since the book started)
@@ -869,7 +870,10 @@ def option_points() -> list[tuple[str, float]]:
     if not by:
         return []
     days = sorted(by)
-    out, run = [((dt.date.fromisoformat(days[0]) - dt.timedelta(days=1)).isoformat(), float(cap))], 0.0
+    d0 = dt.date.fromisoformat(days[0]) - dt.timedelta(days=1)
+    while d0.weekday() >= 5:                                  # 24 Nov 2026: the start point sat on Sun 25 Oct; India trades Monday to Friday
+        d0 -= dt.timedelta(days=1)
+    out, run = [(d0.isoformat(), float(cap))], 0.0
     for d in days:
         run += by[d]
         out.append((d, round(cap + run)))
@@ -879,6 +883,28 @@ def option_points() -> list[tuple[str, float]]:
 def _known_day(r: dict) -> str:
     """The day an options trade's result was known (a trade scored late counts from the day it was scored, as the account counts it)."""
     return str(r.get("scored_at") or r.get("date") or "")[:10]
+
+
+def options_two_windows() -> str | None:
+    """24 Nov 2026 (Madhav, two screenshots: the Options page said +Rs 1,07,747 and the account's Options box +Rs 1,21,322): both are right,
+    over two windows, and both pages now say both numbers in the same sentence, the line's own start first."""
+    rows = [r for r in (IS._safe(IS._sp1_outcomes) or []) if isinstance(((r.get("legs") or {}).get("option") or {}).get("net_rs_realistic"), (int, float))]
+    if not rows:
+        return None
+    net = lambda r: r["legs"]["option"]["net_rs_realistic"]                                   # noqa: E731
+    first = min(str(r.get("date")) for r in rows)
+    mb = IS._managed()
+    sd = str(mb.get("start_day") or "")[:10]
+    total = sum(net(r) for r in rows)
+    out = f"Since the line began ({IS._dw(first)}): {_rs(total, sign=True)} over {len(rows)} trades"
+    if sd and sd > first:
+        counted, later = option_pnl_trades()
+        before = [r for r in rows if str(r.get("date")) < sd]
+        out += (f". Your account counts it from {IS._dw(sd)}, when the managed book started: {_rs(sum(net(r) for r in counted), sign=True)} over "
+                f"{len(counted)} trades; the {len(before)} trade{'s' if len(before) != 1 else ''} before that made {_rs(sum(net(r) for r in before), sign=True)}")
+        if later:
+            out += f"; {len(later)} trade{'s' if len(later) != 1 else ''} scored after the last close join{'s' if len(later) == 1 else ''} the account at the next close"
+    return out + "."
 
 
 def option_pnl_trades(start_day: str | None = None, upto_day: str | None = None) -> tuple[list[dict], list[dict]]:
@@ -1114,7 +1140,7 @@ def options_pnl_page(full: bool = True) -> dict:
                     change=(f"{_pct(p['options_pct'], 1)} on ₹{p['set_aside']:,.0f} set aside" if p and p.get("options_pct") is not None else None),
                     tone=_tone(p.get("options") if p else None),
                     since=(f"since {sd}, {len(nets)} trade{'s' if len(nets) != 1 else ''}" if sd else None)),
-             K.line("In the total since the managed book started; the Options page counts from the line's own start.") if p.get("counted") else
+             K.line(options_two_windows() or "In the total since the managed book started; the Options page counts from the line's own start.") if p.get("counted") else
              K.line("Worked out here: the total still counts options at the money set aside."),
              K.line(f"{len(later)} trade{'s' if len(later) != 1 else ''} scored after the {IS._dw(mb.get('day'))} close, {_rs(late, sign=True)}, "
                     f"join{'s' if len(later) == 1 else ''} at the next close.") if later else None,

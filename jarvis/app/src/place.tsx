@@ -1164,7 +1164,7 @@ function ItemSheet({ s }: { s: any }) {
       <Animated.View style={{ position: "absolute", left: 0, right: 0, bottom: -LIFT, transform: [{ translateY: Y }], maxWidth: 720, marginHorizontal: "auto", width: "100%",
         shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 24, shadowOffset: { width: 0, height: -6 }, elevation: 24 }}>
         <Animated.View accessibilityViewIsModal style={{ height: Animated.add(HA, LIFT), paddingBottom: LIFT, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden",
-          backgroundColor: C.card, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.line }}>
+          backgroundColor: C.sheet, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: C.line }}>
           <View {...pan.panHandlers} style={[{ height: 56, paddingHorizontal: 16, paddingTop: 10, flexDirection: "row", alignItems: "center", gap: 10 },
             NATIVE ? null : ({ userSelect: "none", cursor: "grab", touchAction: "none" } as any)]}>
             <View pointerEvents="none" style={{ position: "absolute", top: 8, left: 0, right: 0, alignItems: "center" }}>

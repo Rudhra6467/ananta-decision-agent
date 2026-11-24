@@ -23,6 +23,9 @@ const LIGHT = {
   // 22 Nov 2026 (the glass look): screen is what a page paints behind its cards (bg, or nothing so the glass backdrop shows); edge and
   // edgeTop are a card's outline (the same as line until the glass look turns them into a thin light rim)
   screen: "#F5F6F8", edge: "#E4E7EC", edgeTop: "#E4E7EC",
+  // 24 Nov 2026 (Madhav, a screenshot: "in the glass mode, the sheet is not visible properly"): what a sheet or a choice menu paints.
+  // It stays solid in the glass look (GLASS never changes it), so the page behind never shows through the sheet's words.
+  sheet: "#FFFFFF",
 };
 export type Palette = typeof LIGHT;
 
@@ -40,6 +43,7 @@ const BAT: Palette = {
   bronzeTint: "#2E251B", blueTint: "#1F2636", blue: "#8CA6E8", violetTint: "#2A2438", violet: "#B7A0EA", line2: "#2B2E33", overlay: "#000000A6",
   bar: "light",
   screen: "#141518", edge: "#33363C", edgeTop: "#33363C",
+  sheet: "#1D1F23",
 };
 
 export type ThemeName = "light" | "bat";

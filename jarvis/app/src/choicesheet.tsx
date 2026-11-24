@@ -21,7 +21,7 @@ export function ChoiceSheet({ open, title, choices, on, pick, close }: { open: b
     <Modal visible={open} transparent animationType="slide" onRequestClose={close} statusBarTranslucent>
       <Pressable onPress={close} accessibilityLabel="Close" style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }} />
       <View accessibilityViewIsModal style={{ position: "absolute", left: 8, right: 8, bottom: Math.max(ins.bottom, 8), maxWidth: 560, alignSelf: "center",
-        backgroundColor: C.card, borderRadius: 24, borderWidth: 1, borderColor: C.line, paddingTop: 10, paddingBottom: 10, overflow: "hidden" }}>
+        backgroundColor: C.sheet, borderRadius: 24, borderWidth: 1, borderColor: C.line, paddingTop: 10, paddingBottom: 10, overflow: "hidden" }}>
         <View style={{ alignSelf: "center", width: 40, height: 5, borderRadius: 3, backgroundColor: C.line, marginBottom: 6 }} />
         {title ? <Text style={{ color: C.dim, fontSize: 13, fontWeight: "600", paddingHorizontal: 20, paddingVertical: 8 }}>{title}</Text> : null}
         {choices.map((c) => {

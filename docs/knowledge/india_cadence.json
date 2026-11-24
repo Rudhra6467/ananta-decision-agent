@@ -4,6 +4,8 @@
   "replay_hours": 168,
   "opening": "code",
   "since": "2026-11-23",
-  "what": "The India answer replay runs once a week (Saturday night, after the weekly exam) over the week's real questions, and on any night after a change to the India Ask's code. The weekly India exam is unchanged (the gate's D32 needs it).",
-  "by": "Madhav, 23 Nov 2026, on the cost review: 'what are the things that is really waste ... why are we not depending on the code to extract the answers' and 'Go with the best reasoning option for ananta'"
+  "what": "The India answer replay runs once a week (Saturday night, after the weekly exam) over the week's real questions, and on any night after a change to the India Ask's code. The weekly India exam is unchanged (the gate's D32 needs it). India research drafts ask for his yes on Sundays only (the weekly check-up); the nightly yardstick stays.",
+  "by": "Madhav, 23 Nov 2026, on the cost review: 'what are the things that is really waste ... why are we not depending on the code to extract the answers' and 'Go with the best reasoning option for ananta'",
+  "drafts": "weekly",
+  "drafts_day": 6
 }

@@ -59,6 +59,29 @@ def _flags(j, now: float) -> list[dict]:
     return out
 
 
+def drafts_day(now: float | None = None) -> bool:
+    """23 Nov 2026 (Madhav: "Yes, let's do it"): the search for new ideas is a weekly check-up. India's research drafts wait all week and
+    ask for his yes on Sundays (Toronto) only; nothing is lost, they are simply not raised on other days. docs/knowledge/india_cadence.json."""
+    import datetime as _dt
+    import json as _json
+    import os as _os
+    from pathlib import Path as _P
+    if _os.getenv("PYTEST_CURRENT_TEST") and not _os.getenv("DRAFTS_WEEKLY_IN_TESTS"):
+        return True
+    try:
+        c = _json.loads((_P(__file__).resolve().parents[2] / "docs" / "knowledge" / "india_cadence.json").read_text())
+    except (OSError, ValueError):
+        return True
+    if c.get("drafts") != "weekly":
+        return True
+    try:
+        from zoneinfo import ZoneInfo
+        d = _dt.datetime.fromtimestamp(now or time.time(), ZoneInfo("America/Toronto"))
+    except Exception:  # noqa: BLE001
+        d = _dt.datetime.fromtimestamp(now or time.time())
+    return d.weekday() == int(c.get("drafts_day", 6))
+
+
 def _drafts() -> list[dict]:
     try:
         from jarvis.india import views
@@ -66,7 +89,7 @@ def _drafts() -> list[dict]:
         d = views.drafts()["drafts"]
     except Exception:  # noqa: BLE001  India data missing never breaks the list
         return []
-    if not d:
+    if not d or not drafts_day():
         return []
     days = sorted({x.get("day") or "" for x in d})
     return [{"id": "india:drafts", "market": "india", "kind": "drafts", "count": len(d), "since": days[0] if days else "",

@@ -40,10 +40,19 @@ GRID = list(range(1, 69, 3))           # baseline reference bars for part B: eve
 GROUPS = list(newskinds.KINDS) + ["all_news"]
 
 
+TMP = Path.home() / "ananta_runs" / "prelive" / "duckdb_tmp"
+
+
 def _con() -> duckdb.DuckDBPyConnection:
+    """25 Nov 2026: the first run's joins spilled 76 GB into the repo's .tmp folder and the disk fell to 13 GB free; it was stopped before any
+    outcome. Now: a fixed temp folder outside the repos with an 8 GB cap (a query that needs more fails instead of filling the disk), 2 GB of
+    memory and 2 threads, so the Mac's running jobs keep their room."""
+    TMP.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect()
-    con.execute("SET memory_limit='3GB'")
-    con.execute("SET threads=4")
+    con.execute(f"SET temp_directory='{TMP}'")
+    con.execute("SET max_temp_directory_size='8GB'")
+    con.execute("SET memory_limit='2GB'")
+    con.execute("SET threads=2")
     return con
 
 
@@ -157,64 +166,70 @@ def part_a(a: pd.DataFrame) -> pd.DataFrame:
 
 def part_b(a: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """News events in session (first news of the stock-day) with the 15-minute move and the continuation to the close; and the no-news
-    baseline moves at the GRID bars of stock-days with no news at all."""
+    baseline moves at the GRID bars of stock-days with no news at all. One pass over the bars, no self-joins (25 Nov 2026: the first form
+    joined the bar table to itself and spilled 76 GB before it was stopped; nothing was computed or seen)."""
     con = _con()
     bars = f"read_parquet('{paths.data_dir()}/silver/kite_5m/year=*/part.parquet', union_by_name=true)"
-    con.execute(f"""CREATE TEMP TABLE sb AS SELECT symbol, date, CAST(round((hour(ts) * 60 + minute(ts) - {OPEN_M}) / 5.0) AS INTEGER) AS k, kite_close AS p
-                    FROM {bars} WHERE date >= DATE '2015-01-01' AND date <= DATE '{LAST_RESEARCH_DAY.date()}' AND kite_close > 0""")
-    con.execute(f"""CREATE TEMP TABLE nb AS SELECT date, CAST(round((hour(ts) * 60 + minute(ts) - {OPEN_M}) / 5.0) AS INTEGER) AS k, close AS p
-                    FROM read_parquet('{paths.data_dir()}/silver/kite_index/5minute/year=*/part.parquet', union_by_name=true)
-                    WHERE index_name = 'NIFTY 50' AND date >= DATE '2015-01-01' AND date <= DATE '{LAST_RESEARCH_DAY.date()}'""")
-    con.execute("CREATE TEMP TABLE slast AS SELECT symbol, date, max(k) AS kl FROM sb GROUP BY 1, 2 HAVING max(k) >= 72")
-    con.execute("CREATE TEMP TABLE nlast AS SELECT date, max(k) AS kl FROM nb GROUP BY 1 HAVING max(k) >= 72")
+    kx = f"CAST(round((hour(ts) * 60 + minute(ts) - {OPEN_M}) / 5.0) AS INTEGER)"
+    span = f"date >= DATE '2015-01-01' AND date <= DATE '{LAST_RESEARCH_DAY.date()}'"
+    # the Nifty: one row per session, its close at every bar and its last close
+    ncols = ", ".join(f"max(close) FILTER (WHERE {kx} = {k}) AS n{k}" for k in range(75))
+    nw = con.execute(f"""SELECT date, {ncols}, max({kx}) AS nkl, arg_max(close, ts) AS ncl
+                         FROM read_parquet('{paths.data_dir()}/silver/kite_index/5minute/year=*/part.parquet', union_by_name=true)
+                         WHERE index_name = 'NIFTY 50' AND {span} GROUP BY date HAVING max({kx}) >= 72""").fetchdf()
+    nw["date"] = pd.to_datetime(nw["date"])
+    nw = nw.set_index("date")
     # the news events: the first in-session news of each stock-day, 2015-2023
     insess = a[(a["cls"] == "B") & ~a["routine"] & (a["session"] >= pd.Timestamp("2015-01-01"))].sort_values("pt")
     first = insess.groupby(["symbol", "session"]).head(1).copy()
     first["k0"] = np.floor((first["minute"] - (OPEN_M + 5)) / 5).astype(int)
     first = first[first["k0"] >= 0]
-    ev = first[["symbol", "session", "k0", "minute", "kinds"]].rename(columns={"session": "date"})
-    ev["date"] = ev["date"].dt.date
-    con.register("ev_in", ev[["symbol", "date", "k0"]])
-    q = """SELECT e.symbol, e.date, e.k0, s0.p AS p0, s1.p AS p1, sl.p AS pl, n0.p AS m0, n1.p AS m1, nl.p AS ml
-           FROM ev_in e
-           JOIN sb s0 ON s0.symbol = e.symbol AND s0.date = e.date AND s0.k = e.k0
-           JOIN sb s1 ON s1.symbol = e.symbol AND s1.date = e.date AND s1.k = e.k0 + 3
-           JOIN slast l ON l.symbol = e.symbol AND l.date = e.date
-           JOIN sb sl ON sl.symbol = e.symbol AND sl.date = e.date AND sl.k = l.kl
-           JOIN nb n0 ON n0.date = e.date AND n0.k = e.k0
-           JOIN nb n1 ON n1.date = e.date AND n1.k = e.k0 + 3
-           JOIN nlast nl2 ON nl2.date = e.date
-           JOIN nb nl ON nl.date = e.date AND nl.k = nl2.kl"""
-    px = con.execute(q).fetchdf()
-    px["date"] = pd.to_datetime(px["date"])
-    ev["date"] = pd.to_datetime(ev["date"])
-    ev = ev.merge(px, on=["symbol", "date", "k0"], how="inner")
-    # the no-news baseline: stock-days with no news at all that day (in session or overnight before it)
+    ev = first[["symbol", "session", "k0", "minute", "kinds"]].rename(columns={"session": "date"}).reset_index(drop=True)
+    keys = ev[["symbol", "date"]].drop_duplicates().copy()
+    keys["date"] = keys["date"].dt.date
+    con.register("ev_keys", keys)
+    long = con.execute(f"""SELECT b.symbol, b.date, {kx} AS k, b.kite_close AS p, b.ts FROM {bars} b
+                           SEMI JOIN ev_keys e ON e.symbol = b.symbol AND e.date = b.date
+                           WHERE {span} AND b.kite_close > 0""").fetchdf()
+    long["date"] = pd.to_datetime(long["date"])
+    last = long.sort_values("ts").groupby(["symbol", "date"]).agg(kl=("k", "max"), pl=("p", "last")).reset_index()
+    last = last[last["kl"] >= 72]
+    pk = long.drop_duplicates(["symbol", "date", "k"], keep="last").set_index(["symbol", "date", "k"])["p"]
+    ev["p0"] = pk.reindex(list(zip(ev["symbol"], ev["date"], ev["k0"]))).values
+    ev["p1"] = pk.reindex(list(zip(ev["symbol"], ev["date"], ev["k0"] + 3))).values
+    ev = ev.merge(last[["symbol", "date", "pl"]], on=["symbol", "date"], how="inner")
+    nd = nw.reindex(ev["date"])
+    nmat = nd[[f"n{k}" for k in range(75)]].to_numpy(dtype=float)
+    rows = np.arange(len(ev))
+    k0v, k1v = ev["k0"].to_numpy(), ev["k0"].to_numpy() + 3
+    ev["m0"] = np.where(k0v < 75, nmat[rows, np.clip(k0v, 0, 74)], np.nan)
+    ev["m1"] = np.where(k1v < 75, nmat[rows, np.clip(k1v, 0, 74)], np.nan)
+    ev["ml"] = nd["ncl"].to_numpy(dtype=float)
+    ev = ev.dropna(subset=["p0", "p1", "pl", "m0", "m1", "ml"])
+    del long, pk
+    # the no-news baseline: every stock-day's closes at the GRID bars and 15 minutes after them, in one grouped pass
+    need = sorted(set(GRID) | {g + 3 for g in GRID})
+    scols = ", ".join(f"max(kite_close) FILTER (WHERE {kx} = {k}) AS c{k}" for k in need)
+    wide = con.execute(f"""SELECT symbol, date, {scols}, max({kx}) AS kl, arg_max(kite_close, ts) AS cl FROM {bars}
+                           WHERE {span} AND kite_close > 0 GROUP BY symbol, date HAVING max({kx}) >= 72""").fetchdf()
+    wide["date"] = pd.to_datetime(wide["date"])
     newsdays = a[~a["routine"] & (a["session"] >= pd.Timestamp("2015-01-01"))][["symbol", "session"]].drop_duplicates()
-    newsdays = newsdays.rename(columns={"session": "date"})
-    newsdays["date"] = newsdays["date"].dt.date
-    con.register("newsdays", newsdays)
-    con.register("grid", pd.DataFrame({"k0": GRID}))
-    qb = """SELECT s0.symbol, s0.date, s0.k AS k0, s0.p AS p0, s1.p AS p1, sl.p AS pl, n0.p AS m0, n1.p AS m1, nl.p AS ml
-            FROM sb s0
-            JOIN grid g ON g.k0 = s0.k
-            JOIN sb s1 ON s1.symbol = s0.symbol AND s1.date = s0.date AND s1.k = s0.k + 3
-            JOIN slast l ON l.symbol = s0.symbol AND l.date = s0.date
-            JOIN sb sl ON sl.symbol = s0.symbol AND sl.date = s0.date AND sl.k = l.kl
-            JOIN nb n0 ON n0.date = s0.date AND n0.k = s0.k
-            JOIN nb n1 ON n1.date = s0.date AND n1.k = s0.k + 3
-            JOIN nlast nl2 ON nl2.date = s0.date
-            JOIN nb nl ON nl.date = s0.date AND nl.k = nl2.kl
-            ANTI JOIN newsdays nd ON nd.symbol = s0.symbol AND nd.date = s0.date
-            WHERE abs((s1.p / s0.p - 1) - (n1.p / n0.p - 1)) >= {m}""".format(m=MOVE15_MIN)
-    base = con.execute(qb).fetchdf()
-    base["date"] = pd.to_datetime(base["date"])
-    # how often a no-news stock moves 1% beyond the Nifty in 15 minutes at all (the responsiveness table's yardstick): counts only
-    tot = con.execute("""SELECT count(*) FROM sb s0 JOIN grid g ON g.k0 = s0.k
-                         JOIN sb s1 ON s1.symbol = s0.symbol AND s1.date = s0.date AND s1.k = s0.k + 3
-                         JOIN slast l ON l.symbol = s0.symbol AND l.date = s0.date
-                         ANTI JOIN newsdays nd ON nd.symbol = s0.symbol AND nd.date = s0.date""").fetchone()[0]
-    base.attrs["grid_moves_total"] = int(tot)
+    newsdays = newsdays.rename(columns={"session": "date"}).assign(news=True)
+    wide = wide.merge(newsdays, on=["symbol", "date"], how="left")
+    wide = wide[wide["news"].isna()].drop(columns="news")
+    nwd = nw.reindex(wide["date"])
+    parts, total = [], 0
+    for k0 in GRID:
+        p0, p1, pl = wide[f"c{k0}"].values, wide[f"c{k0 + 3}"].values, wide["cl"].values
+        m0, m1, ml = nwd[f"n{k0}"].values, nwd[f"n{k0 + 3}"].values, nwd["ncl"].values
+        ok = ~(np.isnan(p0) | np.isnan(p1) | np.isnan(m0) | np.isnan(m1) | np.isnan(ml))
+        total += int(ok.sum())
+        mv = (p1 / p0 - 1) - (m1 / m0 - 1)
+        sel = ok & (np.abs(mv) >= MOVE15_MIN)
+        parts.append(pd.DataFrame({"symbol": wide["symbol"].values[sel], "date": wide["date"].values[sel], "k0": k0, "p0": p0[sel], "p1": p1[sel],
+                                   "pl": pl[sel], "m0": m0[sel], "m1": m1[sel], "ml": ml[sel]}))
+    base = pd.concat(parts, ignore_index=True)
+    base.attrs["grid_moves_total"] = int(total)
     for df in (ev, base):
         df["move15"] = (df["p1"] / df["p0"] - 1) - (df["m1"] / df["m0"] - 1)
         df["cont"] = np.sign(df["move15"]) * ((df["pl"] / df["p1"] - 1) - (df["ml"] / df["m1"] - 1))

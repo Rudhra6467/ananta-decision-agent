@@ -65,7 +65,7 @@ Madhav, 23 Nov 2026, in chat: "Yes please". He was answering flag 235: write a p
 
 Madhav, 23 Nov 2026, in chat: "let's wait for 30 clean sessions as mentioned and decide after that on going live ... if everything is running well and as per plan. And check the reconstruction, comparison analysis results. And if everything works good, looks good and feels good. Go live with options and stocks. Stocks - connect to zerodha and start working on them. Options - a 50000 is allocated for trading. Anytime after 30 sessions and good confidence."
 
-The checklist for that day, all of it read from the system. This is the one page for going live; every line names its open-list item, and the open list (app `jarvis/service/openlist.py`) says what is still open. The decision itself is flag 238.
+The checklist for that day, all of it read from the system. This is the one page for going live; every line names its open-list item, and the open list (app `jarvis/service/openlist.py`) says what is still open. The decision itself is flag 238. How and in what order we get there: `golive_plan_v1.md`.
 1. **G02:** 30 clean sessions in a row (23 on 23 Nov), with the gate's rows D15, D16 and D32 (the weekly India exam; its current fail is flag 276).
 2. **The trials:** read against the marks above: the options line (flag 88, 25 Nov), RX1 (flag 271, 27 Nov), the shadow trader (flag 272, 27 Nov), the no-chase filter (flag 273, 30 Nov), RS (flag 274, 2 Dec).
 3. **The reconstruction:** its findings, and whether any changed a rule.

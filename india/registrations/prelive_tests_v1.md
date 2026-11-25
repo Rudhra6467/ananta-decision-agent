@@ -21,17 +21,9 @@ Madhav, 25 Nov 2026, in chat: "sounds like we have to do all of them before goin
 
 Open-list names: T1 flag 254, T2 flag 255, T3 flag 256, T13 flag 257, T4 flag 258, T5 flag 259, T6 flag 260, T7 flag 261, T8 flag 262, T9 flag 263, T11 flag 264, T12 flag 265, T14 flag 266, T15 flag 267; T10's yes is flag 268. The live options cap question that T1 feeds is flag 269.
 
-## Order (G02 reaches 30 on about Thu 3 Dec)
+## Order
 
-| Day | Tests |
-|---|---|
-| Thu 26 Nov | T1, T2 |
-| Fri 27 Nov | T3, T13 |
-| Sat 28 Nov | T4, T5 |
-| Sun 29 Nov | T6, T7 |
-| Mon 30 Nov | T8, T9, T11 |
-| Tue 1 Dec | T12, T14, T15 |
-| Wed 2 Dec | fixes; T10 if Madhav says yes |
+The order is kept in one place: `golive_plan_v1.md`, section 5 (from 25 Nov, replacing the first day-by-day table here). T1 ran on 25 Nov. T13 and T15 wait for the live path's design and build (Track A there). The pass marks below do not change.
 
 ## A. Before going live
 

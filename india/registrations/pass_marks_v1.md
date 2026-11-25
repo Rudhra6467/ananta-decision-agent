@@ -65,12 +65,12 @@ Madhav, 23 Nov 2026, in chat: "Yes please". He was answering flag 235: write a p
 
 Madhav, 23 Nov 2026, in chat: "let's wait for 30 clean sessions as mentioned and decide after that on going live ... if everything is running well and as per plan. And check the reconstruction, comparison analysis results. And if everything works good, looks good and feels good. Go live with options and stocks. Stocks - connect to zerodha and start working on them. Options - a 50000 is allocated for trading. Anytime after 30 sessions and good confidence."
 
-The checklist for that day, all of it read from the system:
-1. **G02:** 30 clean sessions in a row (23 on 23 Nov).
-2. **The trials:** read against the marks above.
+The checklist for that day, all of it read from the system. This is the one page for going live; every line names its open-list item, and the open list (app `jarvis/service/openlist.py`) says what is still open. The decision itself is flag 238.
+1. **G02:** 30 clean sessions in a row (23 on 23 Nov), with the gate's rows D15, D16 and D32 (the weekly India exam; its current fail is flag 276).
+2. **The trials:** read against the marks above: the options line (flag 88, 25 Nov), RX1 (flag 271, 27 Nov), the shadow trader (flag 272, 27 Nov), the no-chase filter (flag 273, 30 Nov), RS (flag 274, 2 Dec).
 3. **The reconstruction:** its findings, and whether any changed a rule.
-4. **The comparisons:** the options line against the index move; the managed book against the holdings left alone; the practice book against random.
-5. **The gate's last parts** (INDIA_LOCK.md Rule A):
+4. **The comparisons:** the options line against the index move (flag 243, with T10's simple yardsticks); the managed book against the holdings left alone; the practice book against random; and Ananta and Claude side by side (flag 253, `claude_compare_v1.md`).
+5. **The gate's last parts** (INDIA_LOCK.md Rule A; the live path is flag 239):
    - Madhav's written yes;
    - the order module reviewed;
    - the survival rules switched from record to enforce.
@@ -78,4 +78,7 @@ The checklist for that day, all of it read from the system:
    - **The cap from 25 Nov (Madhav, 25 Nov 2026, in chat: "yes to all your recommendations ... we will cap it at 75,000 for going live now", flag 269):** Rs 75,000 of options money and a 1-lot premium cap of half of it, Rs 37,500; at most one options position held overnight, as before. Why: the Rs 25,000 cap skipped the first days of each new monthly Bank Nifty contract (5 of 22 scored trades, and 25 Nov at Rs 44,806), the days go-live falls in; the Rs 37,500 cap keeps all 22 scored trades (with the one-overnight rule, 18 of 22, since it skips every Nifty trade so far: pre-live test T1), and the worst bad night stays about half the options money, the shape approved on 24 Nov. He confirms the figures in his written yes on the live day (Rule A). The 24 Nov entry below is kept as history.
    - **The cap (Madhav, 24 Nov 2026, in chat: "yes to all your recommendations", after the stress test, flag 247):** a trade whose 1-lot premium is above Rs 25,000 is skipped, and at most one options position is held overnight. Live only: the paper line stays as frozen (SP1 v2), so its record and its clock are not split. Why: in the stress test (`stress_results_2026-11-24.md`) one bad night cost about all of a trade's premium, and both indices held overnight at their largest premiums would cost Rs 51,329, more than the whole Rs 50,000. With the cap the worst night stays near half the money; an ordinary trade can still lose about 40% of it in one bad night.
 7. **Live stocks (same yes, flag 239):** broker-side stop orders at each stop (Zerodha GTT) so a stop does not wait for the next morning's open, and the survival rules (5% day, 22% pause) set to enforce. The book's 8 original holdings carry no stop; that is noted for the live day, not changed on paper.
-8. **The pre-live tests (Madhav, 25 Nov 2026, in chat: "we have to do all of them before going live"):** all 15 tests in `prelive_tests_v1.md` read, and each fail either fixed or accepted by Madhav in writing.
+8. **The pre-live tests (Madhav, 25 Nov 2026, in chat: "we have to do all of them before going live"):** all 15 tests in `prelive_tests_v1.md` read (flags 254-268), and each fail either fixed or accepted by Madhav in writing. A finding a test files is its own item (so far flag 270, the index-level stops).
+9. **Stress test run 2 (Madhav, 24 Nov 2026):** after the 30th clean session, the same scenarios, seed and marks as the benchmark; no benchmark figure may drop (flag 250).
+
+After going live: the random audit on 29 Dec (flag 275) and the monthly outside grading (flag 90).

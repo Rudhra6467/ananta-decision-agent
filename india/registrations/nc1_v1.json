@@ -1,0 +1,659 @@
+{
+ "study": "NC1",
+ "version": 1,
+ "status": "frozen before any outcome was computed",
+ "frozen": "2026-11-25",
+ "asked_by": "Madhav, 25 Nov 2026, in chat: \"Ananta can predict the live happening, which was let's say 5 minutes or 10 minutes or 15 minutes later. That is when we can know what was actually happening ... We don't have to hurry in finding the moves. The proved moves are good enough ... what are the most effective news for the Indian market that we have to keep a track on? ... use some keywords to analyze ... derive some relation between the keywords and ... the main influencing keywords, sometimes for market gainers or market losers\"; then \"Your reasoning is good, let's proceed and complete it ... we are treating the study as, that is the thing we are doing, right?\"",
+ "title": "After company news, a confirmed move: does it continue or fade, against a move of the same size on a day with no news?",
+ "hypothesis": "A stock move that comes with company news and is confirmed (at the open for news made public overnight; about 15 minutes later for news in session) goes on further in the same direction to the close than a move of the same size on a day with no news, and more for some kinds of news than others. Prior idea: Chan (2003, US stocks) found that big moves with news drifted on and big moves without news tended to reverse.",
+ "prior_evidence_here": "V02T (13 NSE announcement categories) and HFN1/HFN1T (a news model's tone) found no drift over 5 and 20 sessions measured from the close of the news day. NC1 asks a different question: what happens inside the session, after the move is confirmed.",
+ "data": {
+  "announcements": "silver/announce/announcements.parquet, public time from 2010-01-01 to 2023-12-29 (research years only; never 2024+ or the sealed folders). Public time = the exchange dissemination time where kept (2020 on), else the announcement time: where both exist they agree within a minute (10th, 50th and 90th percentile gaps 0, 0 and 1 minute)",
+  "part_A_prices": "gold/bars/adj_daily (adjusted open and close), the stocks in gold/universe/u_liq_in top500 that day; days in gold/ca_flags (corporate actions) dropped; Nifty 50 open and close from silver/kite_index day",
+  "part_B_prices": "silver/kite_5m kite_close, 2015-2023 (447 to 635 stocks a year); Nifty 50 5-minute bars from silver/kite_index/5minute; a stock-day needs a bar at or after 15:15 (k 72) to count"
+ },
+ "dictionary": {
+  "module": "india/newskinds.py",
+  "sha256": "7530e556a127bd3968ed87d9d10ea79a2e772cd5a79f00f5a4e44b2d1ff9e118",
+  "kinds": {
+   "results": "quarterly or annual financial results",
+   "order_win": "a new order, contract or award won",
+   "usfda_adverse": "a US drug regulator warning, import alert or inspection observations",
+   "usfda_approval": "a US drug regulator approval",
+   "rating_down": "a credit rating cut or a negative outlook",
+   "rating_up": "a credit rating raised or a positive outlook",
+   "fund_raising": "raising equity: a QIP, a rights issue or a preferential issue",
+   "merger_acquisition": "an acquisition, merger, demerger, stake sale or joint venture",
+   "holding_change": "a disclosure of shares bought or sold by promoters or insiders",
+   "management_exit": "a resignation or exit of a chief executive, finance chief, managing or whole-time director, or chairman",
+   "pledge_default": "pledged shares, an invoked pledge, a missed payment or insolvency",
+   "regulatory_legal": "a penalty, search, show-cause notice, regulator order or court matter",
+   "buyback": "a share buyback",
+   "dividend_bonus_split": "a dividend, bonus issue or share split",
+   "operations_up": "a new plant, capacity, launch or start of commercial production",
+   "disruption": "a fire, accident, shutdown, strike, lockout, flood or cyber attack",
+   "analyst_meet": "a scheduled analyst or investor meeting or presentation (routine: the control kind)"
+  },
+  "routine": "lost share certificates, trading window, newspaper copies, record and book closure dates, meeting notices, and exchange queries about a price move (which follow the move): never news; a stock-day with only these counts as a day with no news",
+  "rule": "an announcement can carry several kinds; 'all_news' is every non-routine announcement, of a listed kind or not; the run refuses to start if the module's sha256 differs from this one"
+ },
+ "counts_before_outcomes": {
+  "announcements": 879659,
+  "routine": 241388,
+  "news": 638271,
+  "by_class": {
+   "A": 405933,
+   "B": 232338
+  },
+  "kinds": {
+   "results": {
+    "announcements": 94475,
+    "A_stock_days": 55299,
+    "B_stock_days": 19392,
+    "by_year": {
+     "2010": 2923,
+     "2011": 6508,
+     "2012": 6269,
+     "2013": 5915,
+     "2014": 5854,
+     "2015": 5473,
+     "2016": 6985,
+     "2017": 7386,
+     "2018": 7813,
+     "2019": 7958,
+     "2020": 8248,
+     "2021": 7611,
+     "2022": 6202,
+     "2023": 9330
+    }
+   },
+   "order_win": {
+    "announcements": 3834,
+    "A_stock_days": 1453,
+    "B_stock_days": 1484,
+    "by_year": {
+     "2010": 311,
+     "2011": 257,
+     "2012": 234,
+     "2013": 174,
+     "2014": 173,
+     "2015": 195,
+     "2016": 278,
+     "2017": 339,
+     "2018": 351,
+     "2019": 241,
+     "2020": 265,
+     "2021": 267,
+     "2022": 338,
+     "2023": 411
+    }
+   },
+   "usfda_adverse": {
+    "announcements": 138,
+    "A_stock_days": 66,
+    "B_stock_days": 59,
+    "by_year": {
+     "2011": 3,
+     "2012": 2,
+     "2013": 13,
+     "2014": 4,
+     "2015": 9,
+     "2016": 15,
+     "2017": 35,
+     "2018": 10,
+     "2019": 21,
+     "2020": 7,
+     "2021": 3,
+     "2022": 5,
+     "2023": 11
+    }
+   },
+   "usfda_approval": {
+    "announcements": 1121,
+    "A_stock_days": 268,
+    "B_stock_days": 650,
+    "by_year": {
+     "2010": 77,
+     "2011": 58,
+     "2012": 43,
+     "2013": 32,
+     "2014": 23,
+     "2015": 46,
+     "2016": 82,
+     "2017": 118,
+     "2018": 113,
+     "2019": 115,
+     "2020": 104,
+     "2021": 77,
+     "2022": 106,
+     "2023": 127
+    }
+   },
+   "rating_down": {
+    "announcements": 209,
+    "A_stock_days": 142,
+    "B_stock_days": 38,
+    "by_year": {
+     "2010": 6,
+     "2011": 4,
+     "2012": 11,
+     "2013": 23,
+     "2014": 17,
+     "2015": 18,
+     "2016": 24,
+     "2017": 9,
+     "2018": 8,
+     "2019": 27,
+     "2020": 26,
+     "2021": 2,
+     "2022": 34
+    }
+   },
+   "rating_up": {
+    "announcements": 715,
+    "A_stock_days": 418,
+    "B_stock_days": 212,
+    "by_year": {
+     "2010": 39,
+     "2011": 28,
+     "2012": 16,
+     "2013": 23,
+     "2014": 58,
+     "2015": 62,
+     "2016": 77,
+     "2017": 39,
+     "2018": 49,
+     "2019": 20,
+     "2020": 24,
+     "2021": 17,
+     "2022": 245,
+     "2023": 18
+    }
+   },
+   "fund_raising": {
+    "announcements": 6200,
+    "A_stock_days": 3799,
+    "B_stock_days": 1192,
+    "by_year": {
+     "2010": 719,
+     "2011": 382,
+     "2012": 324,
+     "2013": 246,
+     "2014": 375,
+     "2015": 340,
+     "2016": 342,
+     "2017": 380,
+     "2018": 296,
+     "2019": 366,
+     "2020": 408,
+     "2021": 485,
+     "2022": 818,
+     "2023": 719
+    }
+   },
+   "merger_acquisition": {
+    "announcements": 20769,
+    "A_stock_days": 11933,
+    "B_stock_days": 3217,
+    "by_year": {
+     "2010": 1675,
+     "2011": 1446,
+     "2012": 835,
+     "2013": 2770,
+     "2014": 2194,
+     "2015": 954,
+     "2016": 1070,
+     "2017": 1044,
+     "2018": 1041,
+     "2019": 1430,
+     "2020": 1129,
+     "2021": 1439,
+     "2022": 1707,
+     "2023": 2035
+    }
+   },
+   "holding_change": {
+    "announcements": 61336,
+    "A_stock_days": 25829,
+    "B_stock_days": 10374,
+    "by_year": {
+     "2010": 664,
+     "2011": 3019,
+     "2012": 7324,
+     "2013": 9785,
+     "2014": 8460,
+     "2015": 5208,
+     "2016": 3362,
+     "2017": 3313,
+     "2018": 2814,
+     "2019": 3394,
+     "2020": 3529,
+     "2021": 3844,
+     "2022": 3649,
+     "2023": 2971
+    }
+   },
+   "management_exit": {
+    "announcements": 3258,
+    "A_stock_days": 2199,
+    "B_stock_days": 569,
+    "by_year": {
+     "2010": 138,
+     "2011": 180,
+     "2012": 177,
+     "2013": 166,
+     "2014": 228,
+     "2015": 234,
+     "2016": 237,
+     "2017": 215,
+     "2018": 239,
+     "2019": 258,
+     "2020": 261,
+     "2021": 258,
+     "2022": 320,
+     "2023": 347
+    }
+   },
+   "pledge_default": {
+    "announcements": 5711,
+    "A_stock_days": 3490,
+    "B_stock_days": 1372,
+    "by_year": {
+     "2010": 107,
+     "2011": 143,
+     "2012": 140,
+     "2013": 130,
+     "2014": 91,
+     "2015": 21,
+     "2016": 17,
+     "2017": 246,
+     "2018": 355,
+     "2019": 743,
+     "2020": 816,
+     "2021": 993,
+     "2022": 1053,
+     "2023": 856
+    }
+   },
+   "regulatory_legal": {
+    "announcements": 5412,
+    "A_stock_days": 3315,
+    "B_stock_days": 1064,
+    "by_year": {
+     "2010": 417,
+     "2011": 309,
+     "2012": 344,
+     "2013": 266,
+     "2014": 315,
+     "2015": 427,
+     "2016": 542,
+     "2017": 402,
+     "2018": 385,
+     "2019": 320,
+     "2020": 221,
+     "2021": 330,
+     "2022": 584,
+     "2023": 550
+    }
+   },
+   "buyback": {
+    "announcements": 3315,
+    "A_stock_days": 2044,
+    "B_stock_days": 586,
+    "by_year": {
+     "2010": 240,
+     "2011": 236,
+     "2012": 197,
+     "2013": 168,
+     "2014": 72,
+     "2015": 39,
+     "2016": 161,
+     "2017": 195,
+     "2018": 305,
+     "2019": 326,
+     "2020": 254,
+     "2021": 250,
+     "2022": 673,
+     "2023": 199
+    }
+   },
+   "dividend_bonus_split": {
+    "announcements": 25596,
+    "A_stock_days": 13227,
+    "B_stock_days": 4359,
+    "by_year": {
+     "2010": 1540,
+     "2011": 2199,
+     "2012": 1916,
+     "2013": 1654,
+     "2014": 1639,
+     "2015": 1623,
+     "2016": 1574,
+     "2017": 1506,
+     "2018": 1616,
+     "2019": 1616,
+     "2020": 1541,
+     "2021": 1827,
+     "2022": 2911,
+     "2023": 2434
+    }
+   },
+   "operations_up": {
+    "announcements": 7104,
+    "A_stock_days": 3303,
+    "B_stock_days": 2577,
+    "by_year": {
+     "2010": 471,
+     "2011": 412,
+     "2012": 374,
+     "2013": 384,
+     "2014": 369,
+     "2015": 484,
+     "2016": 567,
+     "2017": 543,
+     "2018": 487,
+     "2019": 475,
+     "2020": 490,
+     "2021": 621,
+     "2022": 671,
+     "2023": 756
+    }
+   },
+   "disruption": {
+    "announcements": 2724,
+    "A_stock_days": 1557,
+    "B_stock_days": 730,
+    "by_year": {
+     "2010": 112,
+     "2011": 116,
+     "2012": 128,
+     "2013": 139,
+     "2014": 177,
+     "2015": 237,
+     "2016": 256,
+     "2017": 224,
+     "2018": 189,
+     "2019": 167,
+     "2020": 389,
+     "2021": 221,
+     "2022": 169,
+     "2023": 200
+    }
+   },
+   "analyst_meet": {
+    "announcements": 91287,
+    "A_stock_days": 54463,
+    "B_stock_days": 30940,
+    "by_year": {
+     "2016": 3092,
+     "2017": 8142,
+     "2018": 9104,
+     "2019": 9461,
+     "2020": 9230,
+     "2021": 12521,
+     "2022": 17873,
+     "2023": 21864
+    }
+   }
+  },
+  "no_kind_news": 317365
+ },
+ "timing": {
+  "A": "made public after 15:30 on a session day (the next session), on a day with no session (the next session), or at or before 09:00 on a session day (that session)",
+  "B": "made public from 09:20 to 15:00 on a session day; the event is the stock-day's first such news",
+  "edge": "09:00-09:20 and 15:00-15:30: never an event, but counted as the day's news (so such a day is never a no-news day)"
+ },
+ "part_A": {
+  "confirmed": "abnormal gap = (open / previous close - 1) minus the Nifty's same; |abnormal gap| >= 2%",
+  "cont": "sign(gap) x [(close / open - 1) minus the Nifty's (close / open - 1)]: positive = the move went on, negative = it faded",
+  "baseline": "confirmed gaps on top-500 stock-days with no news at all that day (overnight or in session), same quarter and same direction",
+  "five_sessions": "sign(gap) x [(close 4 sessions on / open - 1) minus the Nifty's same]: descriptive only",
+  "split": "dev 2010-2017, validation 2018-2023 (the registry standard)"
+ },
+ "part_B": {
+  "confirmed": "the reference price is the close of the last 5-minute bar ended at or before the news; the confirmation price the close of the bar 15 minutes after that (10 to 15 minutes after the news); abnormal move = the stock's minus the Nifty's; |move| >= 1%",
+  "cont": "sign(move) x [(the day's last close / confirmation price - 1) minus the Nifty's same]",
+  "baseline": "confirmed 15-minute moves of stocks with no news at all that day, taken every 15 minutes from the bar ending 09:25 to the bar ending 15:00; matched by quarter, direction and time of day (09:20-10:30, 10:30-12:00, 12:00-13:30, 13:30-15:00)",
+  "split": "dev 2015-2018, validation 2019-2023: the 5-minute bars start in 2015, and this split gives each period at least the registry's 16 quarters"
+ },
+ "rows": {
+  "A|results|cont": {
+   "expect": 1
+  },
+  "A|results|edge": {
+   "expect": 1
+  },
+  "A|order_win|cont": {
+   "expect": 1
+  },
+  "A|order_win|edge": {
+   "expect": 1
+  },
+  "A|usfda_adverse|cont": {
+   "expect": 1
+  },
+  "A|usfda_adverse|edge": {
+   "expect": 1
+  },
+  "A|usfda_approval|cont": {
+   "expect": 1
+  },
+  "A|usfda_approval|edge": {
+   "expect": 1
+  },
+  "A|rating_down|cont": {
+   "expect": 1
+  },
+  "A|rating_down|edge": {
+   "expect": 1
+  },
+  "A|rating_up|cont": {
+   "expect": 1
+  },
+  "A|rating_up|edge": {
+   "expect": 1
+  },
+  "A|fund_raising|cont": {
+   "expect": 1
+  },
+  "A|fund_raising|edge": {
+   "expect": 1
+  },
+  "A|merger_acquisition|cont": {
+   "expect": 1
+  },
+  "A|merger_acquisition|edge": {
+   "expect": 1
+  },
+  "A|holding_change|cont": {
+   "expect": 1
+  },
+  "A|holding_change|edge": {
+   "expect": 1
+  },
+  "A|management_exit|cont": {
+   "expect": 1
+  },
+  "A|management_exit|edge": {
+   "expect": 1
+  },
+  "A|pledge_default|cont": {
+   "expect": 1
+  },
+  "A|pledge_default|edge": {
+   "expect": 1
+  },
+  "A|regulatory_legal|cont": {
+   "expect": 1
+  },
+  "A|regulatory_legal|edge": {
+   "expect": 1
+  },
+  "A|buyback|cont": {
+   "expect": 1
+  },
+  "A|buyback|edge": {
+   "expect": 1
+  },
+  "A|dividend_bonus_split|cont": {
+   "expect": 1
+  },
+  "A|dividend_bonus_split|edge": {
+   "expect": 1
+  },
+  "A|operations_up|cont": {
+   "expect": 1
+  },
+  "A|operations_up|edge": {
+   "expect": 1
+  },
+  "A|disruption|cont": {
+   "expect": 1
+  },
+  "A|disruption|edge": {
+   "expect": 1
+  },
+  "A|analyst_meet|cont": {
+   "expect": 1
+  },
+  "A|analyst_meet|edge": {
+   "expect": 1
+  },
+  "A|all_news|cont": {
+   "expect": 1
+  },
+  "A|all_news|edge": {
+   "expect": 1
+  },
+  "B|results|cont": {
+   "expect": 1
+  },
+  "B|results|edge": {
+   "expect": 1
+  },
+  "B|order_win|cont": {
+   "expect": 1
+  },
+  "B|order_win|edge": {
+   "expect": 1
+  },
+  "B|usfda_adverse|cont": {
+   "expect": 1
+  },
+  "B|usfda_adverse|edge": {
+   "expect": 1
+  },
+  "B|usfda_approval|cont": {
+   "expect": 1
+  },
+  "B|usfda_approval|edge": {
+   "expect": 1
+  },
+  "B|rating_down|cont": {
+   "expect": 1
+  },
+  "B|rating_down|edge": {
+   "expect": 1
+  },
+  "B|rating_up|cont": {
+   "expect": 1
+  },
+  "B|rating_up|edge": {
+   "expect": 1
+  },
+  "B|fund_raising|cont": {
+   "expect": 1
+  },
+  "B|fund_raising|edge": {
+   "expect": 1
+  },
+  "B|merger_acquisition|cont": {
+   "expect": 1
+  },
+  "B|merger_acquisition|edge": {
+   "expect": 1
+  },
+  "B|holding_change|cont": {
+   "expect": 1
+  },
+  "B|holding_change|edge": {
+   "expect": 1
+  },
+  "B|management_exit|cont": {
+   "expect": 1
+  },
+  "B|management_exit|edge": {
+   "expect": 1
+  },
+  "B|pledge_default|cont": {
+   "expect": 1
+  },
+  "B|pledge_default|edge": {
+   "expect": 1
+  },
+  "B|regulatory_legal|cont": {
+   "expect": 1
+  },
+  "B|regulatory_legal|edge": {
+   "expect": 1
+  },
+  "B|buyback|cont": {
+   "expect": 1
+  },
+  "B|buyback|edge": {
+   "expect": 1
+  },
+  "B|dividend_bonus_split|cont": {
+   "expect": 1
+  },
+  "B|dividend_bonus_split|edge": {
+   "expect": 1
+  },
+  "B|operations_up|cont": {
+   "expect": 1
+  },
+  "B|operations_up|edge": {
+   "expect": 1
+  },
+  "B|disruption|cont": {
+   "expect": 1
+  },
+  "B|disruption|edge": {
+   "expect": 1
+  },
+  "B|analyst_meet|cont": {
+   "expect": 1
+  },
+  "B|analyst_meet|edge": {
+   "expect": 1
+  },
+  "B|all_news|cont": {
+   "expect": 1
+  },
+  "B|all_news|edge": {
+   "expect": 1
+  }
+ },
+ "rows_words": "for each part (A, B) and each of the 17 kinds plus all_news: '<part>|<kind>|cont' (the confirmed move went on to the close) and '<part>|<kind>|edge' (it went on further than a no-news move of the same direction): 72 rows, each expecting +1; a significant minus in both periods reads OPPOSITE (the move fades)",
+ "statistics": "calendar-quarter blocks: one mean per quarter, t over the quarter means, dev and validation apart; at least 16 quarters per period (registry MIN_DATES), else INCONCLUSIVE; |returns| above 50% dropped as bad prints",
+ "bar": {
+  "family": "news_confirm",
+  "bar_families": [
+   "events",
+   "news_tone",
+   "news_confirm"
+  ],
+  "union_k": 130,
+  "z": 3.55,
+  "why": "42 events-family rows and 16 news_tone rows in the ledger on 25 Nov 2026, plus these 72; two-sided Bonferroni",
+  "rule": "registry standard: VALIDATED needs |t| >= z in both periods with the expected sign; CONDITIONAL z in one and 1.65 in the other"
+ },
+ "descriptive": [
+  "responsiveness: for each kind, how often its news gave a confirmed move (A and B), how big, which way, and what followed",
+  "movers: of each session's 25 biggest gainers and 25 biggest losers (top 500, the day's move beyond the Nifty), the share with news of each kind that day, against all stock-days (the lift)",
+  "five sessions: the confirmed overnight moves' further move over 5 sessions"
+ ],
+ "what_a_pass_means": "that kind of news, once its move is confirmed, tends to go on (or, if OPPOSITE, to fade). It is NOT a trade: the moves are before costs (a round trip costs about 0.3-0.5%), and a paper rule would need its own registered forward test against random and Madhav's yes",
+ "integration": "the results reach Ananta through the ledger (the registry and the knowledge map's research facts) and the plain-words results page; the live line 'movers and their news' (india/movernews.py) tags each session's biggest movers with the same kinds for the morning review. No book, rule, score or decision reads any of it",
+ "code": "india/newskinds.py (the dictionary), india/nc1.py (the method), india/nc1_run.py (the run); Python ~/ananta_venvs/lake"
+}

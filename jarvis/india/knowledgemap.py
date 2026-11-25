@@ -41,7 +41,9 @@ PAPER_LINKS = {"E02": "the BRK and PULL entry sets and their exits", "E03": "the
                "SP3": "the positional playbook (registered, not in a book)", "HG1": "the allocation rule's cash by regime (informs it)", "RX1": "the RX1 paper trial",
                # 30 Oct (Madhav's yes): the no-chase filters in the paper rules (stock.no_chase); the teacher cards of the same family
                "E04": "the no-chase filter (extended stocks are not bought), cfg-2026-10-30a", "T-TWT-H10": "the no-chase filter (don't chase), cfg-2026-10-30a",
-               "FP1": "the long-term tilt book (india.factorbook, shadow, 30 Oct)", "CL1": "closed: no pair beat its parts (nothing to embed)", "DR1": "closed: no (the affordable version does not pay)"}
+               "FP1": "the long-term tilt book (india.factorbook, shadow, 30 Oct)", "CL1": "closed: no pair beat its parts (nothing to embed)", "DR1": "closed: no (the affordable version does not pay)",
+               # 25 Nov 2026 (Madhav: "we are treating the study as, that is the thing we are doing"): NC1 is knowledge, never a paper rule
+               "NC1": "a study only (Madhav, 25 Nov): noted, not used in any paper rule; it explains moves in the morning review's movers-and-news line"}
 GLOSS = {"A": "planned, not done", "B": "done, not noted", "C": "proved, not in the paper rules", "D": "in the paper rules, not in the voice's facts",
          "E": "tested, but not at full scale", "F": "the voice has it, but no plain-words name", "G": "a result the screens do not show"}
 

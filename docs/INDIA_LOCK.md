@@ -169,6 +169,17 @@ Madhav, 24 Nov 2026 (in chat), after the stress test's results: "Added funds and
 | Live stocks (flag 239) | **yes**: broker-side stop orders (Zerodha GTT) and the survival rules set to enforce, on the live day; no paper rule changes | `pass_marks_v1.md` go-live item 7 |
 | The Claude credit (flag 246) | **topped up** by Madhav; the stress test's words part re-run in full (flag 249) | `stress_results_2026-11-24.md` |
 
+### Decisions of 25 Nov
+
+Madhav, 25 Nov 2026 (in chat), to the side-by-side check, the pre-live tests and the options cap: "yes to all your recommendations ... we can start this process right away ... we will cap it at 75,000 for going live now".
+
+| Item | Decision | Where |
+|---|---|---|
+| Ananta and Claude, side by side (flag 253) | **yes**: Claude's call before each session, graded the next morning, feedback on the open list; comparison only | `india/registrations/claude_compare_v1.md`, the India morning review's step 3d |
+| The 15 pre-live tests (flags 254-267) | **yes, all before going live**, starting now; go-live checklist item 8 | `india/registrations/prelive_tests_v1.md`, `pass_marks_v1.md` |
+| T10's sealed purpose (flag 268) | **yes**: the live paper days' Nifty and Bank Nifty opens and closes, for the yardstick only; no rule scored or changed; every read logged | built with T10; a pinned file it needs goes through the repair door with these words |
+| Live options money and cap (flag 269) | **Rs 75,000 of options money, cap at half (Rs 37,500 a 1-lot premium)**, the recommendation he said yes to; at most one options position overnight stays. Read from "cap it at 75,000" with "yes to all your recommendations"; he confirms the figures in his written yes on the live day (Rule A) | `pass_marks_v1.md` go-live item 6 |
+
 ## 9. After the window
 
 Research that does not change a paper rule: the READY studies (C04, F07, I03, I04, I06, K01, EV5, EV6, EVC and the rest of the 52), the DEALS, FUNDS and TEACHER league traders, the shadow books with no history (futures, forex, commodities, results-day options; recording forward), the SP1 2027 refit (January), one voice across both markets (after each has stood alone), and live-readiness engineering built disabled in parallel (the order module behind leakcheck, broker-side stops, reconciliation, kill switch, drift alarm, cost profiles, per-account ledger, NAV units, the enforce switch) with a monthly India risk rehearsal, switch off.

@@ -12,6 +12,13 @@ Madhav, 25 Nov 2026, in chat: "sounds like we have to do all of them before goin
 - Each result goes to `india/registrations/prelive/T<n>_<date>.md`. Its open-list item closes only by the commit that adds that result. Every fault found is its own open-list item (topic `prelive-T<n>`).
 - Done means all 15 read, and each fail either fixed or accepted by Madhav in writing. That is item 8 of the go-live checklist (`pass_marks_v1.md`).
 
+## Not disturbing the running system (Madhav, 25 Nov 2026: "we have to make sure we are not disturbing the workflow, and everything is properly integrated")
+
+- Tests run in Toronto daytime, 08:30-19:30, never during the sign-in (20:10), the session jobs (21:00-05:00) or the nightly build (02:30).
+- Test scripts live outside both repos, in `~/ananta_runs/prelive/`, so the nightly leak check, firewall and fact map never see them. Each result names its script and the script's sha256. Results go to records `india/registrations/prelive/`, never into `~/ananta_data/india`.
+- No test restarts a service, edits a launchd job, or writes to live data. Kite is used only through `india/kite.py` (GET and the margin calculator), and no token or account figure is printed.
+- A fix found by a test goes in one at a time: its own test, both full test suites and the lock tests, its change-book line naming the item it closes, and never during the session window. The next morning review confirms the following night ran clean, so G02's count is not put at risk. A fix to a frozen file waits for Madhav's yes through the repair door.
+
 Open-list names: T1 flag 254, T2 flag 255, T3 flag 256, T13 flag 257, T4 flag 258, T5 flag 259, T6 flag 260, T7 flag 261, T8 flag 262, T9 flag 263, T11 flag 264, T12 flag 265, T14 flag 266, T15 flag 267; T10's yes is flag 268. The live options cap question that T1 feeds is flag 269.
 
 ## Order (G02 reaches 30 on about Thu 3 Dec)

@@ -10,6 +10,7 @@
    "gap": -0.0987
   },
   "vix": 71.99,
+  "vix_open": 67.1,
   "holdings_words": "Stand-in moment: your stocks (the managed book's) moved -10.8% today: KARURVYSYA -14.6%, TMPV -14.4%, AJANTPHARM -13.7%, NATIONALUM -13.0%, NIFTYBEES -13.0%, JIOFIN -12.7%, LICI -12.7%, ETERNAL -12.7%, TMCV -11.4%, TATAPOWER -10.4%, MARICO -6.1%, CIPLA -4.5%.",
   "managed_words": "Stops hit at today's close: AJANTPHARM, ETERNAL; a stop is sold at the next session's open, which can be below the stop."
  },
@@ -23,6 +24,7 @@
    "gap": -0.0987
   },
   "vix": 71.99,
+  "vix_open": 67.1,
   "no_prices": true
  },
  "W3": {
@@ -35,6 +37,7 @@
    "gap": 0.107
   },
   "vix": 52.01,
+  "vix_open": null,
   "holdings_words": "Stand-in moment: your stocks (the managed book's) moved +13.2% today: MARICO +2.2%, KARURVYSYA +4.0%, CIPLA +9.1%, NATIONALUM +10.6%, TMCV +13.4%, TMPV +13.6%, TATAPOWER +15.0%, ETERNAL +16.2%, JIOFIN +16.3%, LICI +16.3%, AJANTPHARM +17.0%, NIFTYBEES +17.7%."
  },
  "W4": {

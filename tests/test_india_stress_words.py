@@ -56,3 +56,12 @@ def test_a_no_model_reply_is_not_scored():
     m = _mod()
     assert m.NO_MODEL.search("Sir, I can't think through your question right now: Claude's API credit has run out, so all I can do is read you the latest facts.")
     assert not m.NO_MODEL.search("Sir, the Nifty fell 13% today.")
+    assert not m.NO_MODEL.search("Sir, the Nifty fell 13% today. One thing that isn't right, sir: claude's API credit has run out, so India answers ...")
+
+
+def test_w_a_is_the_registered_mark_and_a_missing_word_is_not_part_of_it():
+    m = _mod()
+    missing = [{"problems": [{"code": "MISSING", "why": "must carry /paper/"}]}, {"problems": []}]
+    assert m.w_a(missing) is True
+    assert m.w_a(missing + [{"problems": [{"code": "SAID", "why": "a guarantee"}]}]) is False
+    assert m.w_a([{"problems": [{"code": "TODAY_WRONG", "why": "x"}]}]) is False

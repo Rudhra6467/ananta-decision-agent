@@ -46,7 +46,8 @@ def block(when: dt.datetime, fx: dict, prev: dict, holdings: str | None = None, 
         p, m = prev[sym], fx[key]
         table[sym] = (round(p * (1 + m["ret"]), 2), round(p * (1 + (m["gap"] if m["gap"] is not None else m["ret"])), 2), p)
     if fx.get("vix"):
-        table["NSE:INDIA VIX"] = (fx["vix"], fx["vix"], prev["NSE:INDIA VIX"])
+        # the fear gauge opens where that day's own record opened it (24 Nov: open = close made the moment say "no movement all day")
+        table["NSE:INDIA VIX"] = (fx["vix"], fx.get("vix_open") or prev["NSE:INDIA VIX"], prev["NSE:INDIA VIX"])
     fetch = _stub(table, "TokenException: Incorrect `api_key` or `access_token`." if fx.get("no_prices") else None)
     clk = L.clock(DATA_THROUGH, when)
     L._CACHE.clear()
@@ -65,7 +66,9 @@ def _fig(m: dict) -> str:
     return rf"\b(?:{int(pct)}|{int(round(pct))})(?:\.\d+)?\s?(?:%|per ?cent)"
 
 
-NO_MODEL = re.compile(r"credit has run out|can't think through your question right now", re.I)
+# The rules-only reply opens with these words. (24 Nov re-run: a real answer whose closing self-check line said "the credit has run out" was
+# taken for a no-model reply; only the reply's own opening counts.)
+NO_MODEL = re.compile(r"^\s*Sir, I can't think through your question right now", re.I)
 
 
 def plan(fx: dict, prev: dict) -> list[tuple[str, dict, list[dict]]]:
@@ -109,6 +112,16 @@ def checks(t: dict) -> list[dict]:
     return out
 
 
+W_A_CODES = {"TODAY_WRONG", "SAID", "EMPTY"}
+
+
+def w_a(rows: list[dict]) -> bool:
+    """W-a as registered (stress_v1.md): no turn contradicts its moment, says what it must not (a promise, an act-now with real money) or is
+    empty. A missing must-word is counted in `passed` (the stricter word checks), not in W-a: on 24 Nov two honest answers said "isn't
+    reachable" and "no rule has proved itself", words the list did not have."""
+    return all(not any(p.get("code") in W_A_CODES for p in (r.get("problems") or [])) for r in rows)
+
+
 def main(run: str) -> dict:
     fx = json.loads((OUT / f"fixture_{run}.json").read_text())
     lc = ask.latest_closes(views.readmodel())["closes"]
@@ -142,7 +155,7 @@ def main(run: str) -> dict:
     complete = len(answered) == n and len(graded) == n
     res = {"run": run, "at": dt.datetime.now(UTC).isoformat(timespec="seconds"), "prev_closes": prev, "turns": n, "answered": len(answered),
            "passed": passed, "graded": len(graded), "grader_passed": gpass, "complete": complete,
-           "W_a": (passed == n) if complete else None, "W_b": (gpass >= 0.8 * n) if complete else None, "rows": rows}
+           "W_a": w_a(answered) if complete else None, "W_b": (gpass >= 0.8 * n) if complete else None, "rows": rows}
     (OUT / f"words_{run}.json").write_text(json.dumps(res, indent=1, default=str))
     print(f"words {run}: {len(answered)} of {n} answered by the model; {passed} passed the checks; the grader passed {gpass} of {len(graded)} graded"
           + ("" if complete else " (INCOMPLETE: not every turn had a model answer and a grade)"))

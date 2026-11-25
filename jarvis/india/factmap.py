@@ -67,6 +67,11 @@ INTERNAL = [
     ("reports/sizingstudy_*.json", "research results: the sizing and risk study on history (its .md is the report for Madhav; "
                                    "the managed book's version 3 rests on it through the lock door, 21 Nov)"),
     ("reports/boosttest_*.json", "research results: the one boosting test on history (its .md is the report for Madhav)"),
+    # 25 Nov 2026 (morning review): the stress test of 24 Nov (records india/registrations/stress_v1.md, flag 250) wrote its run files
+    # with no route, and the fact map exited 1 from 25 Nov 00:30. They are a benchmark for the go-live decision, read by stress run 2;
+    # records stress_results_2026-11-24.md is the report for Madhav.
+    ("reports/stress/*", "the stress test's run files: the go-live benchmark (records stress_results_<date>.md is the report for Madhav; "
+                         "run 2 after the 30th clean session reads them, flag 250)"),
     ("paper/allocation_ledger.jsonl", "the allocator's ledger (its view is what is read)"),
     ("reports/*.md", "a written report for Madhav (the morning review page)"), ("reports/ask_guard.jsonl", "the answer guard's log (the morning review reads it)"),
     ("readmodel/*", "the read model itself"),

@@ -78,3 +78,18 @@ def test_the_20_nov_studies_have_a_route(tmp_path, monkeypatch):
     assert rows["reports/boosttest_DATE.json"]["route"] == "internal"
     assert rows["reports/variablemap_DATE.json"]["route"] in ("copied", "internal")
     assert all(rows[f"reports/{n}_DATE.json"]["why"] for n in ("sizingstudy", "boosttest", "variablemap"))
+
+
+
+def test_the_stress_test_files_are_internal_with_a_reason(tmp_path, monkeypatch):
+    """25 Nov 2026 morning review: the 24 Nov stress test (records india/registrations/stress_v1.md) wrote five run files with no route,
+    and the fact map exited 1 from 25 Nov 00:30. They are the go-live benchmark; the records report is what Madhav reads."""
+    monkeypatch.setattr(factmap, "DATA", tmp_path)
+    names = ("2026-11-24/machine.json", "2026-11-24/money.json", "2026-11-24/options.json", "2026-11-24/summary.json",
+             "2026-11-24-check/money_benchmark_book.json")
+    for n in names:
+        _make(tmp_path, f"reports/stress/{n}")
+    rows = factmap.routes(factmap.producers(time.time()))
+    stress = [r for r in rows if r["pattern"].startswith("reports/stress/")]
+    assert len(stress) == 5
+    assert all(r["route"] == "internal" and r["why"] for r in stress)

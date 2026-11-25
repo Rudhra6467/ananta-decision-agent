@@ -189,6 +189,12 @@ Later the same day, to the readiness plan (`india/registrations/golive_plan_v1.m
 | India once in the audits (flag 278) | **yes**: India's answers are graded by the 29 Dec random audit (flag 275); the 10 Dec outside grading (flag 90) is crypto only | the open list |
 | The daily readiness run | **yes**: one scheduled run a day, 08:37 Toronto, works the plan's order until the go-live read, then turns itself off | the scheduled task "Ananta India readiness run" |
 
+And to the news study: "Your reasoning is good, let's proceed and complete it ... we are treating the study as, that is the thing we are doing, right?"
+
+| Item | Decision | Where |
+|---|---|---|
+| NC1, after news, does a confirmed move continue or fade? | **a study only**: what it finds is Ananta's knowledge for explaining moves; noted, not used in any paper rule; a rule from it would need its own forward test against random and his yes | `india/registrations/nc1_v1.json`, `nc1_results_v1.md`; the morning review's "movers and their news" line (`india/movernews.py`) |
+
 ## 9. After the window
 
 Research that does not change a paper rule: the READY studies (C04, F07, I03, I04, I06, K01, EV5, EV6, EVC and the rest of the 52), the DEALS, FUNDS and TEACHER league traders, the shadow books with no history (futures, forex, commodities, results-day options; recording forward), the SP1 2027 refit (January), one voice across both markets (after each has stood alone), and live-readiness engineering built disabled in parallel (the order module behind leakcheck, broker-side stops, reconciliation, kill switch, drift alarm, cost profiles, per-account ledger, NAV units, the enforce switch) with a monthly India risk rehearsal, switch off.

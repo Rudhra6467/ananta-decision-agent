@@ -1,0 +1,1558 @@
+{
+ "generated_at": "2026-11-25T17:36:27+00:00",
+ "started_at": "2026-11-25T17:35:42+00:00",
+ "spec": "registrations/nc1_v1.json",
+ "dictionary_sha256": "7530e556a127bd3968ed87d9d10ea79a2e772cd5a79f00f5a4e44b2d1ff9e118",
+ "rows": {
+  "A|results|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.0068421494953952965,
+    -5.171715682723686,
+    30
+   ],
+   "val": [
+    -0.0031886389190381205,
+    -2.9305595397953965,
+    24
+   ],
+   "confirmed_events": 4981
+  },
+  "A|results|edge": {
+   "verdict": "VALIDATED",
+   "z": 3.55,
+   "dev": [
+    0.012747376025569615,
+    9.09201099463684,
+    30
+   ],
+   "val": [
+    0.006342301775084643,
+    4.751061511916875,
+    24
+   ],
+   "confirmed_events": 4981
+  },
+  "A|order_win|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.008160179215073062,
+    -2.681018155640637,
+    27
+   ],
+   "val": [
+    -0.008071732374829681,
+    -3.201316606996898,
+    24
+   ],
+   "confirmed_events": 160
+  },
+  "A|order_win|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.009552315675303591,
+    3.663208740672021,
+    27
+   ],
+   "val": [
+    0.0008817093267128847,
+    0.3388500688270141,
+    24
+   ],
+   "confirmed_events": 160
+  },
+  "A|usfda_adverse|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.0013068157925346545,
+    -0.10258359920236654,
+    9
+   ],
+   "val": [
+    -0.014989051557554603,
+    -1.9460912566737862,
+    4
+   ],
+   "confirmed_events": 22
+  },
+  "A|usfda_adverse|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.01195414487215396,
+    0.9121222141936094,
+    9
+   ],
+   "val": [
+    -0.0057974018327496876,
+    -0.9966901361544812,
+    4
+   ],
+   "confirmed_events": 22
+  },
+  "A|usfda_approval|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.015421937368417127,
+    -0.6896964799506043,
+    10
+   ],
+   "val": [
+    -0.012611074175402904,
+    -1.261104452276075,
+    8
+   ],
+   "confirmed_events": 28
+  },
+  "A|usfda_approval|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.0010974319963626405,
+    0.05134656956391894,
+    10
+   ],
+   "val": [
+    -0.0031244251850499755,
+    -0.2970291859462924,
+    8
+   ],
+   "confirmed_events": 28
+  },
+  "A|rating_down|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.011945230951737754,
+    -1.788521523288606,
+    3
+   ],
+   "val": [
+    -0.07863467969462679,
+    -1.848781281548398,
+    3
+   ],
+   "confirmed_events": 6
+  },
+  "A|rating_down|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.009433690793155867,
+    1.2074436072410462,
+    3
+   ],
+   "val": [
+    -0.0695751297041169,
+    -1.7064627032222583,
+    3
+   ],
+   "confirmed_events": 6
+  },
+  "A|rating_up|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.003995143081196417,
+    0.25194843323923294,
+    4
+   ],
+   "val": [
+    -0.00564380292798643,
+    -0.894766399277408,
+    5
+   ],
+   "confirmed_events": 12
+  },
+  "A|rating_up|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.021285544423270776,
+    1.6613919473621723,
+    4
+   ],
+   "val": [
+    0.0013389230877211694,
+    0.19804602522344036,
+    5
+   ],
+   "confirmed_events": 12
+  },
+  "A|fund_raising|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.016649078299388737,
+    -2.591450006575045,
+    25
+   ],
+   "val": [
+    -0.00183747191853816,
+    -0.25236287508538874,
+    23
+   ],
+   "confirmed_events": 200
+  },
+  "A|fund_raising|edge": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    0.0024892841028588968,
+    0.3933615124236669,
+    25
+   ],
+   "val": [
+    0.0072348650574135046,
+    0.9939929213013577,
+    23
+   ],
+   "confirmed_events": 200
+  },
+  "A|merger_acquisition|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.014511015739284866,
+    -3.55687568563253,
+    31
+   ],
+   "val": [
+    -0.004084253342964577,
+    -1.7185176392335428,
+    24
+   ],
+   "confirmed_events": 583
+  },
+  "A|merger_acquisition|edge": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    0.004799916491467857,
+    1.4047189974830516,
+    31
+   ],
+   "val": [
+    0.005063333199007375,
+    1.9243592899726805,
+    24
+   ],
+   "confirmed_events": 583
+  },
+  "A|holding_change|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.02650679517235118,
+    -4.686105624373477,
+    29
+   ],
+   "val": [
+    -0.011802681138831114,
+    -2.25271305399025,
+    21
+   ],
+   "confirmed_events": 522
+  },
+  "A|holding_change|edge": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    -0.006406133888520035,
+    -1.1905693190581728,
+    29
+   ],
+   "val": [
+    -0.0027631910109464494,
+    -0.5307258633408322,
+    21
+   ],
+   "confirmed_events": 522
+  },
+  "A|management_exit|cont": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    -0.004542077143801409,
+    -0.45749926875180236,
+    21
+   ],
+   "val": [
+    -0.01658364290425909,
+    -2.2342964714764424,
+    22
+   ],
+   "confirmed_events": 91
+  },
+  "A|management_exit|edge": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    0.015293031693701517,
+    1.5665477651309956,
+    21
+   ],
+   "val": [
+    -0.006582838299964352,
+    -0.8822122342510644,
+    22
+   ],
+   "confirmed_events": 91
+  },
+  "A|pledge_default|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.038606966889783836,
+    -1.5117205930128672,
+    9
+   ],
+   "val": [
+    -0.008517038018565232,
+    -1.3426273737536052,
+    17
+   ],
+   "confirmed_events": 80
+  },
+  "A|pledge_default|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.01753539679571479,
+    -0.6811573930150143,
+    9
+   ],
+   "val": [
+    0.0020238556589977134,
+    0.31096375155500217,
+    17
+   ],
+   "confirmed_events": 80
+  },
+  "A|regulatory_legal|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.012817330996508993,
+    -1.8860498316593521,
+    26
+   ],
+   "val": [
+    -0.002321354297483835,
+    -0.4544432369518399,
+    23
+   ],
+   "confirmed_events": 132
+  },
+  "A|regulatory_legal|edge": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    0.006313143882932235,
+    0.9330307552178216,
+    26
+   ],
+   "val": [
+    0.007386822135720308,
+    1.4670526569836142,
+    23
+   ],
+   "confirmed_events": 132
+  },
+  "A|buyback|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.010771301476679866,
+    -1.8214217463931963,
+    24
+   ],
+   "val": [
+    -0.0062967165392662505,
+    -1.2087585219651455,
+    21
+   ],
+   "confirmed_events": 117
+  },
+  "A|buyback|edge": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    0.008791114695049042,
+    1.4045545210480126,
+    24
+   ],
+   "val": [
+    0.003115444564550288,
+    0.6260795351476122,
+    21
+   ],
+   "confirmed_events": 117
+  },
+  "A|dividend_bonus_split|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.009284994385079905,
+    -3.8392159825561456,
+    30
+   ],
+   "val": [
+    -0.0022537009126529233,
+    -1.1867134985756127,
+    24
+   ],
+   "confirmed_events": 1563
+  },
+  "A|dividend_bonus_split|edge": {
+   "verdict": "VALIDATED",
+   "z": 3.55,
+   "dev": [
+    0.009840605186751865,
+    4.793894569923188,
+    30
+   ],
+   "val": [
+    0.007168980272554268,
+    3.567559071516447,
+    24
+   ],
+   "confirmed_events": 1563
+  },
+  "A|operations_up|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.018109320332878563,
+    -3.0313828309131443,
+    29
+   ],
+   "val": [
+    -0.013096817555093357,
+    -2.181925184818472,
+    23
+   ],
+   "confirmed_events": 180
+  },
+  "A|operations_up|edge": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    -1.2196890366409071e-05,
+    -0.002051171153255857,
+    29
+   ],
+   "val": [
+    -0.0038329038829751556,
+    -0.6484013886251235,
+    23
+   ],
+   "confirmed_events": 180
+  },
+  "A|disruption|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.010144956391538897,
+    -1.3773482801938952,
+    12
+   ],
+   "val": [
+    -0.004994217832554529,
+    -0.9645663412553623,
+    17
+   ],
+   "confirmed_events": 59
+  },
+  "A|disruption|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.009335147703576465,
+    1.0897232396458345,
+    12
+   ],
+   "val": [
+    0.0040901661622612055,
+    0.7820845157124032,
+    17
+   ],
+   "confirmed_events": 59
+  },
+  "A|analyst_meet|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.007079398873244307,
+    -3.0069308757900814,
+    6
+   ],
+   "val": [
+    -0.004854235705548048,
+    -4.302281390066519,
+    24
+   ],
+   "confirmed_events": 2259
+  },
+  "A|analyst_meet|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.0040098184495261915,
+    1.6259604464378679,
+    6
+   ],
+   "val": [
+    0.0046142459835662696,
+    4.075819208420742,
+    24
+   ],
+   "confirmed_events": 2259
+  },
+  "A|all_news|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.011625134399791025,
+    -8.238670653756683,
+    31
+   ],
+   "val": [
+    -0.005953203598294765,
+    -10.063599576321316,
+    24
+   ],
+   "confirmed_events": 11752
+  },
+  "A|all_news|edge": {
+   "verdict": "VALIDATED",
+   "z": 3.55,
+   "dev": [
+    0.007922393676560138,
+    10.547656891208344,
+    31
+   ],
+   "val": [
+    0.003468518681294233,
+    5.004469512536043,
+    24
+   ],
+   "confirmed_events": 11752
+  },
+  "B|results|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.0015416721550927568,
+    1.6872964877085221,
+    16
+   ],
+   "val": [
+    0.0007309606152289611,
+    0.7059993090925509,
+    20
+   ],
+   "confirmed_events": 2421
+  },
+  "B|results|edge": {
+   "verdict": "CONDITIONAL",
+   "z": 3.55,
+   "dev": [
+    0.004951121378813581,
+    5.228280844167304,
+    16
+   ],
+   "val": [
+    0.003287068510580536,
+    3.1325560553871656,
+    20
+   ],
+   "confirmed_events": 2421
+  },
+  "B|order_win|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.004274633093186418,
+    -1.2901251002985636,
+    15
+   ],
+   "val": [
+    -0.0033245174324760414,
+    -1.1348625695364376,
+    19
+   ],
+   "confirmed_events": 172
+  },
+  "B|order_win|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.0001931969816858199,
+    -0.058794665236085585,
+    15
+   ],
+   "val": [
+    -0.000880184905732282,
+    -0.31109189236367474,
+    19
+   ],
+   "confirmed_events": 172
+  },
+  "B|usfda_adverse|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.01294019313873403,
+    1.6954471090131302,
+    10
+   ],
+   "val": [
+    0.004295343595785676,
+    0.5375766675948225,
+    7
+   ],
+   "confirmed_events": 22
+  },
+  "B|usfda_adverse|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.015867063506305443,
+    2.0792459377170407,
+    10
+   ],
+   "val": [
+    0.007296647467002952,
+    0.8941652268931035,
+    7
+   ],
+   "confirmed_events": 22
+  },
+  "B|usfda_approval|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.0011744066277173401,
+    -0.6055098851748487,
+    13
+   ],
+   "val": [
+    -0.0035138893602238036,
+    -1.281824803887169,
+    14
+   ],
+   "confirmed_events": 58
+  },
+  "B|usfda_approval|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.002616121461533467,
+    1.2121496256559987,
+    13
+   ],
+   "val": [
+    -0.0009229467889230651,
+    -0.3317847784988511,
+    14
+   ],
+   "confirmed_events": 58
+  },
+  "B|rating_down|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    NaN,
+    NaN,
+    0
+   ],
+   "val": [
+    NaN,
+    NaN,
+    1
+   ],
+   "confirmed_events": 1
+  },
+  "B|rating_down|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    NaN,
+    NaN,
+    0
+   ],
+   "val": [
+    NaN,
+    NaN,
+    1
+   ],
+   "confirmed_events": 1
+  },
+  "B|rating_up|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    NaN,
+    NaN,
+    2
+   ],
+   "val": [
+    -0.0022821235243663195,
+    -0.39414408568709075,
+    5
+   ],
+   "confirmed_events": 7
+  },
+  "B|rating_up|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    NaN,
+    NaN,
+    2
+   ],
+   "val": [
+    0.0007261508677850685,
+    0.14208252717583508,
+    5
+   ],
+   "confirmed_events": 7
+  },
+  "B|fund_raising|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.005630747311383692,
+    -0.8413065924019225,
+    11
+   ],
+   "val": [
+    -0.0021838709921194023,
+    -0.5831883076496119,
+    15
+   ],
+   "confirmed_events": 54
+  },
+  "B|fund_raising|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.0014141658651285148,
+    -0.21502799458813454,
+    11
+   ],
+   "val": [
+    3.335810632771446e-05,
+    0.008465877352679398,
+    15
+   ],
+   "confirmed_events": 54
+  },
+  "B|merger_acquisition|cont": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    -0.0012719444462486744,
+    -0.5580676966030649,
+    16
+   ],
+   "val": [
+    0.0006738549794827902,
+    0.1797315690923186,
+    20
+   ],
+   "confirmed_events": 163
+  },
+  "B|merger_acquisition|edge": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    0.002324299145967912,
+    1.0458929855214445,
+    16
+   ],
+   "val": [
+    0.0032053864497747385,
+    0.8755824808394206,
+    20
+   ],
+   "confirmed_events": 163
+  },
+  "B|holding_change|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.00937172870449453,
+    -1.1254550729416353,
+    10
+   ],
+   "val": [
+    -0.009316682612138671,
+    -1.5133626788597423,
+    16
+   ],
+   "confirmed_events": 140
+  },
+  "B|holding_change|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.005826308518001111,
+    -0.6942665274170072,
+    10
+   ],
+   "val": [
+    -0.006866246134676386,
+    -1.1214568191564105,
+    16
+   ],
+   "confirmed_events": 140
+  },
+  "B|management_exit|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.0059041414434377795,
+    0.9740198440849919,
+    5
+   ],
+   "val": [
+    -0.004271795676639956,
+    -1.1346874823485504,
+    5
+   ],
+   "confirmed_events": 13
+  },
+  "B|management_exit|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.008886000388572436,
+    1.477391483883123,
+    5
+   ],
+   "val": [
+    -0.0015680554160921191,
+    -0.4250530544424373,
+    5
+   ],
+   "confirmed_events": 13
+  },
+  "B|pledge_default|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    NaN,
+    NaN,
+    2
+   ],
+   "val": [
+    0.0008894073497666473,
+    0.09367647811568554,
+    11
+   ],
+   "confirmed_events": 15
+  },
+  "B|pledge_default|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    NaN,
+    NaN,
+    2
+   ],
+   "val": [
+    0.003529506459172527,
+    0.3761161056874152,
+    11
+   ],
+   "confirmed_events": 15
+  },
+  "B|regulatory_legal|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.0033298348273450846,
+    -0.37296277246437787,
+    8
+   ],
+   "val": [
+    0.008480389402719404,
+    1.3306322927892205,
+    10
+   ],
+   "confirmed_events": 32
+  },
+  "B|regulatory_legal|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.00042291631057379256,
+    0.04492531607094971,
+    8
+   ],
+   "val": [
+    0.010612435944771079,
+    1.6170398293333426,
+    10
+   ],
+   "confirmed_events": 32
+  },
+  "B|buyback|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.018670947167190154,
+    -2.1408053831970575,
+    6
+   ],
+   "val": [
+    -0.012704083640389219,
+    -1.9881791551077568,
+    7
+   ],
+   "confirmed_events": 19
+  },
+  "B|buyback|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.015467773367318803,
+    -1.819598846256191,
+    6
+   ],
+   "val": [
+    -0.01084081825492403,
+    -1.7295570788905286,
+    7
+   ],
+   "confirmed_events": 19
+  },
+  "B|dividend_bonus_split|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.004798845549719553,
+    -1.1610437716244044,
+    15
+   ],
+   "val": [
+    -0.005435532179281719,
+    -1.7100665666034205,
+    20
+   ],
+   "confirmed_events": 248
+  },
+  "B|dividend_bonus_split|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.00123143636864297,
+    -0.2997526945575918,
+    15
+   ],
+   "val": [
+    -0.003116017175326218,
+    -0.9677035583503467,
+    20
+   ],
+   "confirmed_events": 248
+  },
+  "B|operations_up|cont": {
+   "verdict": "OPPOSITE",
+   "z": 3.55,
+   "dev": [
+    -0.006504282714062099,
+    -2.3179454728199715,
+    16
+   ],
+   "val": [
+    -0.003275003884717298,
+    -1.1189201529910056,
+    20
+   ],
+   "confirmed_events": 123
+  },
+  "B|operations_up|edge": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    -0.0026977780820679827,
+    -0.9366133996182174,
+    16
+   ],
+   "val": [
+    -0.0009898053481322163,
+    -0.32967605789246357,
+    20
+   ],
+   "confirmed_events": 123
+  },
+  "B|disruption|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.006822350871132643,
+    0.4636476834314054,
+    5
+   ],
+   "val": [
+    0.0016453239487250655,
+    0.22186344210557749,
+    8
+   ],
+   "confirmed_events": 18
+  },
+  "B|disruption|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.010565092503770133,
+    0.7235745311126031,
+    5
+   ],
+   "val": [
+    0.005030854572212954,
+    0.6893350360159516,
+    8
+   ],
+   "confirmed_events": 18
+  },
+  "B|analyst_meet|cont": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    -0.0010173145298504709,
+    -0.3940453027829533,
+    10
+   ],
+   "val": [
+    -0.00036822900281196347,
+    -0.256359075909865,
+    20
+   ],
+   "confirmed_events": 520
+  },
+  "B|analyst_meet|edge": {
+   "verdict": "INCONCLUSIVE",
+   "z": 3.55,
+   "dev": [
+    0.0018714416749424014,
+    0.7338429375503408,
+    10
+   ],
+   "val": [
+    0.0020355013088679376,
+    1.4357310244963108,
+    20
+   ],
+   "confirmed_events": 520
+  },
+  "B|all_news|cont": {
+   "verdict": "REJECTED",
+   "z": 3.55,
+   "dev": [
+    -0.0005220290615024839,
+    -0.880990902963035,
+    16
+   ],
+   "val": [
+    -0.0013503146443280584,
+    -2.9366353032226815,
+    20
+   ],
+   "confirmed_events": 6756
+  },
+  "B|all_news|edge": {
+   "verdict": "CONDITIONAL",
+   "z": 3.55,
+   "dev": [
+    0.0030138399048781567,
+    4.782150090036684,
+    16
+   ],
+   "val": [
+    0.0011063846190240373,
+    2.584702369035838,
+    20
+   ],
+   "confirmed_events": 6756
+  }
+ },
+ "responsiveness": {
+  "A|no_news": {
+   "stock_days": 1479323,
+   "share_confirmed": 0.04749875449783448,
+   "median_abs_gap": 0.004143565493730739,
+   "confirmed": 70266,
+   "cont_mean": -0.018301451869449512,
+   "cont5_mean": -0.015378694390470697
+  },
+  "A|results": {
+   "stock_days": 14287,
+   "share_confirmed": 0.3486386225239728,
+   "median_abs_gap": 0.012816725750376512,
+   "confirmed": 4981,
+   "up_share": 0.5366392290704678,
+   "cont_mean": -0.0046122592704328875,
+   "cont5_mean": 0.0010917637051719709
+  },
+  "A|order_win": {
+   "stock_days": 510,
+   "share_confirmed": 0.3137254901960784,
+   "median_abs_gap": 0.013008009234524776,
+   "confirmed": 160,
+   "up_share": 0.9375,
+   "cont_mean": -0.008734053214073358,
+   "cont5_mean": -0.009232349105471452
+  },
+  "A|usfda_adverse": {
+   "stock_days": 58,
+   "share_confirmed": 0.3793103448275862,
+   "median_abs_gap": 0.01441065032994332,
+   "confirmed": 22,
+   "up_share": 0.5909090909090909,
+   "cont_mean": -0.008324551257791317,
+   "cont5_mean": -0.021291945172605634
+  },
+  "A|usfda_approval": {
+   "stock_days": 210,
+   "share_confirmed": 0.13333333333333333,
+   "median_abs_gap": 0.007235999365232615,
+   "confirmed": 28,
+   "up_share": 0.8571428571428571,
+   "cont_mean": -0.013208325439545013,
+   "cont5_mean": 0.0011705636729811366
+  },
+  "A|rating_down": {
+   "stock_days": 67,
+   "share_confirmed": 0.08955223880597014,
+   "median_abs_gap": 0.005331898451424011,
+   "confirmed": 6,
+   "up_share": 0.16666666666666666,
+   "cont_mean": -0.04528995532318227,
+   "cont5_mean": -0.00867887148494421
+  },
+  "A|rating_up": {
+   "stock_days": 194,
+   "share_confirmed": 0.061855670103092786,
+   "median_abs_gap": 0.004400890299825599,
+   "confirmed": 12,
+   "up_share": 0.6666666666666666,
+   "cont_mean": 0.0017491518373985437,
+   "cont5_mean": -0.005430032220778064
+  },
+  "A|fund_raising": {
+   "stock_days": 1508,
+   "share_confirmed": 0.13262599469496023,
+   "median_abs_gap": 0.005600038004779984,
+   "confirmed": 200,
+   "up_share": 0.675,
+   "cont_mean": -0.009782781969053283,
+   "cont5_mean": -0.010885101968418773
+  },
+  "A|merger_acquisition": {
+   "stock_days": 5367,
+   "share_confirmed": 0.10862679336687163,
+   "median_abs_gap": 0.0052536372511530205,
+   "confirmed": 583,
+   "up_share": 0.6861063464837049,
+   "cont_mean": -0.008569572104702342,
+   "cont5_mean": -0.007787428613535104
+  },
+  "A|holding_change": {
+   "stock_days": 8114,
+   "share_confirmed": 0.06433325117081587,
+   "median_abs_gap": 0.004552281979460837,
+   "confirmed": 522,
+   "up_share": 0.5766283524904214,
+   "cont_mean": -0.01640972818223574,
+   "cont5_mean": -0.003935504308091511
+  },
+  "A|management_exit": {
+   "stock_days": 571,
+   "share_confirmed": 0.159369527145359,
+   "median_abs_gap": 0.005950934040278133,
+   "confirmed": 91,
+   "up_share": 0.31868131868131866,
+   "cont_mean": -0.01080817669404735,
+   "cont5_mean": -0.0053678547898296704
+  },
+  "A|pledge_default": {
+   "stock_days": 709,
+   "share_confirmed": 0.11283497884344147,
+   "median_abs_gap": 0.004776941957851388,
+   "confirmed": 80,
+   "up_share": 0.425,
+   "cont_mean": -0.017511706639963383,
+   "cont5_mean": -0.00119204069690267
+  },
+  "A|regulatory_legal": {
+   "stock_days": 1161,
+   "share_confirmed": 0.11369509043927649,
+   "median_abs_gap": 0.005021194209942514,
+   "confirmed": 132,
+   "up_share": 0.49242424242424243,
+   "cont_mean": -0.007873173064538533,
+   "cont5_mean": -0.004021390328327042
+  },
+  "A|buyback": {
+   "stock_days": 886,
+   "share_confirmed": 0.13205417607223477,
+   "median_abs_gap": 0.0050400325750192265,
+   "confirmed": 117,
+   "up_share": 0.7008547008547008,
+   "cont_mean": -0.00714237870910774,
+   "cont5_mean": -0.015597049313465184
+  },
+  "A|dividend_bonus_split": {
+   "stock_days": 5331,
+   "share_confirmed": 0.293190770962296,
+   "median_abs_gap": 0.010541595882248567,
+   "confirmed": 1563,
+   "up_share": 0.6026871401151631,
+   "cont_mean": -0.0059266239933495075,
+   "cont5_mean": -0.0006543638977347899
+  },
+  "A|operations_up": {
+   "stock_days": 1806,
+   "share_confirmed": 0.09966777408637874,
+   "median_abs_gap": 0.005119679366049901,
+   "confirmed": 180,
+   "up_share": 0.8388888888888889,
+   "cont_mean": -0.01493181122054417,
+   "cont5_mean": -0.025976757654554376
+  },
+  "A|disruption": {
+   "stock_days": 553,
+   "share_confirmed": 0.10669077757685352,
+   "median_abs_gap": 0.0043906667063844385,
+   "confirmed": 59,
+   "up_share": 0.4915254237288136,
+   "cont_mean": -0.006827376101626343,
+   "cont5_mean": -0.008505846933797419
+  },
+  "A|analyst_meet": {
+   "stock_days": 31952,
+   "share_confirmed": 0.07069979969954933,
+   "median_abs_gap": 0.0038978653605314384,
+   "confirmed": 2259,
+   "up_share": 0.5467020805666224,
+   "cont_mean": -0.004755170151079903,
+   "cont5_mean": 0.0014721982024539562
+  },
+  "A|all_news": {
+   "stock_days": 119415,
+   "share_confirmed": 0.09841309718209605,
+   "median_abs_gap": 0.004531010945039493,
+   "confirmed": 11752,
+   "up_share": 0.5971749489448605,
+   "cont_mean": -0.007817486958773311,
+   "cont5_mean": -0.0035208187262946848
+  },
+  "B|no_news": {
+   "moves": 21781600,
+   "share_confirmed": 0.047676616961104784,
+   "confirmed": 1038473,
+   "cont_mean": -0.002995819042426111
+  },
+  "B|results": {
+   "events": 5466,
+   "share_confirmed": 0.4429198682766191,
+   "median_abs_move15": 0.007948639188964712,
+   "confirmed": 2421,
+   "up_share": 0.4902932672449401,
+   "cont_mean": 0.0008328719934603025
+  },
+  "B|order_win": {
+   "events": 630,
+   "share_confirmed": 0.273015873015873,
+   "median_abs_move15": 0.004680282523569723,
+   "confirmed": 172,
+   "up_share": 0.8430232558139535,
+   "cont_mean": -0.0034781886728263993
+  },
+  "B|usfda_adverse": {
+   "events": 46,
+   "share_confirmed": 0.4782608695652174,
+   "median_abs_move15": 0.0075882196910070365,
+   "confirmed": 22,
+   "up_share": 0.45454545454545453,
+   "cont_mean": 0.007063970538469431
+  },
+  "B|usfda_approval": {
+   "events": 452,
+   "share_confirmed": 0.12831858407079647,
+   "median_abs_move15": 0.0033313355980293946,
+   "confirmed": 58,
+   "up_share": 0.8275862068965517,
+   "cont_mean": -0.0021258208972538446
+  },
+  "B|rating_down": {
+   "events": 18,
+   "share_confirmed": 0.05555555555555555,
+   "median_abs_move15": 0.0016903715548030052,
+   "confirmed": 1,
+   "up_share": 1.0,
+   "cont_mean": -0.0021408888187928188
+  },
+  "B|rating_up": {
+   "events": 88,
+   "share_confirmed": 0.07954545454545454,
+   "median_abs_move15": 0.0019462052576318944,
+   "confirmed": 7,
+   "up_share": 0.5714285714285714,
+   "cont_mean": -0.0030010780353919735
+  },
+  "B|fund_raising": {
+   "events": 394,
+   "share_confirmed": 0.13705583756345177,
+   "median_abs_move15": 0.00253028292653501,
+   "confirmed": 54,
+   "up_share": 0.5925925925925926,
+   "cont_mean": -0.002073258832124768
+  },
+  "B|merger_acquisition": {
+   "events": 1340,
+   "share_confirmed": 0.12164179104477611,
+   "median_abs_move15": 0.0024371406387406758,
+   "confirmed": 163,
+   "up_share": 0.7300613496932515,
+   "cont_mean": 0.0009790396884027889
+  },
+  "B|holding_change": {
+   "events": 2932,
+   "share_confirmed": 0.047748976807639835,
+   "median_abs_move15": 0.0017902980979593863,
+   "confirmed": 140,
+   "up_share": 0.5357142857142857,
+   "cont_mean": -0.003981003514021238
+  },
+  "B|management_exit": {
+   "events": 110,
+   "share_confirmed": 0.11818181818181818,
+   "median_abs_move15": 0.0025394368993256755,
+   "confirmed": 13,
+   "up_share": 0.46153846153846156,
+   "cont_mean": 0.004301226289392403
+  },
+  "B|pledge_default": {
+   "events": 234,
+   "share_confirmed": 0.0641025641025641,
+   "median_abs_move15": 0.0021334657475893803,
+   "confirmed": 15,
+   "up_share": 0.4,
+   "cont_mean": -0.013216331510544525
+  },
+  "B|regulatory_legal": {
+   "events": 322,
+   "share_confirmed": 0.09937888198757763,
+   "median_abs_move15": 0.0023446117238477004,
+   "confirmed": 32,
+   "up_share": 0.625,
+   "cont_mean": 0.004198817346886839
+  },
+  "B|buyback": {
+   "events": 254,
+   "share_confirmed": 0.07480314960629922,
+   "median_abs_move15": 0.0015897018250561334,
+   "confirmed": 19,
+   "up_share": 0.7368421052631579,
+   "cont_mean": -0.01255686750290246
+  },
+  "B|dividend_bonus_split": {
+   "events": 1109,
+   "share_confirmed": 0.2236248872858431,
+   "median_abs_move15": 0.0033259324142072,
+   "confirmed": 248,
+   "up_share": 0.5241935483870968,
+   "cont_mean": -0.0010249905901460587
+  },
+  "B|operations_up": {
+   "events": 1524,
+   "share_confirmed": 0.08070866141732283,
+   "median_abs_move15": 0.0018849716952751838,
+   "confirmed": 123,
+   "up_share": 0.7967479674796748,
+   "cont_mean": -0.0032147015003614883
+  },
+  "B|disruption": {
+   "events": 228,
+   "share_confirmed": 0.07894736842105263,
+   "median_abs_move15": 0.0022080598610501045,
+   "confirmed": 18,
+   "up_share": 0.5555555555555556,
+   "cont_mean": 0.0046992515995020745
+  },
+  "B|analyst_meet": {
+   "events": 17542,
+   "share_confirmed": 0.029643142173070347,
+   "median_abs_move15": 0.0015979309600421265,
+   "confirmed": 520,
+   "up_share": 0.5557692307692308,
+   "cont_mean": -0.0004202534891756642
+  },
+  "B|all_news": {
+   "events": 60413,
+   "share_confirmed": 0.11183023521427507,
+   "median_abs_move15": 0.002038597932367381,
+   "confirmed": 6756,
+   "up_share": 0.5768206039076377,
+   "cont_mean": -0.0010743368992055902
+  }
+ },
+ "movers": {
+  "sessions": 3347,
+  "stock_days": 1673365,
+  "any_news": {
+   "all": 0.11596155052842626,
+   "gainers": 0.1466507319988049,
+   "losers": 0.16065730504929787
+  },
+  "kinds": {
+   "results": {
+    "all": 0.014877208499042349,
+    "gainers": 0.035171795637884674,
+    "losers": 0.05343292500746938,
+    "lift_gainers": 2.36413945802727,
+    "lift_losers": 3.591596166102591,
+    "stock_days": 24895
+   },
+   "order_win": {
+    "all": 0.0008856406103868552,
+    "gainers": 0.001983866148789961,
+    "losers": 0.0006453540484015536,
+    "lift_gainers": 2.2400352078744357,
+    "lift_losers": 0.7286861519591536,
+    "stock_days": 1482
+   },
+   "usfda_adverse": {
+    "all": 6.812620079898886e-05,
+    "gainers": 7.17060053779504e-05,
+    "losers": 0.0003943830295787272,
+    "lift_gainers": 1.0525466639409997,
+    "lift_losers": 5.789006651675499,
+    "stock_days": 114
+   },
+   "usfda_approval": {
+    "all": 0.0004972017461820942,
+    "gainers": 0.0007409620555721541,
+    "losers": 0.0003226770242007768,
+    "lift_gainers": 1.4902643871664636,
+    "lift_losers": 0.6489861040886212,
+    "stock_days": 832
+   },
+   "rating_down": {
+    "all": 6.215021827276177e-05,
+    "gainers": 9.560800717060054e-05,
+    "losers": 8.365700627427547e-05,
+    "lift_gainers": 1.538337431913769,
+    "lift_losers": 1.3460452529245477,
+    "stock_days": 104
+   },
+   "rating_up": {
+    "all": 0.00019959781637598491,
+    "gainers": 0.00029877502240812666,
+    "losers": 0.00019121601434120107,
+    "lift_gainers": 1.4968852256645955,
+    "lift_losers": 0.9580065444253412,
+    "stock_days": 334
+   },
+   "fund_raising": {
+    "all": 0.0014426021818312203,
+    "gainers": 0.0024380041828503136,
+    "losers": 0.002354347176576038,
+    "lift_gainers": 1.6900045026658306,
+    "lift_losers": 1.63201415208416,
+    "stock_days": 2414
+   },
+   "merger_acquisition": {
+    "all": 0.00520986156636478,
+    "gainers": 0.007314012548550941,
+    "losers": 0.006752315506423663,
+    "lift_gainers": 1.4038784822557862,
+    "lift_losers": 1.2960642850890838,
+    "stock_days": 8718
+   },
+   "holding_change": {
+    "all": 0.008854613309110684,
+    "gainers": 0.00978786973409023,
+    "losers": 0.010337615775321184,
+    "lift_gainers": 1.1053977618671729,
+    "lift_losers": 1.1674835946460371,
+    "stock_days": 14817
+   },
+   "management_exit": {
+    "all": 0.0005127393007502846,
+    "gainers": 0.0006453540484015536,
+    "losers": 0.0013624141021810576,
+    "lift_gainers": 1.2586397170203563,
+    "lift_losers": 2.657128291487419,
+    "stock_days": 858
+   },
+   "pledge_default": {
+    "all": 0.0006430157198220352,
+    "gainers": 0.0007290110546758291,
+    "losers": 0.0013265610994920825,
+    "lift_gainers": 1.1337375311409097,
+    "lift_losers": 2.0630305894531307,
+    "stock_days": 1076
+   },
+   "regulatory_legal": {
+    "all": 0.0011742805664036239,
+    "gainers": 0.0014580221093516582,
+    "losers": 0.0019002091425156856,
+    "lift_gainers": 1.2416301104403245,
+    "lift_losers": 1.618190061967308,
+    "stock_days": 1965
+   },
+   "buyback": {
+    "all": 0.0007971960689986943,
+    "gainers": 0.000884374066328055,
+    "losers": 0.0013026590976994324,
+    "lift_gainers": 1.1093557792361661,
+    "lift_losers": 1.634051080226245,
+    "stock_days": 1334
+   },
+   "dividend_bonus_split": {
+    "all": 0.005444717679645505,
+    "gainers": 0.012118314908873619,
+    "losers": 0.01533313414998506,
+    "lift_gainers": 2.2257012432759633,
+    "lift_losers": 2.816148614519784,
+    "stock_days": 9111
+   },
+   "operations_up": {
+    "all": 0.002508119866257511,
+    "gainers": 0.002844338213325366,
+    "losers": 0.0019121601434120108,
+    "lift_gainers": 1.134051945280248,
+    "lift_losers": 0.762387862373276,
+    "stock_days": 4197
+   },
+   "disruption": {
+    "all": 0.000588036680580746,
+    "gainers": 0.0005855990439199283,
+    "losers": 0.0006931580519868539,
+    "lift_gainers": 0.9958546180173483,
+    "lift_losers": 1.1787666907144123,
+    "stock_days": 984
+   },
+   "analyst_meet": {
+    "all": 0.02981895760936795,
+    "gainers": 0.03419181356438602,
+    "losers": 0.037502240812668064,
+    "lift_gainers": 1.1466468416603635,
+    "lift_losers": 1.2576643792835445,
+    "stock_days": 49898
+   }
+  }
+ },
+ "z": 3.55
+}

@@ -1,4 +1,4 @@
-# India read model (V0) — data through 2026-11-23, built 2026-11-24T07:57:05+00:00
+# India read model (V0) — data through 2026-11-23, built 2026-11-25T07:57:15+00:00
 
 Rules readmodel-v0-2026-10-22. Every number below traces to the file named in its section of readmodel/latest.json; nothing here is typed by hand.
 
@@ -8,7 +8,7 @@ Rules readmodel-v0-2026-10-22. Every number below traces to the file named in it
 - Daily call for the next session: BULLISH (mechanical rule call-v0-2026-10-18); so far 8 of 23 calls right against 14 for the coin flip, one seeded draw (chance alone averages 11.5).
 - Stock paper book: 264 open positions; realised Rs -133,433 on the hold_20d exits across campaigns.
 - New for the next session: 2 BRK, 5 CTL, 2 REV.
-- SP1 index line: Mon 23 Nov: 8 index decisions recorded, no trade. Book over 19 scored session(s): NIFTY: 4 scored trade(s), index +60 bp, one option lot Rs 3,393 with realistic fills; BANKNIFTY: 18 scored trade(s) (1 scored late), index +905 bp, one option lot Rs 104,354 with realistic fills.
+- SP1 index line: Wed 25 Nov: 5 index decisions recorded, traded BANKNIFTY at D0 (long, exit NEXTOPEN). Book over 19 scored session(s): NIFTY: 4 scored trade(s), index +60 bp, one option lot Rs 3,393 with realistic fills; BANKNIFTY: 18 scored trade(s) (1 scored late), index +905 bp, one option lot Rs 104,354 with realistic fills.
 - Against the reference traders (1 session): Ananta held 13 of the top 20 trips, passed on 1, had no rule for 4; its picks sat at the 64th percentile of random.
 
 ## Decisions for the next session
@@ -36,14 +36,14 @@ Rules readmodel-v0-2026-10-22. Every number below traces to the file named in it
 
 ## SP1 index line
 
-Mon 23 Nov: 8 index decisions recorded, no trade. Book over 19 scored session(s): NIFTY: 4 scored trade(s), index +60 bp, one option lot Rs 3,393 with realistic fills; BANKNIFTY: 18 scored trade(s) (1 scored late), index +905 bp, one option lot Rs 104,354 with realistic fills
+Wed 25 Nov: 5 index decisions recorded, traded BANKNIFTY at D0 (long, exit NEXTOPEN). Book over 19 scored session(s): NIFTY: 4 scored trade(s), index +60 bp, one option lot Rs 3,393 with realistic fills; BANKNIFTY: 18 scored trade(s) (1 scored late), index +905 bp, one option lot Rs 104,354 with realistic fills
 
 ## Jobs
 
 - autologin: ok
 - evening: ok
 - evening_zerodha: ok
-- factmap: ok
+- factmap: PROBLEM exit 1: no error line in the log tail (that run ended Wed 25 Nov 00:30)
 - kitefill: ok
 - morning: ok
 - morningview: ok
@@ -58,16 +58,16 @@ Mon 23 Nov: 8 index decisions recorded, no trade. Book over 19 scored session(s)
 - shadowtrader: ok
 - sp1paper: ok
 - sp1paper.score: ok
-- spreads: PROBLEM stuck: running (pid 35028) with no output for 21 h, since Mon 23 Nov 05:01
+- spreads: PROBLEM stuck: running (pid 90551) with no output for 21 h, since Tue 24 Nov 05:01
 - studies: ok
 - web: ok
 
-Next sign-in: automatic at 20:10 Toronto, 06:40 IST (last automatic sign-in ok Mon 23 Nov 20:10 Toronto); by hand only if it fails, Tue 24 Nov 21:00-22:40 Toronto (07:30-09:10 IST, for the Wed 25 Nov session)
+Next sign-in: automatic at 20:10 Toronto, 06:40 IST (last automatic sign-in ok Tue 24 Nov 20:10 Toronto); by hand only if it fails, Wed 25 Nov 21:00-22:40 Toronto (07:30-09:10 IST, for the Thu 26 Nov session)
 
 ## Research
 
 - studies: {'ready': 53, 'blocked': 11, 'with_results': 40}
-- gate G02: {'state': 'BLOCKED', 'waiting_on': 'D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots); D32 (wait_time, weekly runs)'} counters {'D15': '37 of 30 nightly runs; 23 clean sessions in a row (the gate needs 30 in a row)', 'D16': '31 of 30 snapshots', 'D32': '2026-11-21: knows 17 of 18, unknowns 6 of 7, why 4 of 5, answers and decides 8 of 9, safety 39 of 39, plain words 39 of 39: FAIL; 4 of 8 runs passed'}
+- gate G02: {'state': 'BLOCKED', 'waiting_on': 'D15 (wait_time, 30 runs); D16 (wait_time, 30 snapshots); D32 (wait_time, weekly runs)'} counters {'D15': '38 of 30 nightly runs; 24 clean sessions in a row (the gate needs 30 in a row)', 'D16': '32 of 30 snapshots', 'D32': '2026-11-21: knows 17 of 18, unknowns 6 of 7, why 4 of 5, answers and decides 8 of 9, safety 39 of 39, plain words 39 of 39: FAIL; 4 of 8 runs passed'}
 - registry verdicts: {'REJECTED': 511, 'OPPOSITE': 158, 'INCONCLUSIVE': 661, 'CONDITIONAL': 38, 'VALIDATED': 44, 'NOT_SUPPORTED_SEEN': 22, 'SUPPORTED_SEEN': 1, 'NOT_CONFIRMED': 5}
 - exit book (G01): {'BRK/all': 'sma_close_50', 'BRK/above_both': 'hold_60d', 'BRK/mixed': 'sma_close_50', 'BRK/below_both': None, 'PULL/all': None, 'PULL/above_both': None, 'PULL/mixed': 'hold60+low20', 'PULL/below_both': None, 'ANY/all': None, 'ANY/above_both': None, 'ANY/mixed': None, 'ANY/below_both': 'hold60+low20'}
 

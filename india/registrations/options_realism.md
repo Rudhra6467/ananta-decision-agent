@@ -50,7 +50,7 @@ Rule: an options result can feed a decision only if it is positive at 2x, and it
 - F05 (O-04 synthetic) loses even with zero spread, so spread realism cannot rescue it; its doubt is the synthetic price itself (flat IV through the afternoon, which if anything flatters a long straddle, since implied volatility usually falls into expiry). R01 on recorded expiry days settles it.
 - Nothing options-related feeds a decision until (a) measured spreads exist (india.spreads, needs a Kite sign-in after 20:30 Toronto) and (b) the expiry-eve settle check below has rows.
 
-## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-11-23, 26002 contract-days, 43 sessions)
+## Were settlement prices tradable? (recorded live contracts 2026-09-21..2026-11-23, 26534 contract-days, 43 sessions)
 
 Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule scored) against the volume-weighted price actually traded in the last 30 minutes (Kite minutes from the recorder). Signed gap > 0: settle above what traded (overstates a seller's credit).
 
@@ -69,9 +69,9 @@ Settle (NSE bhavcopy, 2026 holdout-period rows read by india.calibrate; no rule 
 | NIFTY | no | <2 | 393 | 26.7% | +0.97% | 3.09% | 10.80% |
 | NIFTY | no | 2-5 | 521 | 13.6% | +0.22% | 2.21% | 9.29% |
 | NIFTY | no | 5-20 | 1466 | 6.6% | +0.20% | 1.69% | 6.53% |
-| NIFTY | no | 20-50 | 1446 | 4.6% | +0.12% | 1.46% | 5.48% |
-| NIFTY | no | 50-150 | 2758 | 4.9% | +0.03% | 1.13% | 4.39% |
-| NIFTY | no | 150+ | 8242 | 18.6% | +0.00% | 0.68% | 3.07% |
+| NIFTY | no | 20-50 | 1448 | 4.6% | +0.12% | 1.46% | 5.51% |
+| NIFTY | no | 50-150 | 2849 | 5.2% | +0.02% | 1.13% | 4.46% |
+| NIFTY | no | 150+ | 8681 | 19.6% | +0.00% | 0.68% | 3.07% |
 | NIFTY | yes | <2 | 41 | 0.0% | +4.34% | 4.43% | 9.43% |
 | NIFTY | yes | 2-5 | 34 | 0.0% | +0.72% | 3.58% | 6.17% |
 | NIFTY | yes | 5-20 | 28 | 0.0% | -6.89% | 8.20% | 13.06% |

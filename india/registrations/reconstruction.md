@@ -1,4 +1,4 @@
-# Reconstruction, session 2026-11-23 (rules rx-in-v2-2026-11-06, built 2026-11-24T02:30Z)
+# Reconstruction, session 2026-11-23 (rules rx-in-v2-2026-11-06, built 2026-11-25T02:30Z)
 
 23 Nov: Nifty in an uptrend. Ananta picked 4 stocks; of the day's 25 biggest rises it held 14 and missed 7 that no rule was watching, and it held 19 of the 25 biggest falls. 11 closed trades reviewed (3 lost small, 5 clean, 2 gave back, 1 never worked). 1 small fix went to the repair shop; 1 new idea tonight; 1 draft waits for your yes or skip. Value since 22 Oct: 0 findings changed a rule; 25 approved and 2 skipped drafts started 4 studies (RX1, RX2, RX3, K02-R1); in a paper trial: falls under the 200-day (RX1) 17/20; relative strength (RS) 14/20.
 
@@ -12,7 +12,7 @@ FII net bought ₹5,673 crore; DII net sold ₹2,760 crore; 11 bulk/block deals 
 - League: Of the day's 20 best one-day trades, Ananta held 13, passed on 1 and had no rule for 4. Its 143 positions did -1.2% against -1.4% for the average stock (better than 64% of random picks); the best possible was +2.6%.
 
 ## C. What Ananta did
-Chose 4 research signals and 5 random controls from 198 candidates; 189 rejected (most often: PULL outside_liq_top x70, REV outside_liq_top x55); 9 fills, 20 exits at the reference exit; called the next session BULLISH; index line: 9 decisions, 0 error; allocation: no row.
+Chose 4 research signals and 5 random controls from 198 candidates; 189 rejected (most often: PULL outside_liq_top x70, REV outside_liq_top x55); 9 fills, 20 exits at the reference exit; called the next session BULLISH; index line: 9 decisions, 0 error; allocation (autonomous): 0 paper move(s).
 
 ## D. What it did not do, and was that right
 Of the top 25 rises the book held 14 (plus 1 by the random control), missed 3 after a family fired (class a), 7 with no family positioned (b), 0 untradeable (c); it held into 19 of the top 25 falls (₹17,684 against it so far). 

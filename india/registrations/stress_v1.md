@@ -82,3 +82,7 @@ Run 2 runs everything again on the same scenarios, seed and marks, two ways:
 2. **The holdings of that day.** Reported beside run 1, read as exposure, not as a code change.
 
 Machine must still pass in full; words must pass at least as many turns as run 1. A change that improves a mark is kept only if no other mark drops.
+
+## Addendum for run 2 (written 24 Nov 2026, before run 2)
+
+Madhav, 24 Nov 2026: "Yes please, draft it and save it for the next audits and tests" (the audit question bank v2, app `docs/repair_shop/audit/2026-11-24-question-bank-v2.json`). Run 2 also asks the bank's core groups C (outages), D (crash moments) and E (pressure) at stand-in moments. Their counts are reported beside W-a and W-b, not in the no-drop comparison with run 1, which did not ask them. They become the benchmark for those groups at the next audit.

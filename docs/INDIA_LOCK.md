@@ -180,6 +180,15 @@ Madhav, 25 Nov 2026 (in chat), to the side-by-side check, the pre-live tests and
 | T10's sealed purpose (flag 268) | **yes**: the live paper days' Nifty and Bank Nifty opens and closes, for the yardstick only; no rule scored or changed; every read logged | built with T10; a pinned file it needs goes through the repair door with these words |
 | Live options money and cap (flag 269) | **Rs 75,000 of options money, cap at half (Rs 37,500 a 1-lot premium)**, the recommendation he said yes to; at most one options position overnight stays. Read from "cap it at 75,000" with "yes to all your recommendations"; he confirms the figures in his written yes on the live day (Rule A) | `pass_marks_v1.md` go-live item 6 |
 
+Later the same day, to the readiness plan (`india/registrations/golive_plan_v1.md`) and its two questions: "Yes , let's sort this once for all. So that everything is sorted and organised in a way that helps us".
+
+| Item | Decision | Where |
+|---|---|---|
+| The readiness plan v1 (six questions, four tracks, one order) | **yes**; the open list's India and shared items sorted into it (before go-live with a day, after go-live, or joined to the test that covers them) | `golive_plan_v1.md` sections 5-6 |
+| Live in two steps (flag 277) | **yes**: options first (1 lot, the paper line beside it); stocks one week later; each with its own first-week read | `pass_marks_v1.md` go-live items 6-7 |
+| India once in the audits (flag 278) | **yes**: India's answers are graded by the 29 Dec random audit (flag 275); the 10 Dec outside grading (flag 90) is crypto only | the open list |
+| The daily readiness run | **yes**: one scheduled run a day, 08:37 Toronto, works the plan's order until the go-live read, then turns itself off | the scheduled task "Ananta India readiness run" |
+
 ## 9. After the window
 
 Research that does not change a paper rule: the READY studies (C04, F07, I03, I04, I06, K01, EV5, EV6, EVC and the rest of the 52), the DEALS, FUNDS and TEACHER league traders, the shadow books with no history (futures, forex, commodities, results-day options; recording forward), the SP1 2027 refit (January), one voice across both markets (after each has stood alone), and live-readiness engineering built disabled in parallel (the order module behind leakcheck, broker-side stops, reconciliation, kill switch, drift alarm, cost profiles, per-account ledger, NAV units, the enforce switch) with a monthly India risk rehearsal, switch off.

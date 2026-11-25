@@ -466,19 +466,24 @@ def fixture(m: dict) -> dict:
     def ix(name, d):
         r = index_moves(name).loc[pd.Timestamp(d)]
         return {"ret": round(float(r["ret"]), 4), "gap": round(float(r["gap"]) - 1, 4) if pd.notna(r["gap"]) else None}
-    def vix(d):
-        v = index_moves("INDIA VIX")["close"]
-        return round(float(v.loc[pd.Timestamp(d)]), 2) if pd.Timestamp(d) in v.index else None
+    def vix(d, col="close"):
+        v = index_moves("INDIA VIX")
+        d = pd.Timestamp(d)
+        if d not in v.index or pd.isna(v.loc[d, col]):
+            return None
+        if col == "open" and v.loc[d, "open"] == v.loc[d, "close"]:      # an open equal to the close is a missing open in the early file
+            return None
+        return round(float(v.loc[d, col]), 2)
     h2, h9, h7 = (m["scenarios"][k]["book"] for k in ("H2", "H9", "H7"))
     d2, d9 = pd.Timestamp("2020-03-23"), pd.Timestamp("2009-05-18")
     stops2 = ", ".join(s["symbol"] for s in h2["stops"]) or "none"
     out = {
         "note": "stand-in moments built from real days of 2004-2020 applied to today's books; not real prices",
-        "W1": {"nifty": ix("NIFTY 50", d2), "bank": ix("NIFTY BANK", d2), "vix": vix(d2),
+        "W1": {"nifty": ix("NIFTY 50", d2), "bank": ix("NIFTY BANK", d2), "vix": vix(d2), "vix_open": vix(d2, "open"),
                "holdings_words": f"Stand-in moment: your stocks (the managed book's) moved {h2['worst_day_pct']:+.1f}% today: {_move_words(mv(d2), snap['positions'])}.",
                "managed_words": f"Stops hit at today's close: {stops2}; a stop is sold at the next session's open, which can be below the stop."},
-        "W2": {"nifty": ix("NIFTY 50", d2), "bank": ix("NIFTY BANK", d2), "vix": vix(d2), "no_prices": True},
-        "W3": {"nifty": ix("NIFTY 50", d9), "bank": ix("NIFTY BANK", d9), "vix": vix(d9),
+        "W2": {"nifty": ix("NIFTY 50", d2), "bank": ix("NIFTY BANK", d2), "vix": vix(d2), "vix_open": vix(d2, "open"), "no_prices": True},
+        "W3": {"nifty": ix("NIFTY 50", d9), "bank": ix("NIFTY BANK", d9), "vix": vix(d9), "vix_open": vix(d9, "open"),
                "holdings_words": f"Stand-in moment: your stocks (the managed book's) moved {h9['worst_day_pct']:+.1f}% today: {_move_words(mv(d9), snap['positions'])}."},
         "W4": {"nifty": {"ret": -0.021, "gap": -0.006}, "bank": {"ret": -0.026, "gap": -0.008}, "vix": 38.0,
                "holdings_words": (f"Stand-in moment: over the last {m['scenarios']['H7']['sessions']} sessions the managed book's stocks and cash have fallen "

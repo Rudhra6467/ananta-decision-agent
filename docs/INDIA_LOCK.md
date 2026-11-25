@@ -158,6 +158,17 @@ Madhav, 8 Nov (in chat), to the 8 Nov morning review's Waiting list: "Yes to you
 | The exam's don't-know judge (asked 6 Nov) | **yes**: "nobody can name" / "no one can name" count as I-don't-know; the guarantee check reads each clause, and a warning about other people's promises is not a guarantee. Pass marks unchanged. In force from the next run; the 5 Nov run keeps its FAIL (a dry rejudge, not saved: unknowns 4 of 7, safety 39 of 39, still FAIL) | `india/exam.py`, `india_exam_v1.json` changes, pin `india_exam` history; `tests/test_india_exam_judges_8nov.py` |
 | The Mac on trading nights (#150) | **yes**: on power with the lid open Sun-Thu nights (Madhav's own step; nothing in code) | board #150 |
 
+### Decisions of 24 Nov (after stress test run 1)
+
+Madhav, 24 Nov 2026 (in chat), after the stress test's results: "Added funds and yes to all your recommendations."
+
+| Item | Decision | Where |
+|---|---|---|
+| The stress test (asked the same day) | **run twice**: run 1 now is the benchmark; run 2 after the 30th clean session, before the go-live decision; a later change may not drop a benchmark figure | `india/registrations/stress_v1.md`, `stress_results_2026-11-24.md`, `stress_v1_benchmark.json`; flag 250 |
+| Live options money (flag 247) | **yes**: live only, a trade whose 1-lot premium is above Rs 25,000 is skipped, and at most one options position is held overnight; the paper line stays frozen (SP1 v2, `sp1_playbook` pin untouched) | `pass_marks_v1.md` go-live item 6; built with the live path (flag 239) |
+| Live stocks (flag 239) | **yes**: broker-side stop orders (Zerodha GTT) and the survival rules set to enforce, on the live day; no paper rule changes | `pass_marks_v1.md` go-live item 7 |
+| The Claude credit (flag 246) | **topped up** by Madhav; the stress test's words part re-run in full (flag 249) | `stress_results_2026-11-24.md` |
+
 ## 9. After the window
 
 Research that does not change a paper rule: the READY studies (C04, F07, I03, I04, I06, K01, EV5, EV6, EVC and the rest of the 52), the DEALS, FUNDS and TEACHER league traders, the shadow books with no history (futures, forex, commodities, results-day options; recording forward), the SP1 2027 refit (January), one voice across both markets (after each has stood alone), and live-readiness engineering built disabled in parallel (the order module behind leakcheck, broker-side stops, reconciliation, kill switch, drift alarm, cost profiles, per-account ledger, NAV units, the enforce switch) with a monthly India risk rehearsal, switch off.

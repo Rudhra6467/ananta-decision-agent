@@ -185,8 +185,8 @@
   "O1": false,
   "O2": false,
   "X": true,
-  "W_a": null,
-  "W_b": null
+  "W_a": true,
+  "W_b": true
  },
  "options": {
   "O1_worst_night": 51329,
@@ -194,7 +194,7 @@
  },
  "words": {
   "turns": 9,
-  "passed": 4,
-  "grader_passed": 3
+  "passed": 7,
+  "grader_passed": 9
  }
 }

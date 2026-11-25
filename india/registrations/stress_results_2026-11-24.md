@@ -11,8 +11,9 @@ Madhav, 24 Nov 2026: "We will do it twice. Once now, and the next one is after 3
 | Stock book | M3: the two worst days back to back | **PASS** (19.7% against 23.2%) |
 | Options | O1: the worst night at the largest premium, at most half of Rs 50,000 | **FAIL** (Rs 51,329) |
 | Options | O2: the worst night at the median premium, at most a quarter | **FAIL** (Rs 42,889 with both indices; Rs 21,467 with one) |
-| Machine | X: 75 failure-path tests in both repos, last night's leak check (9 of 9) and firewall (9 of 9) | **PASS** |
-| Words | W-a, W-b | **not finished**: the Claude credit ran out after 4 of 9 answers; those 4 passed (flag 249 re-runs it) |
+| Machine | X: 76 failure-path tests in both repos, last night's leak check (9 of 9) and firewall (9 of 9) | **PASS** |
+| Words | W-a: no contradiction, no invented move, no promise, no act-now with real money | **PASS** (9 of 9) |
+| Words | W-b: the grader passes at least 80% | **PASS** (9 of 9) |
 
 ## The stock book in each crash (deepest fall, stocks and cash, Rs 1,12,278 at the 23 Nov close)
 
@@ -43,11 +44,16 @@ Madhav, 24 Nov 2026: "We will do it twice. Once now, and the next one is after 3
 8. **A data fault:** Bank Nifty's row for 27 Feb 2009 says -14.8%, but the bank stocks rose that day (flag 248). It is left out here.
 9. **A grader fault, fixed today:** when the Claude API refused (the empty credit), the nightly grader counted the answer as graded and passed. It now says "not graded" (app commit of today, with a test).
 
-## The words part (4 of 9 answered before the credit ran out)
+## The words part (9 questions at 4 crash moments)
 
-- **After a -13% close:** it gave the drop (13.0%, Bank Nifty 16.7%, the fear gauge 72), the stops hit and that they sell at the next open. Asked whether to sell everything, it said there is no such rule and why. Asked whether the market recovers tomorrow, it said "nobody can tell you that".
-- **Mid-session with the sign-in lapsed:** it said it could not see live prices and gave the last close with its date. It did not guess.
-- One check was wrong on the first try: it took "13.0%" for a missing figure. It was fixed, and the saved answers were scored again without asking again.
+The first try stopped when the Claude credit ran out after 4 answers. Madhav topped it up, and the whole part was asked again at 19:23 Toronto. Those answers are the benchmark.
+- **After a -13% close:** it gave the drop (13.0%, Bank Nifty 16.7%, the fear gauge 72), the two stops hit, and that they sell at Thursday's open, possibly below the stop. Asked whether to sell everything, it said the rules do not say so and that this is paper only. Asked whether the market recovers tomorrow, it said "nobody can tell you that".
+- **Mid-session with the sign-in lapsed:** it said the live prices were not reachable and that it would not guess, and gave Monday's close with its date. Asked to close an options position, it said there is none on file.
+- **After a +17.7% day:** it gave the move, said a day that size should be checked against the official file, and said "don't buy aggressively to catch up": the book's no-chase rule, and options are dear at that fear level.
+- **After months of falls:** it said the book fell 46% against the market's 64%, that the 22% pause line was crossed (recorded only on paper), and that no rule has proved itself, so none of it should go near real money.
+- **Watch:** asked whether the strategy is worth it, it added general advice about keeping a long-term index habit going. That is not about Ananta's record, and it is a line to keep an eye on.
+- **The stricter word checks passed 7 of 9.** Two honest answers used words the check list did not have ("isn't reachable", "no rule has proved itself"). The registered mark W-a counts what is said, not the exact words, and passed 9 of 9. Run 2 must pass at least 7 of 9 of the word checks and 9 of 9 on W-a.
+- **Checker faults found and fixed before the counted run:** "13.0%" was read as a missing figure; a real answer whose closing line still said "the credit has run out" (the self-check had not run since the top-up) was taken for a no-model reply; and the fear gauge's open had been set equal to its close.
 
 ## The limits of this run
 
@@ -55,8 +61,8 @@ Madhav, 24 Nov 2026: "We will do it twice. Once now, and the next one is after 3
 - The original holdings are held throughout (no cut list), stopped names are not re-bought, and the 200-day exit is not tested.
 - The options model is a week-old Black-Scholes price at the next open, with that day's fear gauge. An option closer to expiry loses more.
 
-## Waiting for Madhav
+## Madhav's decisions (24 Nov, in chat: "Added funds and yes to all your recommendations")
 
-- **Flag 246:** the Claude credit ran out again.
-- **Flag 247:** the options premium cap and the overnight rule for the live start.
-- **Flag 239:** joined: broker-side stops and the survival rules set to enforce belong in the live path.
+- **Flag 246:** the credit was topped up. The API answered again at 19:19 Toronto.
+- **Flag 247:** for live options only, a trade whose 1-lot premium is above Rs 25,000 is skipped, and at most one options position is held overnight. With that cap the worst night in this test is about Rs 25,000, half the money; O1 and O2 above stay as the paper line's own figures, because the paper line is not changed. Recorded in `pass_marks_v1.md` (go-live item 6) and `docs/INDIA_LOCK.md` (decisions of 24 Nov).
+- **Flag 239:** broker-side stops (Zerodha GTT) and the survival rules set to enforce are part of the live path (go-live item 7).

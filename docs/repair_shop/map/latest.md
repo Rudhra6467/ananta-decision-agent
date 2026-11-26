@@ -1,6 +1,6 @@
-# The one map (2026-11-24T20:50)
+# The one map (2026-11-25T20:50)
 
-The map holds 175 studies and 1440 variants. 83 mismatches between layers: 28 planned, not done, 14 proved, not in the paper rules, 37 tested, but not at full scale, 2 the voice has it, but no plain-words name, 2 a result the screens do not show; 14 need Madhav's yes.
+The map holds 176 studies and 1512 variants. 83 mismatches between layers: 28 planned, not done, 14 proved, not in the paper rules, 37 tested, but not at full scale, 2 the voice has it, but no plain-words name, 2 a result the screens do not show; 14 need Madhav's yes.
 
 ## Mismatches
 
@@ -178,6 +178,7 @@ The map holds 175 studies and 1440 variants. 83 mismatches between layers: 28 pl
 | I05 | the lab | REJECTED | 8 | full | yes | - | yes | yes | - | - | - | READY |
 | IB1 | the lab | VALIDATED | 8 | full | yes | - | yes | yes | yes | - | - | - |
 | MS1 | the lab | CONDITIONAL | 6 | full | yes | - | yes | yes | yes | - | - | - |
+| NC1 | the lab | VALIDATED | 72 | full | yes | yes | - | - | yes | - | - | - |
 | OC1 | the playbook work (Madhav, 19-21 Oct) | VALIDATED | 74 | full | yes | - | - | - | yes | - | - | READY |
 | OS1 | the lab | OPPOSITE | 6 | full | yes | - | yes | yes | yes | - | - | - |
 | P01-ANY | the lab | VALIDATED | 20 | full | yes | yes | - | yes | yes | - | - | READY |

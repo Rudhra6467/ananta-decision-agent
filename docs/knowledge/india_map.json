@@ -1,8 +1,8 @@
 {
  "summary": {
-  "built_at": "2026-11-24T20:50:09",
-  "studies": 175,
-  "variants": 1440,
+  "built_at": "2026-11-25T20:50:10",
+  "studies": 176,
+  "variants": 1512,
   "gap_counts": {
    "A planned, not done": 28,
    "B done, not noted": 0,
@@ -14,8 +14,8 @@
   },
   "gaps_total": 83,
   "needs_yes": 14,
-  "seconds": 3.1,
-  "words": "The map holds 175 studies and 1440 variants. 83 mismatches between layers: 28 planned, not done, 14 proved, not in the paper rules, 37 tested, but not at full scale, 2 the voice has it, but no plain-words name, 2 a result the screens do not show; 14 need Madhav's yes."
+  "seconds": 3.4,
+  "words": "The map holds 176 studies and 1512 variants. 83 mismatches between layers: 28 planned, not done, 14 proved, not in the paper rules, 37 tested, but not at full scale, 2 the voice has it, but no plain-words name, 2 a result the screens do not show; 14 need Madhav's yes."
  },
  "rows": [
   {
@@ -7274,6 +7274,100 @@
      "val_mean": 0.00037348572504209744,
      "val_t": 3.22322104915305,
      "val_blocks": 72
+    }
+   ]
+  },
+  {
+   "id": "NC1",
+   "family": "news_confirm",
+   "source": "the lab",
+   "title": "After company news, a confirmed move: does it continue or fade, against a move of the same size on a day with no news?",
+   "registered": true,
+   "registered_at": "2026-11-25",
+   "versions": 1,
+   "variants": 72,
+   "verdicts": {
+    "OPPOSITE": 11,
+    "VALIDATED": 3,
+    "INCONCLUSIVE": 44,
+    "REJECTED": 12,
+    "CONDITIONAL": 2
+   },
+   "best_verdict": "VALIDATED",
+   "proved": true,
+   "scale": "full",
+   "last_result": "2026-11-25T17:36:27+00:00",
+   "spec_file": true,
+   "results_page": true,
+   "tracker_state": null,
+   "hypotheses": [],
+   "in_paper": true,
+   "paper_role": "a study only (Madhav, 25 Nov): noted, not used in any paper rule; it explains moves in the morning review's movers-and-news line",
+   "in_facts": false,
+   "plain_name": null,
+   "in_readmodel": true,
+   "in_exam": false,
+   "in_lock": false,
+   "top_variants": [
+    {
+     "variant": "A|all_news|edge",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.007922393676560138,
+     "dev_t": 10.547656891208344,
+     "dev_blocks": 31,
+     "val_mean": 0.003468518681294233,
+     "val_t": 5.004469512536043,
+     "val_blocks": 24
+    },
+    {
+     "variant": "A|results|edge",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.012747376025569615,
+     "dev_t": 9.09201099463684,
+     "dev_blocks": 30,
+     "val_mean": 0.006342301775084643,
+     "val_t": 4.751061511916875,
+     "val_blocks": 24
+    },
+    {
+     "variant": "A|dividend_bonus_split|edge",
+     "verdict": "VALIDATED",
+     "dev_mean": 0.009840605186751865,
+     "dev_t": 4.793894569923188,
+     "dev_blocks": 30,
+     "val_mean": 0.007168980272554268,
+     "val_t": 3.567559071516447,
+     "val_blocks": 24
+    },
+    {
+     "variant": "B|results|edge",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.004951121378813581,
+     "dev_t": 5.228280844167304,
+     "dev_blocks": 16,
+     "val_mean": 0.003287068510580536,
+     "val_t": 3.1325560553871656,
+     "val_blocks": 20
+    },
+    {
+     "variant": "B|all_news|edge",
+     "verdict": "CONDITIONAL",
+     "dev_mean": 0.0030138399048781567,
+     "dev_t": 4.782150090036684,
+     "dev_blocks": 16,
+     "val_mean": 0.0011063846190240373,
+     "val_t": 2.584702369035838,
+     "val_blocks": 20
+    },
+    {
+     "variant": "A|all_news|cont",
+     "verdict": "OPPOSITE",
+     "dev_mean": -0.011625134399791025,
+     "dev_t": -8.238670653756683,
+     "dev_blocks": 31,
+     "val_mean": -0.005953203598294765,
+     "val_t": -10.063599576321316,
+     "val_blocks": 24
     }
    ]
   },

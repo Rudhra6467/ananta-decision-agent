@@ -441,12 +441,31 @@ def build(now: dt.datetime | None = None, launchctl_text: str | None = None, age
                         + (f"; next sign-in {ctx['signin']}" if st == "skipped (no token)" else ""))
     lost += storage_problems(D, now)
     lost += reconstruction_problems(D)
+    lost += sp1_late_problems(D)
     res = {"at": now, "jobs": jobs, "lost": lost, "missed_line": missed_line, "others_line": others_line, "missed_session": str(mday), "replay": replay, "signin": ctx["signin"]}
     reg.mkdir(parents=True, exist_ok=True)
     md = markdown(res)
     (reg / "india_morning.md").write_text(md)
     res["markdown"] = md
     return res
+
+
+def sp1_late_problems(D: Path) -> list[str]:
+    """26 Nov 2026: the Mac slept on battery from 08:39 to 10:41 IST, so every options-line decision of that session was made late and marked
+    not tradable; the sp1paper job's proof still read "ok: plan yes, 5 decision rows" and this section said nothing. A session whose newest
+    decision rows are all untradable is a lost options session and is named here. Reporting only: no decision or rule changes."""
+    rows = [r for r in _json_lines(D / "paper" / "sp1" / "decisions.jsonl", 400) if r.get("kind") == "decision" and r.get("date")]
+    if not rows:
+        return []
+    day = max(r["date"] for r in rows)
+    mine = [r for r in rows if r["date"] == day]
+    if any(r.get("tradable") for r in mine):
+        return []
+    late = max((float(r.get("late_s") or 0) for r in mine), default=0.0)
+    first = min((str(r.get("decided_at") or "") for r in mine), default="")
+    at = first[11:16] if len(first) >= 16 else "?"
+    return [f"SP1 options line {day}: no decision was tradable ({len(mine)} decisions, the first at {at} IST, up to {round(late / 60)} min late); "
+            "the session's options trade is not scored"]
 
 
 def reconstruction_problems(D: Path) -> list[str]:

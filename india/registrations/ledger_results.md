@@ -1,4 +1,4 @@
-# Every study in the ledger, in plain words (generated from the ledger by india.writeups, 2026-11-24)
+# Every study in the ledger, in plain words (generated from the ledger by india.writeups, 2026-11-25)
 
 HISTORICAL BACKTEST only: development 2000-2017, validation 2018-2023; the 2024+ years are sealed. A verdict here is the registry's rule applied to the registered numbers (one family-wide bar for every variant ever tried in that family); it is evidence, not a decision, and nothing is in the paper book because of this page. A researcher's write-up (the *_results_v1.md pages) is the better source where one exists; this page exists so that no finished study is unwritten.
 
@@ -576,6 +576,27 @@ Outcome: 4 had too little data to judge, 2 came out the opposite way, 2 not supp
 |---|---|---|---|---|---|---|
 | nifty · trend_up · fwd20 | OPPOSITE | -1.70% | -5.3 | -0.91% | -2.4 | 2.773 |
 | nifty · range · abs_fwd10 | OPPOSITE | +0.65% | +2.3 | +0.46% | +1.5 | 2.773 |
+
+## news_confirm (1 studies)
+
+### NC1: After company news, a confirmed move: does it continue or fade, against a move of the same size on a day with no news?
+Claim before the run: A stock move that comes with company news and is confirmed (at the open for news made public overnight; about 15 minutes later for news in session) goes on further in the same direction to the close than a move of the same size on a day with no news, and more for some kinds of news than others. Prior idea: Chan (2003, US stocks) found that big moves with news drifted on and big moves without news tended to reverse.
+Outcome: 44 had too little data to judge, 12 did not hold, 11 came out the opposite way, 3 held up in both periods, 2 held up, weaker in one period across 72 variants.
+
+| variant | verdict | 2000-17 mean | t | 2018-23 mean | t | bar |
+|---|---|---|---|---|---|---|
+| A · all_news · cont | OPPOSITE | -1.16% | -8.2 | -0.60% | -10.1 | 3.55 |
+| A · all_news · edge | VALIDATED | +0.79% | +10.5 | +0.35% | +5.0 | 3.55 |
+| A · results · edge | VALIDATED | +1.27% | +9.1 | +0.63% | +4.8 | 3.55 |
+| A · dividend_bonus_split · edge | VALIDATED | +0.98% | +4.8 | +0.72% | +3.6 | 3.55 |
+| A · order_win · cont | OPPOSITE | -0.82% | -2.7 | -0.81% | -3.2 | 3.55 |
+| B · results · edge | CONDITIONAL | +0.50% | +5.2 | +0.33% | +3.1 | 3.55 |
+| A · results · cont | OPPOSITE | -0.68% | -5.2 | -0.32% | -2.9 | 3.55 |
+| B · all_news · edge | CONDITIONAL | +0.30% | +4.8 | +0.11% | +2.6 | 3.55 |
+| A · holding_change · cont | OPPOSITE | -2.65% | -4.7 | -1.18% | -2.3 | 3.55 |
+| A · operations_up · cont | OPPOSITE | -1.81% | -3.0 | -1.31% | -2.2 | 3.55 |
+| A · merger_acquisition · cont | OPPOSITE | -1.45% | -3.6 | -0.41% | -1.7 | 3.55 |
+| A · buyback · cont | OPPOSITE | -1.08% | -1.8 | -0.63% | -1.2 | 3.55 |
 
 ## news_tone (2 studies)
 

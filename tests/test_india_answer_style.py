@@ -83,7 +83,7 @@ def test_v2_keeps_every_principle_in_one_place():
     """29 Oct: the slimmed instructions (jarvis/india/askprompt.py) still carry what the old patches taught, said once."""
     s = ask.SYSTEM_V2
     for part in ("Answer every part of the message", "Textbook knowledge", "never a refusal", "ONLY from the FACTS", "Ananta hasn't tested this",
-                 "Match the horizon", "always decide", "I'd reverse this if", 'never a "Decision:" label', "hypothetical",
+                 "Match the horizon", "always decide", "I'd change my mind if", 'never a "Decision:" label', "hypothetical",
                  "PREDICTION question", "drafts_waiting_total.count", "value_inr", "SAFETY (unconditional)", "SEBI Check", "@valid UPI",
                  "seller of a call delivers", "booked in the same year", "lottery ticket", "PLAIN WORDS", "ORSTOP", "The grader",
                  "approve all drafts", "Move the app only when he asks", "kind\":\"clarify\"".replace("\\", "")):

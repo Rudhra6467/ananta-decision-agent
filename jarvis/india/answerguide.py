@@ -66,6 +66,10 @@ RUPEE_SENSITIVITY = {
     "TATACHEM": "Tata Chemicals has operations in the US and UK and exports soda ash: a weaker rupee usually helps a little",
 }
 
+# flag 276: every read-or-decide answer says, in plain words, what would change the view (part (c) of the decide shape)
+CHANGE_MIND = ("CHANGE MY MIND: include one sentence that starts \"I'd change my mind if\" and names a real condition with its number (a close "
+               "under a level, a stop, a count); never leave this part out of a read or a decision.")
+
 EXTRA_LINES = {
     "beginner": "Before investing: term life cover if anyone depends on his income and health insurance come first, then the emergency fund (6 months "
                 "of expenses), then high-interest debt, then a low-cost index fund SIP.",
@@ -196,6 +200,10 @@ def guide(text: str, f: dict | None = None) -> dict:
             # 27 Oct re-ask: "What do you think of Tesla shares?" got the no-data shape and then "Decision: wait"
             lines.append("NO-DATA CHECK: if the company or fund he names is not in FACTS.lookup or his holdings, use the NO-DATA SHAPE and write no "
                          "'decision' line, not even 'wait'.")
+        if not ({"loan", "tip"} & set(tp)):
+            # flag 276 (India exam of 21 Nov, d_up8): the answer said "I'd reverse this if it closed under its fixed stop" and the exam's
+            # 'answers and decides' mark found no line on what would change Ananta's mind; say it in those plain words every time
+            lines.append(CHANGE_MIND)
     if "loan" in tp:
         lines.append("SAFETY: borrowing to buy shares is a plain no, whatever the market does; give no condition under which it becomes fine.")
     if "tip" in tp:

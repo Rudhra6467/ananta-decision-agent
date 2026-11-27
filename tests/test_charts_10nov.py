@@ -3,6 +3,7 @@
 portfolio numbers; on Markets the Nifty 50, Bank Nifty and fear gauge boxes open their history. No network here: Kite and Binance are fakes."""
 import datetime as dt
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -156,7 +157,13 @@ def test_the_app_hides_the_amounts_next_to_the_bell():
     place = (APP / "place.tsx").read_text()
     screen = (APP / "placescreen.tsx").read_text()
     # 11 Nov 2026 (Madhav, 07:51: "Only in home tab I believe?"): the eye sits beside the bell on Home only; what it hides stays hidden
-    assert '{name === "home" ? <HideButton /> : null}<Bell count={count} />' in screen
+    # 22 Nov (app 96d28c3, Madhav: "Good to lock"): More's glass and theme switches sit between them in the code, shown on More only,
+    # so on Home the eye is still the one thing beside the bell
+    row = next(ln for ln in screen.splitlines() if "<Bell count={count} />" in ln)
+    head, _, between = row.partition('{name === "home" ? <HideButton /> : null}')
+    assert _, "the eye is beside the bell on Home"
+    between = between.split("<Bell count={count} />", 1)[0]
+    assert re.fullmatch(r'(\{name === "more" \? .*? : null\})*', between), between
     assert "<HideButton" not in screen.split("export function PageScreen(", 1)[1]
     assert 'const HKEY = "ananta_hide_money"' in place and "export function useMask()" in place
     for comp in ("function Hero(", "function BoxBody(", "export function Row(", "function KV(", "function Points(", "function Split("):

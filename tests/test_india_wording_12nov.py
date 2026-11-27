@@ -32,5 +32,6 @@ def test_the_coin_flip_is_said_beside_what_chance_averages():
     rm = {"call": {"call": "BULLISH", "hits": 5, "scored": 15, "null_hits": 9, "data_through": "2026-11-11"}, "data_through": "2026-11-11",
           "market": {}, "guardrails": {}, "sp1": {}}
     why = " ".join(views._account_sp1(rm)["dial"]["why"])
-    assert "a coin flip got 9, where chance alone averages 7.5" in why
-    assert any("against 9 for a coin flip (chance alone averages 7.5)" in x for x in views.plain_brief(rm))
+    # 24 Nov 2026 (Madhav, in the app, flag 236): the daily call is off the Home screen, so neither line speaks it any more
+    assert "coin flip" not in why
+    assert not any("coin flip" in x for x in views.plain_brief(rm))

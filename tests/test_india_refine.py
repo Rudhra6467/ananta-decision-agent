@@ -89,7 +89,7 @@ def test_an_old_daily_call_is_not_called_the_next_one():
     assert A.call_state(rm)["words"].startswith("The daily call for the next session is bullish")
     from jarvis.india import views
     b = views.plain_brief({"data_through": "2026-10-23", "call": {"call": "BULLISH", "data_through": "2026-10-22", "hits": 0, "scored": 3, "null_hits": 2}})
-    assert any(x.startswith("No call yet for the next session") for x in b)
+    assert not any("call" in x.lower() for x in b)        # 24 Nov 2026 (flag 236): the daily call is off the Home card
 
 
 def test_decision_and_book_answers_match_the_screens(monkeypatch):

@@ -604,7 +604,7 @@ def options_page(full: bool = True) -> dict:
     left = _left_out()                       # 12 Nov 2026 (audit repair 4, G-01): until it is scored late, every total says what it leaves out
     parts = [K.hero("Options, set aside", _rs(ob.get("set_aside_inr")), change=_rs(ob.get("pnl_inr"), sign=True) if ob.get("pnl_inr") is not None else None, tone=_tone(ob.get("pnl_inr")),
                     since=f"over {ob.get('sessions')} sessions, on paper" + (f"; {left}" if left else "")),
-             K.line(options_two_windows()) if options_two_windows() else None,
+             *[K.line(x) for x in options_two_windows_lines()],
              K.pricechart("OPTIONS", "The options line", kind="line", private=True),
              K.line(str(ob.get("open_words") or "")), K.kv(rows, title="By index", foot=(left[:1].upper() + left[1:] + ".") if left else None),
              # 12 Nov 2026 (G-11): how the account counts this line, in the account's own sentence (its result since the book started)
@@ -618,6 +618,23 @@ def options_page(full: bool = True) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------ the account page
+def twins_block() -> dict | None:
+    """27 Nov 2026 (Madhav, 26 Nov 22:22: "Yes, let's set it up"; flag 290): the managed book's two twins (records india/managedtwins.py,
+    marked with the nightly trials run): what Ananta's own decisions added or cost in rupees, stocks and cash only, the options lot apart."""
+    try:
+        t = json.loads((IS.DATA / "paper" / "managed" / "twins.json").read_text())
+    except (OSError, ValueError):
+        return None
+    if t.get("status") != "ok" or not isinstance(t.get("decisions_vs_held_inr"), (int, float)):
+        return None
+    vh, vi = t["decisions_vs_held_inr"], t.get("decisions_vs_index_inr")
+    rows = [K.kvrow("Against holding still", _rs(vh, sign=True), k_sub=f"held: {_rs(t.get('held_inr'))}", tone=_tone(vh))]
+    if isinstance(vi, (int, float)):
+        rows.append(K.kvrow("Against the index fund", _rs(vi, sign=True), k_sub=f"NIFTYBEES: {_rs(t.get('index_inr'))}", tone=_tone(vi)))
+    return K.kv(rows, title="What its decisions did",
+                foot=f"Stocks and cash from {IS._dw(t.get('start_day'))}, to the {IS._dw(t.get('day'))} close; options apart.")
+
+
 def account(full: bool = True) -> dict:
     m = IS.money(full)
     mb = IS._managed()
@@ -671,6 +688,7 @@ def account(full: bool = True) -> dict:
                        + (lag or (f" To the {IS._dw(thru)} close." if thru else ""))
                        # 13 Nov (repair 2's confirm check, P3): a holding of "as you have them" at an older close is said here too
                        + (f" Your holdings as you have them: {m['yours_note']}." if m.get("yours_note") else "")),
+             twins_block(),                                    # 27 Nov 2026 (flag 290): what Ananta's own decisions added or cost
              K.line(str(m.get("books_options"))) if m.get("books_options") else None,            # 12 Nov (N2): the options' result in the figure
              K.line(str(m.get("books_exposure"))) if m.get("books_exposure") else None,          # 12 Nov 2026 (G-12): not equally in stocks
              # 12 Nov 2026 (audit repair 4, G-06): the book's own positions under its own total; your Zerodha holdings, as you have them, apart
@@ -907,6 +925,22 @@ def options_two_windows() -> str | None:
     return out + "."
 
 
+def options_two_windows_lines() -> list[str]:
+    """The same two windows as short lines for the pages (27 Nov 2026, flag 282): a page's one line is at most K.MAX['page_line'] words,
+    and the one long sentence broke that rule on the Options page since 24 Nov. Same numbers, same order, the line's own start first."""
+    s = options_two_windows()
+    if not s:
+        return []
+    s = s[:-1] if s.endswith(".") else s
+    head, _, rest = s.partition(". Your account counts it from ")
+    out = [head + "."]
+    if rest:
+        parts = rest.split("; ")
+        out.append("Your account counts it from " + parts[0] + ".")
+        out += [p[:1].upper() + p[1:] + "." for p in parts[1:]]
+    return out
+
+
 def option_pnl_trades(start_day: str | None = None, upto_day: str | None = None) -> tuple[list[dict], list[dict]]:
     """The options trades the account counts since the managed book started, and those decided in that window but scored after `upto_day`
     (they join the total at the next close). The same window as india/managed.py options_line: decided on or after the book's first day."""
@@ -1140,8 +1174,8 @@ def options_pnl_page(full: bool = True) -> dict:
                     change=(f"{_pct(p['options_pct'], 1)} on ₹{p['set_aside']:,.0f} set aside" if p and p.get("options_pct") is not None else None),
                     tone=_tone(p.get("options") if p else None),
                     since=(f"since {sd}, {len(nets)} trade{'s' if len(nets) != 1 else ''}" if sd else None)),
-             K.line(options_two_windows() or "In the total since the managed book started; the Options page counts from the line's own start.") if p.get("counted") else
-             K.line("Worked out here: the total still counts options at the money set aside."),
+             *([K.line(x) for x in options_two_windows_lines()] or [K.line("In the total since the managed book started; the Options page counts from the line's own start.")]
+               if p.get("counted") else [K.line("Worked out here: the total still counts options at the money set aside.")]),
              K.line(f"{len(later)} trade{'s' if len(later) != 1 else ''} scored after the {IS._dw(mb.get('day'))} close, {_rs(late, sign=True)}, "
                     f"join{'s' if len(later) == 1 else ''} at the next close.") if later else None,
              K.pricechart("OPTIONSPNL", "Options profit/loss", kind="line", private=True),

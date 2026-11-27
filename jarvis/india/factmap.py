@@ -61,6 +61,10 @@ INTERNAL = [
     ("paper/managed/ledger.jsonl", "the managed book's hash-chained ledger (its state and view are what is read)"),
     ("paper/managed/plans.jsonl", "the plan history (the latest plan is read through the managed view)"),
     ("paper/managed/audit_history.jsonl", "the evening audit's day-by-day status (the latest audit.json is read by the Ask)"),
+    # 27 Nov 2026 (flags 290 and 291, Madhav 26 Nov 22:22): the managed book's twins and the grade in two parts are reporting files; their
+    # words reach Ananta through the trials list's managed-book line (records india/trials.py), so the files themselves are internal.
+    ("paper/managed/twins.json", "the managed book's two twins (held and index); their sentence reaches the Ask through the trials list"),
+    ("paper/gradesplit.json", "the holding grade in two parts, shown only; its sentence reaches the Ask through the trials list"),
     ("reports/cutstudy_*.json", "research results: the cut-rule study on history (its .md is the report for Madhav)"),
     # 21 Nov 2026 (morning review): the three studies of 20 Nov (records india/sizingstudy.py, boosttest.py) wrote files with no route,
     # and the fact map failed from 21 Nov 00:30. Research on 2000-2023 only; each .md is the report for Madhav.

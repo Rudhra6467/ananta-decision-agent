@@ -150,7 +150,76 @@ def overnight(plan: dict, session: str | None = None) -> dict:
             out["us"][name] = {"date": v.get("date"), "close": v.get("value"), "ret": v.get("change") if v.get("unit") == "return" else None}
     if not out["us"] and not out["india"]:
         out["status"] = "missing"
+    gap = since_last_session(session, (out["india"].get("Nifty") or {}).get("date"))     # flag 252: a holiday is no session, not missing data
+    if gap:
+        out["since_last_session"] = gap
     return out
+
+
+OPTION_INDICES = (("NIFTY", "Nifty"), ("BANKNIFTY", "Bank Nifty"))     # the two the options line trades
+
+
+def live_expiries(session: str, ins=None) -> dict | None:
+    """27 Nov 2026 (pre-live T6, flag 294): the view said 'next options expiry 29 Dec' while Nifty's weekly contract expires Tue 1 Dec. The
+    history calendar (silver/fo_calendar, built from the bhavcopy) stopped being refreshed on 16 Oct, so it no longer holds the new weeklies.
+    The next expiry of each index the options line trades is now read from Kite's instruments master (the same file the options line picks
+    its contracts from, optpaper.instruments), each index named on its own. None when the master cannot be read (the old calendar is used)."""
+    try:
+        if ins is None:
+            from india import optpaper
+            ins = optpaper.instruments()
+        d0 = dt.date.fromisoformat(session)
+        by, today = {}, []
+        for sym, _ in OPTION_INDICES:
+            ds = sorted({dt.date.fromisoformat(str(x)[:10]) for x in ins[ins["name"] == sym]["expiry"].dropna().unique()})
+            if d0 in ds:
+                today.append(sym)
+            later = [d for d in ds if d > d0]
+            if later:
+                e = later[0]
+                monthly = not any(d.year == e.year and d.month == e.month and d > e for d in ds)
+                by[sym] = {"date": str(e), "monthly": monthly}
+        if not by and not today:
+            return None
+        nxt = None
+        if by:
+            e = min(v["date"] for v in by.values())
+            syms = sorted(k for k, v in by.items() if v["date"] == e)
+            nxt = {"date": e, "symbols": syms, "monthly": all(by[k]["monthly"] for k in syms)}
+        return {"today": today, "next": nxt, "by_index": by, "source": "Kite instruments master"}
+    except Exception:  # noqa: BLE001  the history calendar answers instead
+        return None
+
+
+def since_last_session(session: str | None, last: str | None, hol: set | None = None) -> dict | None:
+    """25 Nov 2026 (flag 252): the view took no view, saying 'the Nifty, fear gauge and flows on file stop at Monday 23 Nov, so Tuesday's
+    session is missing', but Tue 24 Nov was an NSE holiday: nothing was missing. The weekdays between the last close on file and the session
+    are now named as holidays (no session) or as missing sessions, so the facts say plainly whether the data is complete."""
+    if not session or not last:
+        return None
+    try:
+        d0, d1 = dt.date.fromisoformat(str(last)[:10]), dt.date.fromisoformat(str(session)[:10])
+        if hol is None:
+            from india import dayplan
+            hol = dayplan.holidays(refresh=False)
+    except Exception:  # noqa: BLE001
+        return None
+    holidays_, missing = [], []
+    d = d0 + dt.timedelta(days=1)
+    while d < d1:
+        if d.weekday() < 5:
+            (holidays_ if d in hol else missing).append(str(d))
+        d += dt.timedelta(days=1)
+    if not holidays_ and not missing:
+        return None
+    _dw = lambda x: dt.date.fromisoformat(str(x)[:10]).strftime("%a %-d %b")      # noqa: E731  the weekday says why a day had no session
+    if missing:
+        words = (f"The closes on file stop at {_dw(str(d0))}; {', '.join(_dw(x) for x in missing)} {'was a session' if len(missing) == 1 else 'were sessions'}, "
+                 "so the data is a session behind.")
+    else:
+        words = (f"{', '.join(_dw(x) for x in holidays_)} {'was an NSE holiday' if len(holidays_) == 1 else 'were NSE holidays'} (no trading), "
+                 f"so {_dw(str(d0))}'s closes are the latest there are: nothing is missing.")
+    return {"last_session": str(d0), "holidays": holidays_, "missing_sessions": missing, "complete": not missing, "words": words}
 
 
 def setup(session: str, plan: dict, rm: dict) -> dict:
@@ -158,8 +227,11 @@ def setup(session: str, plan: dict, rm: dict) -> dict:
     fc = plan.get("forecast") or {}
     prev = (plan.get("overnight") or {}).get("NIFTY 50", {}).get("close") or m.get("nifty_close")
     band = 0.003
-    exp = {"today": [], "next": None}
+    exp = live_expiries(session)
     try:
+        if exp is not None:
+            raise StopIteration          # the live instruments master answered; the history calendar below is only the fallback
+        exp = {"today": [], "next": None}
         import pandas as pd
         df = pd.read_parquet(_data() / "silver" / "fo_calendar" / "expiries.parquet")
         df["expiry"] = pd.to_datetime(df["expiry"]).dt.date
@@ -170,6 +242,8 @@ def setup(session: str, plan: dict, rm: dict) -> dict:
         if len(nxt):
             e = nxt.iloc[0]["expiry"]
             exp["next"] = {"date": str(e), "symbols": sorted(set(nxt[nxt["expiry"] == e]["symbol"])), "monthly": bool(nxt.iloc[0]["is_monthly_last"])}
+    except StopIteration:
+        pass
     except Exception as e:  # noqa: BLE001
         exp["note"] = f"expiry calendar missing: {e.__class__.__name__}"
     events = {"scheduled_today": False, "recent": []}
@@ -451,6 +525,8 @@ def lines(f: dict) -> dict:
         tr = {"above_both": "in an uptrend", "below_both": "in a downtrend", "mixed": "with no clear trend"}.get(s.get("trend_state"), "")
         view.append(f"Nifty closed at {n['close']:,.0f} on {_dw(n.get('date'))} ({_pct(n.get('d1'))}), {tr}: {_pct(n.get('vs_sma50'))} against its ten-week average, {_pct(n.get('vs_sma200'))} against its long-term average; "
                     f"{100 * (s.get('breadth_200d') or 0):.0f}% of the 250 most-traded stocks are above their long-term average.")
+    if (ov.get("since_last_session") or {}).get("words"):
+        view.append(ov["since_last_session"]["words"])
     v = ind.get("fear gauge") or {}
     if v:
         view.append(f"The fear gauge is at {v['close']}, {_pct(v.get('vs_sma50'), 0)} against its ten-week average" + (" — options are pricing more movement than usual." if (v.get("vs_sma50") or 0) > 0.15 else "."))
@@ -491,7 +567,13 @@ def lines(f: dict) -> dict:
     ex = s.get("expiry") or {}
     if ex.get("today"):
         watch.append(f"Expiry day for {', '.join(ex['today'])} options: moves can be sharp in the last hour.")
-    elif ex.get("next"):
+    if ex.get("by_index"):            # flag 294: each index the options line trades, named on its own
+        idx_names = dict(OPTION_INDICES)
+        parts = [f"{idx_names[k]} {_dw(v['date'])} ({'monthly' if v.get('monthly') else 'weekly'})" for k, v in ex["by_index"].items()
+                 if k not in (ex.get("today") or [])]
+        if parts:
+            watch.append("Next options expiry: " + ", ".join(parts) + ".")
+    elif ex.get("next") and not ex.get("today"):
         watch.append(f"Next options expiry: {_dw(ex['next']['date'])} ({', '.join(ex['next']['symbols'][:3])}{', monthly' if ex['next'].get('monthly') else ''}).")
     cal = (s.get("events") or {}).get("calendar") or {}
     for e in cal.get("during") or []:

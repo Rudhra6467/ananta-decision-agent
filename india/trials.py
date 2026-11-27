@@ -221,6 +221,13 @@ def build() -> dict:
                 mb = {**mb, "twins_words": tw.get("words")}
         except Exception as e:  # noqa: BLE001  the twins never break the trials list
             print(f"managed twins not marked: {type(e).__name__}: {e}", file=sys.stderr)
+        try:                       # 27 Nov 2026 (flag 291, Madhav's yes of 26 Nov 22:22): the grade shown in two parts; shown only
+            from india import gradesplit
+            gs = gradesplit.build()
+            if gs.get("status") == "ok" and gs.get("words"):
+                mb = {**mb, "twins_words": " ".join(x for x in (mb.get("twins_words"), gs["words"]) if x)}
+        except Exception as e:  # noqa: BLE001  the grade split never breaks the trials list
+            print(f"grade split not built: {type(e).__name__}: {e}", file=sys.stderr)
         start = next((d for d in days if d > dt.date.fromisoformat(mb["start_day"])), dt.date.fromisoformat(mb["start_day"]))   # session 1 = the first plan's session
         add("the managed book (cuts replaced on paper)", "your holdings with each cut's money moved into a replacement chosen by the proved not-losing filters, beside the twin, the frozen original and the Nifty 500",
             start, 60, int((mb.get("clock") or {}).get("sessions") or 0), managed_words(mb, days), judge="return and drawdown after costs against the frozen original; the replacement ledger (cut right, replacement rose); nothing read before 60 sessions")

@@ -515,8 +515,7 @@ def brief(rm: dict) -> list[str]:
         # read model (the app, the Ask and the voice then read a stale day). Say it is missing instead.
         close = f"Nifty {m['nifty_close']:,.0f}" if m.get("nifty_close") is not None else "no Nifty close for the day (the index download did not run)"
         out.append(f"Through {m['data_through']}: {close}. {m['words']}.")
-    if c.get("status") == "ok":
-        out.append(c["words"] + ".")
+    # 24 Nov 2026 (Madhav, in the app, flag 236): the daily call is off the screens and the brief; rm["call"] keeps it recorded and scored
     if sb.get("status") == "ok":
         tot = sum((v.get("realised_inr") or 0) for v in sb["by_campaign"].values())
         out.append(f"Stock paper book: {sb['open_positions']} open positions; realised Rs {tot:+,.0f} on the {REF_POLICY} exits across campaigns.")

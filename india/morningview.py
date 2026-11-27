@@ -342,12 +342,9 @@ def _chances_words(rec: dict, call: dict, book: dict, opt_sessions: int) -> str:
     """3 Nov 2026 (Madhav: "Yes for all", the Map's change 5): one daily call instead of five forecasters. The morning view speaks only
     the daily call's record; the rule forecast, the reviewer, Chronos (stopped 3 Nov, 0 of 5) and the shadow trader (its own trial to
     26 Nov) keep their rows in the forecast ledger and the scorecard (Proof), but are no longer spoken here."""
+    # 24 Nov 2026 (Madhav, in the app, flag 236): the daily call is off the morning view (right 7 of 22 against 13 for a coin flip); it is
+    # still recorded and scored (paper/calls.jsonl, the scorecard's daily_call) until its 60-call read, but no longer spoken here.
     bits = []
-    if call.get("scored"):
-        bits.append(f"the daily call has been right {call['hits']} of {call['scored']} sessions against {call['coin_flip_hits']} for a coin flip, one seeded "
-                    f"draw (chance alone averages {call['scored'] / 2:g})")          # 12 Nov 2026 (G-23): the baseline named
-    else:
-        bits.append("the daily call has no scored session yet")
     closed = sum(b.get("closed", 0) for b in book.values())
     if closed:
         net = sum(b.get("realised_inr", 0) for b in book.values())
@@ -386,8 +383,7 @@ def yesterday(rm: dict) -> dict:
             les.append(f"The {p['who']} forecast favoured '{p['favoured']}' and the session closed '{p['outcome']}': wrong.")
         elif p.get("hit"):
             les.append(f"The {p['who']} forecast favoured '{p['favoured']}' and was right.")
-    if call_score:
-        les.append(f"The daily call was {'right' if (call_score.get('score') or 0) > 0 else 'wrong'} (Nifty moved {_pct(call_score.get('move'), 2)}).")
+    # 24 Nov 2026 (flag 236): the call's score stays in "call" below, but is no longer a lesson the morning view speaks
     if avg is not None:
         les.append(f"The research book's {len(first_day)} practice buys at that open averaged {_pct(avg)} by the close.")
     if sp1.get("status") == "lost":
@@ -403,9 +399,8 @@ def lessons_for_writer(sc: dict, y: dict) -> list[str]:
     r = sc["forecasts"]["rule"]
     if r["n"] >= 3 and r["hits"] <= r["n"] / 2:
         out.append("Do not lean on the direction forecast: it has no record of being right. Give the odds with the coin flip beside them.")
-    c = sc["daily_call"]
-    if c.get("scored", 0) >= 3 and c.get("hits", 0) < c.get("coin_flip_hits", 0):
-        out.append("The daily call is behind the coin flip so far: say so plainly whenever it is quoted.")
+    # 24 Nov 2026 (Madhav, flag 236): the daily call is off the morning view; it is still recorded and scored in the background
+    out.append("Do not mention the daily call (the up-or-down call): it is off the morning view since 24 Nov and only recorded in the background.")
     if sc.get("options_sessions", 0) == 0:
         out.append("The options line has no record: describe what it would do, never what it will earn.")
     out += [x for x in y.get("lessons", []) if "wrong" in x]

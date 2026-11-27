@@ -81,6 +81,68 @@ def practice_words(st: dict) -> str:
             f"{o['n']} still open, {o['winners']} of them up")
 
 
+def managed_splits() -> list[tuple[str, str]]:
+    """The managed book's rule versions and the day each split its record, from the pin history of its paper rules (india_lock.json):
+    [('managed-v1', start), ('managed-v2', '2026-11-17'), ('managed-v3', '2026-11-21')]. Read-only."""
+    import re
+    from pathlib import Path
+    lock = _load(Path(__file__).resolve().parent / "registrations" / "india_lock.json", {}) or {}
+    out = []
+    for h in (((lock.get("pins") or {}).get("paper_rules") or {}).get("history") or []):
+        m = re.search(r"split at this day: (managed-v\d+)", str(h.get("note") or ""))
+        if m and h.get("date"):
+            out.append((m.group(1), str(h["date"])[:10]))
+    return sorted(out, key=lambda x: x[1])
+
+
+def managed_words(mb: dict, days: list, splits: list[tuple[str, str]] | None = None) -> str:
+    """27 Nov 2026 (flag 231, the 23 Nov audit): the managed book's trial line leads with stocks and cash against the Nifty 500, then the
+    options lot apart, and names the parts of its record split at each rule change (managed-v2 17 Nov, managed-v3 21 Nov). The 60-session
+    clock itself is unchanged: it is the pinned judgement, counted from the first session."""
+    sp = mb.get("split") or {}
+    if not sp.get("words"):
+        return str(mb.get("words") or "")
+    splits = managed_splits() if splits is None else splits
+    head = (f"Stocks and cash {sp['stocks_cash_pct']:+.1f}% (₹{sp['stocks_cash_inr']:+,.0f}) against the Nifty 500 {sp['market_pct']:+.1f}% over the same sessions; "
+            f"the options lot apart, {'+' if (sp.get('options_inr') or 0) >= 0 else '−'}₹{abs(sp.get('options_inr') or 0):,.0f}; "
+            f"together ₹{mb.get('value_inr') or 0:,.0f}, {mb.get('return_pct') or 0:+.2f}% since {_dw(mb.get('start_day'))}.")
+    day = str(mb.get("day") or "")[:10]
+    start = str(mb.get("start_day") or "")[:10]
+    n = int((mb.get("clock") or {}).get("sessions") or 0)
+    if splits and day and start:
+        bounds = [("managed-v1", start)] + [s for s in splits if start < s[1] <= day]
+        names = []
+        for i, (name, frm) in enumerate(bounds):
+            to = bounds[i + 1][1] if i + 1 < len(bounds) else None
+            k = sum(1 for d in days if d.isoformat() > start and d.isoformat() >= frm and d.isoformat() <= day and (to is None or d.isoformat() < to))
+            first = next((d.isoformat() for d in days if d.isoformat() >= frm and d.isoformat() > start), frm)   # the first session under it
+            names.append((name, first, k))
+        if len(names) > 1:
+            if days and sum(k for _, _, k in names) == n:
+                parts = "; ".join(f"{nm} {k} session{'s' if k != 1 else ''}" + ("" if j == 0 else f" from {_dw(frm)}") for j, (nm, frm, k) in enumerate(names))
+            else:
+                parts = "; ".join(nm + ("" if j == 0 else f" from {_dw(frm)}") for j, (nm, frm, _k) in enumerate(names))
+            head += f" Its record is in {len(names)} parts, split at each rule change: {parts}."
+    plan = mb.get("plan") or {}
+    return (head + (f" {mb['clock']['words']}" if (mb.get("clock") or {}).get("words") else "")
+            + (f" {plan['words']}" if isinstance(plan, dict) and plan.get("words") and not plan.get("error") else ""))
+
+
+def sp1_words(rm_words: str | None, book: dict) -> str:
+    """The options line's 'so far': the read model's day part, then the book part from the line's own book (flag 230), in the read model's words."""
+    day = str(rm_words or "").split(" Book over ")[0].strip() if rm_words else ""
+    if day.startswith("Book over "):
+        day = ""
+    parts = []
+    for k, v in (book.get("by_index") or {}).items():
+        late = int(v.get("scored_late") or 0)
+        parts.append(f"{k}: {int(v.get('trades') or 0)} scored trade(s)" + (f" ({late} scored late)" if late else "")
+                     + f", index {v.get('index_proxy_sum_bps') or 0:+.0f} bp, one option lot Rs {v.get('option_1lot_rs_realistic_fill') or 0:,.0f} with realistic fills")
+    upd = str(book.get("updated") or "")[:10]
+    tail = f"Book over {int(book.get('sessions') or 0)} scored session(s)" + (f", scored to {_dw(upd)}" if upd else "") + ": " + "; ".join(parts)
+    return f"{day} {tail}" if day else tail
+
+
 def build() -> dict:
     D = paths.data_dir()
     days = _sessions()
@@ -152,7 +214,7 @@ def build() -> dict:
     if mb.get("start_day"):
         start = next((d for d in days if d > dt.date.fromisoformat(mb["start_day"])), dt.date.fromisoformat(mb["start_day"]))   # session 1 = the first plan's session
         add("the managed book (cuts replaced on paper)", "your holdings with each cut's money moved into a replacement chosen by the proved not-losing filters, beside the twin, the frozen original and the Nifty 500",
-            start, 60, int((mb.get("clock") or {}).get("sessions") or 0), mb.get("words"), judge="return and drawdown after costs against the frozen original; the replacement ledger (cut right, replacement rose); nothing read before 60 sessions")
+            start, 60, int((mb.get("clock") or {}).get("sessions") or 0), managed_words(mb, days), judge="return and drawdown after costs against the frozen original; the replacement ledger (cut right, replacement rose); nothing read before 60 sessions")
 
     # 6. the long-term tilt book
     fb = _load(D / "paper" / "factorbook" / "view.json", {}) or {}
@@ -163,7 +225,13 @@ def build() -> dict:
 
     # 7. the options line
     sp1 = ((rm.get("sp1") or {}).get("book") or {})
-    if sp1.get("sessions") is not None:
+    own = _load(D / "paper" / "sp1" / "book.json", {}) or {}
+    if own.get("sessions") is not None:
+        # 27 Nov 2026 (flag 230, the 23 Nov audit): the read model can be older than the options line's own book (scored at 17:30 IST), so
+        # this list said 18 sessions and Rs 43,431 while the brief said 19 and Rs 104,354. The count and the book's rupees come from the book.
+        add("the options line", "one index option lot a session on paper at four decision points", "2026-10-24", 20, int(own.get("sessions") or 0),
+            sp1_words((rm.get("sp1") or {}).get("words"), own), judge="net rupees with realistic fills against the index move, after 20 sessions")
+    elif sp1.get("sessions") is not None:
         add("the options line", "one index option lot a session on paper at four decision points", "2026-10-24", 20, int(sp1.get("sessions") or 0),
             (rm.get("sp1") or {}).get("words"), judge="net rupees with realistic fills against the index move, after 20 sessions")
 

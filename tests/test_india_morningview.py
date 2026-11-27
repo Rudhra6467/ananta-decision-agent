@@ -59,7 +59,7 @@ def test_build_facts_lines_and_page(lake, monkeypatch):
     L = f["lines"]
     assert any("Expiry day for BANKNIFTY" in x for x in L["watch"]) and any("above 22,756" in x for x in L["watch"])
     assert "practice" in L["plan"][0] and "not your money" in L["plan"][0]
-    assert "coin flip" in L["chances"][0] and "not an edge" in L["chances"][0]
+    assert "not an edge" in L["chances"][0] and "daily call" not in L["chances"][0]     # 24 Nov (flag 236): the call is off the view
     assert "flat" in L["view"][0], "a 0.0% move reads as flat"
     assert mv.PAGE.exists() and "## Our chances, honestly" in mv.PAGE.read_text()
 
@@ -73,7 +73,7 @@ def test_scorecard_compares_rule_reviewer_and_coin_flip_and_writes_lessons(lake)
     assert y["picks_first_day"]["n"] == 1 and y["picks_first_day"]["avg_ret"] == -0.02
     assert any("rule forecast favoured 'bull'" in x and "wrong" in x for x in y["lessons"]) and any("reviewer forecast" in x and "right" in x for x in y["lessons"])
     les = f["lessons_for_writer"]
-    assert any("daily call is behind the coin flip" in x for x in les) and any("options line has no record" in x for x in les) and les[-1].startswith("Every number")
+    assert any(x.startswith("Do not mention the daily call") for x in les) and not any("daily call is behind" in x for x in les) and any("options line has no record" in x for x in les) and les[-1].startswith("Every number")
 
 
 def test_words_survive_a_rebuild_and_missing_sources_say_so(lake):

@@ -30,4 +30,4 @@ def test_the_coin_flip_is_named_as_one_draw_beside_what_chance_averages(tmp_path
     c = readmodel.call("2026-11-11")
     assert c["scored"] == 15 and "one seeded draw (chance alone averages 7.5)" in c["words"]
     w = morningview._chances_words({}, {"scored": 15, "hits": 5, "coin_flip_hits": 9}, {}, 12)
-    assert "against 9 for a coin flip, one seeded draw (chance alone averages 7.5)" in w
+    assert "coin flip" not in w          # 24 Nov 2026 (flag 236): the call is off the morning view; the read model above still words it

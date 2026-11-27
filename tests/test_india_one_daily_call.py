@@ -5,11 +5,12 @@ from india import morningview as mv
 def test_the_chances_speak_only_the_daily_call():
     rec = {"rule": {"n": 9, "hits": 4}, "reviewer": {"n": 5, "hits": 2}, "chronos": {"n": 5, "hits": 0}, "shadow": {"n": 1, "hits": 1}}
     w = mv._chances_words(rec, {"scored": 10, "hits": 4, "coin_flip_hits": 5}, {"BRK": {"closed": 3, "realised_inr": -1200}}, 7)
-    assert w.startswith("The daily call has been right 4 of 10 sessions against 5 for a coin flip")
-    for gone in ("rule forecast", "reviewer", "Chronos", "shadow trader"):
+    # 24 Nov 2026 (Madhav, in the app, flag 236): the daily call itself is now off the morning view too; it is recorded in the background
+    assert w.startswith("The research book has closed 3 practice trades")
+    for gone in ("rule forecast", "reviewer", "Chronos", "shadow trader", "daily call"):
         assert gone not in w
     assert "options line has 7 sessions" in w and "not an edge" in w
-    assert mv._chances_words(rec, {}, {}, 1).startswith("The daily call has no scored session yet")
+    assert mv._chances_words(rec, {}, {}, 1).startswith("The options line has 1 session on record")
 
 
 def test_the_morning_view_says_what_it_cannot_see_overnight():

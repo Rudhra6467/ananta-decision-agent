@@ -84,6 +84,21 @@ EXTRA_LINES = {
                 "period for both.",
 }
 GOLD = re.compile(r"\b(gold|goldbees|sgb|sovereign gold)\b", re.I)
+# flag 244 (night of 23 Nov): "I want to invest 1L INR after market opens tomorrow and want to generate a profit of 30k in 2weeks what stocks do I
+# invest in" got the rupee's exchange rate. A money target over a short time asks for the honest answer first, never stock picks for the target.
+QUICK_TARGET = re.compile(r"\b\d[\d,.]*\s*(?:k|l|lakhs?|thousand|%|percent)(?![a-z0-9])|\b(?:double|2x|3x|10x)\b", re.I)
+QUICK_WORDS = ("HONEST FIRST (a money target in a short time): answer this before anything else. Say the target as a return (30,000 on 1 lakh "
+               "in two weeks is 30%); say plainly no honest plan delivers that and that chasing it means far-out options or tips, where most "
+               "people lose; say what a normal stretch of that length moves the Nifty (about 3% in two weeks, roughly Rs 3,000 on 1 lakh, either "
+               "way); then the sensible route for the money (a liquid fund or deposit if it is needed soon, an index fund in small staggered amounts "
+               "if it can stay for years). Name no stocks for the target, no exchange rate and no market reading he did not ask for.")
+
+
+def quick_return(text: str) -> bool:
+    """'make 30k on 1L in 2 weeks', 'double my money in a month', '20% in 10 days': a return target over a short time."""
+    t = text or ""
+    return bool(QUICK_TARGET.search(t) and re.search(r"\b(?:make|earn|generate|gain|profit|double|returns?|invest\w*)\b", t, re.I)
+                and re.search(r"\b(?:\d+|one|two|three|four|a|few|couple of)\s*(?:days?|weeks?|wks?|months?)\b", t, re.I))
 
 
 def horizon(text: str) -> str | None:
@@ -120,6 +135,8 @@ def topics(text: str) -> list[str]:
         out.append("rupee_holdings")
     if GOLD.search(t):
         out.append("gold_tax")
+    if quick_return(t):
+        out.append("quick_return")
     return out
 
 
@@ -200,7 +217,7 @@ def guide(text: str, f: dict | None = None) -> dict:
             # 27 Oct re-ask: "What do you think of Tesla shares?" got the no-data shape and then "Decision: wait"
             lines.append("NO-DATA CHECK: if the company or fund he names is not in FACTS.lookup or his holdings, use the NO-DATA SHAPE and write no "
                          "'decision' line, not even 'wait'.")
-        if not ({"loan", "tip"} & set(tp)):
+        if not ({"loan", "tip", "quick_return"} & set(tp)):
             # flag 276 (India exam of 21 Nov, d_up8): the answer said "I'd reverse this if it closed under its fixed stop" and the exam's
             # 'answers and decides' mark found no line on what would change Ananta's mind; say it in those plain words every time
             lines.append(CHANGE_MIND)
@@ -209,6 +226,8 @@ def guide(text: str, f: dict | None = None) -> dict:
     if "tip" in tp:
         lines.append("SAFETY: say no; tell him to check the adviser's SEBI registration (SEBI Check) and pay only to @valid UPI handles, and to "
                      "report the group to SEBI; no Ananta test or practice-book numbers here.")
+    if "quick_return" in tp:
+        lines.insert(0, QUICK_WORDS)
     for k in ("beginner", "pcr", "broad", "gold_tax"):
         if k in tp:
             lines.append(EXTRA_LINES[k])

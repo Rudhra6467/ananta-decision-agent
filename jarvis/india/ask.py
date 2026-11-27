@@ -169,6 +169,29 @@ def _load_env_key() -> str:
 
 # ---------------------------------------------------------------------------------------------------------------- facts
 
+def open_counts(sb: dict) -> dict:
+    """Flag 233 (audit 23 Nov, S2/S3): the paper stock book's open trades were said three ways in answers (141, 227, 258) and one answer
+    added the picks bought at the open to a total that already held them apart. They are three counts of one book, each counting something
+    else; the facts give each once, by name, so an answer says which it means and never adds or compares them as one number."""
+    tot = ((sb.get("closed_vs_open") or {}).get("total") or {}).get("open") or {}
+    ctl = ((((sb.get("closed_vs_open") or {}).get("by_family") or {}).get("CTL") or {}).get("open") or {})
+    every, ref, rnd = sb.get("open_positions"), tot.get("n"), ctl.get("n")
+    own = (ref - (rnd or 0)) if isinstance(ref, int) else None
+    parts = []
+    if isinstance(every, int):
+        parts.append(f"{every} open positions in all (every exit the book tracks, the random comparison picks included)")
+    if isinstance(ref, int):
+        parts.append(f"{ref} open on the reference exit (hold 20 days)" + (f": {own} of Ananta's own picks and {rnd} random comparison picks"
+                                                                          if isinstance(rnd, int) else ""))
+    return {"all_positions": every, "reference_exit_open": ref, "reference_exit_own_picks": own, "reference_exit_random_picks": rnd,
+            "as_of": "the last booking (08:00 IST on a session's morning)",
+            "words": ("The paper stock book (the practice book) has one set of trades counted three ways: " + "; ".join(parts) + ". "
+                      "today_live.practice_today.held counts only Ananta's own picks from earlier sessions that have a price today, and "
+                      "today_live.practice_today.picks_filled the picks bought at today's open, apart from them.") if parts else None,
+            "say_it": "say one count with what it counts ('so many of Ananta's own picks are open'); never add two counts, never put the picks bought "
+                      "at the open inside the held count, and never say one count became another."}
+
+
 def latest_closes(rm: dict) -> dict:
     """27 Oct (17:02 voice: "today's Nifty at 22,753 on 26 Oct" while the 27 Oct close was already in): the newest dated close of Nifty, Bank
     Nifty and India VIX, whichever source is newest (the market section's newer_closes, the technicals panel, the market context), so 'today /
@@ -292,7 +315,7 @@ def facts(owner: bool = False) -> dict:
                            "not_the_same_as": "the morning view's 'rule forecast' (base-rate odds for up/down/flat, no skill claimed, scored by error score) "
                                               "is a different record from this daily call (an up-or-down call from a mechanical rule, scored by hits). "
                                               "Quote one, name it, never add them up."},
-            "stock_book": {"rules": sb.get("rules"), "open_positions": sb.get("open_positions"),
+            "stock_book": {"rules": sb.get("rules"), "open_positions": sb.get("open_positions"), "open_counts": open_counts(sb),
                            # flag 44 (26 Oct): a win rate over closed trades alone hides the open winners; always say the two counts together
                            "closed_vs_open": sb.get("closed_vs_open"),
                            "win_rate_rule": "never say a bare 'win rate'. A win rate counts closed trades only; say it with the open book beside it, using closed_vs_open.words "
@@ -1967,6 +1990,11 @@ def ask(who: str, text: str, thread: str | None = None, mode: str | None = None,
             _guard_log(thread, text_q, [f"guard error: {str(e)[:120]}"], "error")
     if t_guard:
         tm["guard_ms"] = int((time.time() - t_guard) * 1000)          # includes a re-answer when the guard asked for one
+        try:                                   # flag 226: a day recap names its session ("Sir, on Monday 2 Nov, the Nifty closed ...")
+            from jarvis.india import livesession as _ls2
+            reply["answer"] = _ls2.name_the_day(str(reply.get("answer") or ""), f.get("today_live") or {}, text_q)
+        except Exception:  # noqa: BLE001  never in the way of an answer
+            pass
     reply = finish(reply, text, model=usage.get("model") not in ("rule", "none"))
     if not str(reply.get("answer") or "").strip():
         reply["answer"] = EMPTY_FALLBACK                       # never an empty answer (27 Oct)

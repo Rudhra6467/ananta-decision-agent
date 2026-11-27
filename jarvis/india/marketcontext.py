@@ -31,6 +31,10 @@ NOT_FOR_US = re.compile(r"\b(research|study|studies|analy[sz]e|flag|log it|note 
 # answer_guide.rupee_sensitivity for his holdings. The tested line and the sources are said in plain words (no vendor names, no study codes).
 TESTED_WORDS = "Ananta's tests found none of these readings predicts what the Nifty does next: use them to explain a move, never to trade."
 LABELS = {"USD/INR, FRED": "The official daily dollar-rupee rate", "broad dollar index": "The dollar index"}
+# flag 244 (night of 23 Nov): "I want to invest 1L INR after market opens tomorrow and want to generate a profit of 30k in 2weeks what stocks do I
+# invest in" got the rupee's exchange rate: "INR" matched the rupee and nothing stopped it. Money to invest and a profit target go to the model.
+MONEY_GOAL = re.compile(r"\b(invest\w*|profit\w*|returns?|earn\w*|suggest\w*|recommend\w*|lakhs?|crores?)\b|\b\d[\d,.]*\s*(?:k|l|cr)\b", re.I)
+AMOUNT = re.compile(r"\b\d[\d,.]*\s*(?:k|l|lakhs?|cr|crores?|thousand)?\s*(?:inr|rupees?|rs\.?)(?![a-z])|\b(?:inr|rs\.?)\s*\d[\d,.]*", re.I)
 READING_Q = re.compile(r"\b(what|how|where|show|tell|is|are|did|does)\b", re.I)
 
 
@@ -121,9 +125,10 @@ def market_context_flow(text: str) -> dict | None:
     """An instant answer for a short, plain question about the rupee, the US close, crude, yields, the dollar, the fear gauges, FII/DII or GIFT Nifty."""
     from jarvis.india.ask import _reply      # here, not at the top: ask.py imports this module
 
-    if not text or len(text) > 160 or NOT_FOR_US.search(text) or not READING_Q.search(text):
+    if not text or len(text) > 160 or NOT_FOR_US.search(text) or MONEY_GOAL.search(text) or not READING_Q.search(text):
         return None
-    kinds = [k for k in ORDER if re.search(WHAT[k], text, re.I)]
+    t = AMOUNT.sub(" ", text)          # "1L INR", "Rs 5,000", "50000 rupees" are amounts of money, not a question about the rupee
+    kinds = [k for k in ORDER if re.search(WHAT[k], t, re.I)]
     if not kinds:
         return None
     rm = views.readmodel()

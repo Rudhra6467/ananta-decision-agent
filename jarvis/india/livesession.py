@@ -126,10 +126,35 @@ def clock(data_through: str | None, now: dt.datetime | None = None) -> dict:
                             + f"; the last regular session is {_dw(latest)} and the next opens {_dw(nxt)} 09:15 IST. Ananta's paper books and the options line trade regular "
                             "sessions only. Any Kite price from today is a Muhurat-hour print, never 'the close' of the last regular session."}
         said += f"; {special['words'].split(';')[0]}"
+    # 27 Nov 2026 (flag 229, audit 23 Nov S2): with Tue 24 Nov an NSE holiday, five answers put the next picks, call or reconstruction card on
+    # the holiday ("08:00 IST tomorrow"), and one put the options review a day late. 'Tomorrow' is the next SESSION, and the morning jobs
+    # (the options plan 07:30, the practice picks, the daily call and the reconstruction 08:00, the morning view 08:30 IST) do their work only on
+    # a session's own morning: on a weekend or holiday they say "no session" and write nothing. One date for both, from the NSE calendar.
+    run_day = today if (session_day and minute < 8 * 60) else nxt
+    if run_day == today and not (session_day and minute < 8 * 60):       # between 08:00 and 09:15 IST today's run is done: the next is the next session
+        run_day = today + dt.timedelta(days=1)
+        while not is_session(run_day, hol):
+            run_day += dt.timedelta(days=1)
+    run_at = dt.datetime.combine(run_day, dt.time(8, 0), IST).astimezone(TOR)
+    run_tor = run_at.strftime("%-I:%M %p").replace("AM", "am").replace("PM", "pm") + " Toronto, " + _dw(run_at.date())
+    gap, x = [], today
+    while x < nxt:                       # every day from today up to the next session that has no session (today itself only when it has none)
+        if not is_session(x, hol):
+            gap.append(_dw(x) + (" (weekend)" if x.weekday() >= 5 else " (NSE holiday)"))
+        x += dt.timedelta(days=1)
+    if "'tomorrow' means" not in rel:
+        rel += (f" 'Tomorrow', 'the next session' and 'the next open' mean {_dw(nxt)}, the next NSE session (weekends and NSE holidays are "
+                "skipped), never simply the next calendar day; say the day by name ('the next session, " + _dw(nxt) + "').")
+    if gap:
+        rel += f" No session before it: {', '.join(gap)}; nothing is decided, picked or scored on those days."
+    rel += (f" The morning jobs (the options plan 07:30, the practice book's picks, the daily call and the reconstruction card 08:00, the morning "
+            f"view 08:30 IST) run only on a session's own morning: the next run is 08:00 IST on {_dw(run_day)} ({run_tor}); never put them on a "
+            "day with no session.")
     return {"ts": now.timestamp(), "ist_now": ist_words + " IST", "toronto_now": tor_words, "today_india": today.isoformat(), "today_is_session": session_day, "state": state,
             "special_session": special,
             "latest_session": latest.isoformat(), "latest_session_words": _dw(latest), "next_session": nxt.isoformat(), "next_session_words": _dw(nxt),
             "nightly_data_through": through or None, "latest_session_in_nightly_data": latest_in_nightly,
+            "next_morning_run": run_day.isoformat(), "next_morning_run_words": f"08:00 IST on {_dw(run_day)} ({run_tor})", "no_session_before_next": gap,
             "words": f"It is {ist_words} in India ({tor_words} in Toronto): {said}.",
             "relative_days": rel}
 
@@ -801,7 +826,7 @@ def practice_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
     when = "so far today" if clk["state"] == "open" else ("today" if day == clk["today_india"] else f"on {clk['latest_session_words']}")
     total = held_move + new_move
     w = (f"The practice book (paper, Rs {size:,.0f} a trade) is {'up' if total >= 0 else 'down'} about Rs {abs(total):,.0f} {when} on Kite's prices: "
-         f"its {n_held} open trades" + (f" with a price today (of {len(trades)}; the rest had no Kite price)" if n_held < len(trades) else "")
+         f"its {n_held} open trades from earlier sessions" + (f" with a price today (of {len(trades)}; the rest had no Kite price)" if n_held < len(trades) else "")
          + f" moved Rs {held_move:+,.0f} ({100 * held_move / held_base:+.2f}%)" if held_base else
          f"The practice book (paper, Rs {size:,.0f} a trade) is {'up' if total >= 0 else 'down'} about Rs {abs(total):,.0f} {when} on Kite's prices")
     if filled:
@@ -811,6 +836,9 @@ def practice_today(clk: dict, fetch=None, path: Path | None = None) -> dict:
         worst = [f"{x['symbol']} {x['change_pct']:+.1f}%" for x in uniq[:2] if x["move_inr"] < 0]
         w += (f"; the {len(filled)} picks bought at the open (decided on {_dw(dt.date.fromisoformat(filled[0]['decided_on']))}) are Rs {new_move:+,.0f} since the open"
               + (f", best {', '.join(best)}" if best else "") + (f", worst {', '.join(worst)}" if worst else ""))
+        if n_held:
+            # flag 233 (audit 23 Nov, IA79): "its 141 open trades ... which counts the 4 new ones" double counted Rs -5,411; they are apart
+            w += f" (the {len(filled)} picks are not among the {n_held} trades from earlier sessions; the two moves add to the total)"
     w += f". The engine books it officially at {_sched_at('com.ananta.india.paper')}; the random control picks are left out."
     return {"held": n_held, "held_move_inr": round(held_move), "picks_filled": filled, "picks_move_inr": round(new_move), "size_inr": size, "words": w}
 
@@ -945,6 +973,34 @@ def check(answer: str, live: dict | None, question: str = "") -> list[str]:
         if older and latest_wd not in low and "today" not in low and not TODAY_MARK.search(low) and not day_tag:
             out.append(f"He asked about today; it answered about {older[0].title()} and never about today, {clk['latest_session_words']}.")
     return out
+
+
+DAY_RECAP_Q = re.compile(r"\bwhat (?:happened|did (?:we|you|ananta) do)\b|\bhow did (?:the )?(?:market|nifty|we|ananta|it|today) (?:do|go|close)\b", re.I)
+
+
+def name_the_day(answer: str, live: dict | None, question: str = "") -> str:
+    """Flag 226 (the never-again replay, night of 21 and 23 Nov): "Hey Ananta, what happened today in the market and what did we do?" was
+    answered with the right figures but never said which day: 'today' meant Monday 2 Nov and the answer named neither. A day recap names its
+    session. In code, free: when the question asks what happened and the answer names neither the session's weekday nor its date, the day
+    is put at the front ("Sir, on Monday 2 Nov, the Nifty closed ...")."""
+    a = str(answer or "")
+    if not a.strip() or not question or not DAY_RECAP_Q.search(question) or not isinstance(live, dict) or "clock" not in live:
+        return a
+    if re.search(r"\b(?:yesterday|last (?:week|session|month)|this week|on (?:" + "|".join(WEEKDAYS) + r")|\d{1,2} (?:oct|nov|dec|jan))\b", question, re.I):
+        return a                                   # he named another day: the latest session is not the one to put in front
+    clk = live["clock"]
+    try:
+        lt = dt.date.fromisoformat(str(clk.get("latest_session"))[:10])
+    except (TypeError, ValueError):
+        return a
+    low = a.lower()
+    if re.search(rf"\b{lt.strftime('%A').lower()}\b", low) or re.search(rf"\b{lt.day}\s+{lt.strftime('%b').lower()}", low):
+        return a
+    words = clk.get("latest_session_words") or _dw(lt)
+    m = re.match(r"(\s*(?:yes,?\s+|no,?\s+)?sir,\s+)(\S)", a, re.I)
+    if m and m.group(2).islower():
+        return f"{m.group(1)}on {words}, {a[m.end(1):]}"
+    return f"{words}: {a.lstrip()}"
 
 
 def correction_note(problems: list[str], live: dict) -> str:

@@ -19,39 +19,39 @@
   "ADMITTED": "Madhav (beats RANDOM and MARKET on 10+ independent sessions net of costs; leak check passes; pinned in the lock)",
   "LIVE_ELIGIBLE": "Madhav (the India gate and the live-readiness rules)"
  },
- "built_at": "2026-11-26T02:30:34+00:00",
+ "built_at": "2026-11-27T02:30:34+00:00",
  "rules": {
   "stock:BRK": {
    "what": "20-session breakout on volume",
    "step": "SHADOW",
-   "shadow_sessions": 21,
+   "shadow_sessions": 22,
    "shadow_bar": 20,
-   "independent_sessions_beating_random_and_market": 11,
+   "independent_sessions_beating_random_and_market": 12,
    "independent_bar": 10,
    "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
   },
   "stock:PULL": {
    "what": "pullback in an uptrend",
    "step": "SHADOW",
-   "shadow_sessions": 17,
+   "shadow_sessions": 18,
    "shadow_bar": 20,
-   "independent_sessions_beating_random_and_market": 11,
+   "independent_sessions_beating_random_and_market": 12,
    "independent_bar": 10,
    "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
   },
   "stock:REV": {
    "what": "oversold reversal",
    "step": "SHADOW",
-   "shadow_sessions": 14,
+   "shadow_sessions": 15,
    "shadow_bar": 20,
-   "independent_sessions_beating_random_and_market": 11,
+   "independent_sessions_beating_random_and_market": 12,
    "independent_bar": 10,
    "registered": "paper-v1 (16 Oct 2026); exits G01 v2"
   },
   "options:SP1": {
    "what": "the index playbook's 1-lot option line",
    "step": "SHADOW",
-   "shadow_sessions": 20,
+   "shadow_sessions": 21,
    "shadow_bar": 20,
    "independent_sessions_beating_random_and_market": 0,
    "independent_bar": 10,
@@ -67,5 +67,5 @@
   "DRAFT": 1
  },
  "history": [],
- "words": "No rule has proved itself yet. The stock rules have 25 of 20 trial sessions; the options line has 20; Ananta beat chance and the average stock on 11 of the 10 days needed."
+ "words": "No rule has proved itself yet. The stock rules have 26 of 20 trial sessions; the options line has 21; Ananta beat chance and the average stock on 12 of the 10 days needed."
 }

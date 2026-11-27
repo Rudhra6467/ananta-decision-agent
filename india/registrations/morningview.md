@@ -1,53 +1,68 @@
-# Morning view, session 26 Nov (built 2026-11-26T03:00Z)
+# Morning view, session 27 Nov (built 2026-11-27T03:00Z)
 
-Nifty closed at 25,819 on 25 Nov (+1.9%), in an uptrend: +9.4% against its ten-week average, +7.6% against its long-term average; 63% of the 250 most-traded stocks are above their long-term average. Ananta's research book makes 8 practice buys at the open (2 breakouts, 3 pullbacks, 3 reversals): BAJAJFINSV, INDIGO, WELCORP, CHENNPETRO, HBLENGINE, RRKABEL, INOXWIND, TATASTEEL. Practice trades, not your money: a rule must prove itself before it buys for your account.
+Nifty closed at 25,884 on 26 Nov (+0.3%), in an uptrend: +9.5% against its ten-week average, +7.9% against its long-term average; 66% of the 250 most-traded stocks are above their long-term average. Ananta's research book makes 1 practice buys at the open (1 breakout): LODHA. Practice trades, not your money: a rule must prove itself before it buys for your account.
 
 ## Your holdings since the last close
-- None of your 13 stocks has filed results, an order, a deal or a dividend since Wed 25 Nov's close: IDEA, IRFC, JIOFIN, KARURVYSYA, LICI, MARICO, NATIONALUM, NETWORK18, TATACHEM, TATAPOWER, TMCV, TMPV, UNITDSPR.
-- Moved 2% or more on Wed 25 Nov with no filing: UNITDSPR +2.5%, TMCV -2.6%, NATIONALUM -3.6%.
+- TMCV: filed an acquisition or merger (Acquisition, Thu 26 Nov 20:29 IST). It closed -2.5% on Thu 26 Nov.
+- No results, order, deal or dividend filing since Thu 26 Nov's close from the other 12: IDEA, IRFC, JIOFIN, KARURVYSYA, LICI, MARICO, NATIONALUM, NETWORK18, TATACHEM, TATAPOWER, TMPV, UNITDSPR.
+- Moved 2% or more on Thu 26 Nov with no filing: NATIONALUM +2.5%, KARURVYSYA -2.3%.
 
 ## The view
 - US: the S&P 500 closed -0.3% (25 Nov), the Nasdaq -0.7%.
-- Nifty closed at 25,819 on 25 Nov (+1.9%), in an uptrend: +9.4% against its ten-week average, +7.6% against its long-term average; 63% of the 250 most-traded stocks are above their long-term average.
-- The fear gauge is at 17.64, +19% against its ten-week average — options are pricing more movement than usual.
-- Yesterday foreign institutions bought ₹4,479 crore and domestic institutions bought ₹4,019 crore.
-- GIFT Nifty, the Nifty future that trades overnight, is up 0.4% from where it stood at the last NSE close (26,031 at 08:29 IST Thu 26 Nov, against 25,930 at Wed 25 Nov's 15:30 close): it points to an open higher, the Nifty near 25,920. An indication only: the 09:15 open can differ, and nothing trades on it.
+- Nifty closed at 25,884 on 26 Nov (+0.3%), in an uptrend: +9.5% against its ten-week average, +7.9% against its long-term average; 66% of the 250 most-traded stocks are above their long-term average.
+- The fear gauge is at 16.86, +13% against its ten-week average.
+- Yesterday foreign institutions bought ₹5,843 crore and domestic institutions bought ₹5,631 crore.
+- GIFT Nifty, the Nifty future that trades overnight, is down 0.3% from where it stood at the last NSE close (25,948 at 08:30 IST Fri 27 Nov, against 26,032 at Thu 26 Nov's 15:30 close): it points to an open lower, the Nifty near 25,802. An indication only: the 09:15 open can differ, and nothing trades on it.
 
 ## What Ananta is doing today
-- Ananta's research book makes 8 practice buys at the open (2 breakouts, 3 pullbacks, 3 reversals): BAJAJFINSV, INDIGO, WELCORP, CHENNPETRO, HBLENGINE, RRKABEL, INOXWIND, TATASTEEL. Practice trades, not your money: a rule must prove itself before it buys for your account.
-- The options line's plan for the 09:15 open (written 07:31 IST, on paper, one lot): Nifty: no trade at the open, whichever way it opens. Bank Nifty: a long (a call option, one lot), closing at the next session's open, whichever way it opens. It looks again at 09:30, 09:45 and 10:15 from the first hour's bars, so a pass at the open is not a pass for the day. It was planned with the trend up, the fear gauge high, the US down overnight (the Nasdaq -0.7% on Wed 25 Nov), foreign investors' futures positioning low, no scheduled event. No input was stale. Going by GIFT Nifty at 08:30: Nifty is indicated +0.4% (up): for that open the plan says no trade.
-- On your holdings it suggests: add MARICO; tidy UNITDSPR; add TMCV.
-- The managed book (your holdings with the cuts replaced, on paper): No change for Thursday 26 Nov: the managed book has nothing new to cut or buy (the cut list's names it already cut stay cut).
+- Ananta's research book makes 1 practice buys at the open (1 breakout): LODHA. Practice trades, not your money: a rule must prove itself before it buys for your account.
+- The options line's plan for the 09:15 open (written 07:31 IST, on paper, one lot): Nifty: no trade at the open, whichever way it opens. Bank Nifty: if it opens 0.25% or more down or flat (inside 0.25% either way), a long (a call option, one lot), closing at the next session's open; if it opens up, no trade. It looks again at 09:30, 09:45 and 10:15 from the first hour's bars, so a pass at the open is not a pass for the day. It was planned with the trend up, the fear gauge in its middle range, the US down overnight (the Nasdaq -0.7% on Wed 25 Nov), foreign investors' futures positioning low, no scheduled event. Missing when it was planned: the US close was not the latest one. Going by GIFT Nifty at 08:30: Nifty is indicated -0.3% (down): for that open the plan says no trade.
+- On your holdings it suggests: tidy UNITDSPR; add TMCV; add KARURVYSYA.
+- The managed book (your holdings with the cuts replaced, on paper): No change for Friday 27 Nov: the managed book has nothing new to cut or buy (the cut list's names it already cut stay cut).
 
 ## Our chances, honestly
-- The daily call has been right 9 of 24 sessions against 14 for a coin flip, one seeded draw (chance alone averages 12); the research book has closed 156 practice trades for −₹10,969 net; the options line has 20 sessions on record. No rule has proved itself yet, so every chance here is a chance, not an edge.
+- The daily call has been right 9 of 25 sessions against 15 for a coin flip, one seeded draw (chance alone averages 12.5); the research book has closed 174 practice trades for +₹79,014 net; the options line has 21 sessions on record. No rule has proved itself yet, so every chance here is a chance, not an edge.
 
 ## Watch today
 - Next options expiry: 29 Dec (BANKNIFTY, FINNIFTY, MIDCPNIFTY, monthly).
 - Next on the calendar: India industrial production (IIP) for October: Saturday 28 Nov (MoSPI; a Saturday); the first Indian session that can trade it is Monday 30 Nov.
-- The lines that decide the day's label: above 25,897 is an up day, below 25,742 a down day.
-- Results came out after yesterday's close for names held in the practice book or your account: ENRIN.
+- The lines that decide the day's label: above 25,962 is an up day, below 25,807 a down day.
+- Results today: SETCO. A results day can gap either way; no rule in the practice book reads results yet.
 - F&O ban list today: APLAPOLLO, MANAPPURAM (no new futures or options positions in these; the cash book is not affected).
 - What Ananta cannot see: the US close on file is for 2026-11-25; the only overnight read is GIFT Nifty above (no live Asian markets); crude, the dollar and the rupee readings lag several days. At 09:09 IST the pre-open's matched prices are sent to your phone.
 - Guardrails: a 5% loss stops the day; 22% below the peak pauses new buys.
 
 ## Yesterday's scorecard
-- The rule forecast favoured 'bull' and was right.
-- The reviewer forecast favoured 'bull' and was right.
-- The shadow forecast favoured 'bull' and was right.
-- The research book's 4 practice buys at that open averaged -1.7% by the close.
+- The rule forecast favoured 'bull' and the session closed 'neutral': wrong.
+- The reviewer forecast favoured 'bull' and the session closed 'neutral': wrong.
+- The shadow forecast favoured 'bull' and the session closed 'neutral': wrong.
+- The research book's 8 practice buys at that open averaged +0.7% by the close.
 
 ## Ananta's note
-Good morning, sir.
+Sir, here is your morning view. It is paper trading only, never advice.
 
 Your holdings
-None of your 13 stocks filed results, an order, a deal or a dividend since Wednesday's close. United Spirits rose 2.5%, Tata Motors' commercial vehicle arm fell 2.6% and National Aluminium fell 3.6%, all with no filing. The facts list no results meetings ahead for your stocks.
+Tata Motors Commercial Vehicles filed an acquisition or merger on Thu 26 Nov at 20:29 Indian time, after closing -2.5% that day. The other 12 stocks filed no results, order, deal or dividend since the close. National Aluminium Company (+2.5%) and Karur Vysya Bank (-2.3%) moved 2% or more with no filing. No results meeting is listed for any of your stocks.
 
 The view
-Overnight the S&P 500 fell 0.3% and the Nasdaq 0.7%. Foreign institutions bought ₹4,479 crore and domestic ones ₹4,019 crore on Wednesday. GIFT Nifty (the Nifty future that trades overnight) stood at 26,031 at 08:29, up 0.4%. That is only an indication of an open near 25,920, and the 09:15 open can differ. Nifty closed at 25,819 (+1.9%) in an uptrend, 9.4% above its ten-week average and 7.6% above its long-term average, with 63% of the 250 most-traded stocks above their long-term average. The fear gauge, which shows how much movement options are pricing, is 17.64, 19% above its ten-week average. Ananta has no tested read of today's direction.
+The US closed lower on 25 Nov (S&P 500 -0.3%, Nasdaq -0.7%). That is not the latest US close, so treat the overnight read as incomplete. Foreign institutions bought ₹5,843 crore and domestic institutions ₹5,631 crore. GIFT Nifty, the Nifty future that trades overnight, is an indication only: it is down 0.3% (25,948 against 26,032 at the close), pointing to an open near 25,802. Nifty closed at 25,884 in an uptrend, +9.5% against its ten-week average and +7.9% against its long-term average, with 66% of the 250 most-traded stocks above their long-term average. The fear gauge is 16.86, +13% against its ten-week average. Ananta has no tested read of today's direction, so no odds.
 
 What Ananta is doing today
-The research book makes 8 practice buys (2 breakouts, 3 pullbacks, 3 reversals), including Bajaj Finserv and IndiGo (breakouts), and Tata Steel (a reversal, "sold too hard"). These are practice trades, not your money. The options line's plan for the open: Nifty, no tr
+The research book makes one practice buy, LODHA, a breakout (it broke above its one-month high on heavy volume). It is a practice trade, not your money. The options line's plan: Nifty, no trade at the open whichever way it opens. Bank Nifty, a long (a call option, one lot) if it opens 0.25% or more down or flat, closing at the next session's open, and no trade if it opens up. It looks again at 09:30, 09:45 and 10:15. One input was missing when it was planned: the US close was not the latest one. With your money, it suggests on paper: tidy United Spirits (only ₹1,488), and add Tata Motors Commercial Vehicles and Karur Vysya Bank. The managed book has no change today.
+
+Our chances, honestly
+The daily call is behind the coin flip: right 9 of 25 sessions against 15 for a coin flip (chance alone averages 12.5). The research book has closed 174 practice trades for +₹79,014 net, and the options line has 21 sessions on record. No rule has proved itself yet. A good day is Nifty above 25,962 with the paper account (₹283,301) intact. A bad day is Nifty below 25,807, or the 5% loss stop being reached.
+
+Watch today
+No options expiry today; next is 29 Dec.
+Nothing on the calendar today or tonight; India industrial production for October comes Saturday 28 Nov, and Monday 30 Nov is the first session that can trade it.
+Day labels: above 25,962 is an up day, below 25,807 a down day. SETCO reports results. APLAPOLLO and MANAPPURAM are on the F&O ban list.
+Guardrails: a 5% loss stops the day; 22% below the peak pauses new buys. The pre-open read goes to your phone at 09:09.
+
+If you trade today
+Options: the fear gauge is 16.86, above its ten-week average, with no expiry today.
+Swing: an uptrend, with 66% of liquid stocks above their long-term average.
+Long
 
 ## Second opinion (the reviewer)
-Mostly fair to the facts, with the numbers accurate, but it adds one unsupported claim about results meetings, leaves out ENRIN and the Bank Nifty call, and is cut off mid-sentence. Corrections: "The facts list no results meetings ahead for your stocks" is unsupported: the facts say nothing about upcoming results meetings, only that none of the 13 filed since Wednesday's close.; "Overnight the S&P 500 fell 0.3% and the Nasdaq 0.7%" is loose: both moves are Wednesday 25 Nov closes, and the facts say the only overnight read is GIFT Nifty.; "Foreign institutions bought ₹4,479 crore and domestic ones ₹4,019 crore on Wednesday" is correct on the figures, but the note presents it as a supportive signal without saying it is Wednesday's flow, not today's. Missing: The options line's plan for Bank Nifty (a long call, one lot, closing at the next open) and its re-checks at 09:30, 09:45 and 10:15 are cut off, as are the holdings suggestions (add MARICO and TMCV, tidy UNITDSPR, and a KARURVYSYA add in the data).; ENRIN (practice book or your account) reported results after yesterday's close, the F&O ban on APLAPOLLO and MANAPPURAM, and the up/down lines of 25,897 and 25,742 are not mentioned.; The track record is absent: the daily call was right 9 of 24 sessions against 14 for a coin flip, and the research book's 4 practice buys averaged -1.7% yesterday, with 156 closed trades at -₹10,969. The reviewer's own odds: up 44%, down 30%, flat 26% (Base rates are 40/33/27; I moved bull up 4 points, bear down 3 and neutral down 1 because GIFT Nifty indicates an open near 25,920, already above the 25,897 up-day line, and foreign and domestic institutions both bought heavily, but I kept the shift small because the fear gauge is elevated, the US was down, and the forecast is climatology only.).
+Mostly faithful on the numbers, but it ends with an unsupported 'Long', drops the base-rate odds, and leaves out that the indicated open is already at the down-day line. Corrections: The closing 'Long' under 'If you trade today' has no support in the facts: the Nifty plan is 'no trade' and the Bank Nifty long is conditional on the open.; 'A good day is Nifty above 25,962 with the paper account (₹283,301) intact' is the note's own framing; the facts only label above 25,962 an up day and below 25,807 a down day.; 'Ananta has no tested read of today's direction, so no odds' omits that the facts do give climatology odds of 40% bull, 33% bear and 27% neutral, labelled as no skill.; 'No results meeting is listed for any of your stocks' is not stated in the facts, which only report no filings since the close and SETCO as the day's results name. Missing: Yesterday all three forecasts (rule, reviewer, shadow) favoured bull and the session closed neutral, and the note does not mention this.; MARICO was also a suggested ADD in the holdings list, and the note does not say that TMCV (-2.5%, acquisition filing) and KARURVYSYA (-2.3%, no filing) are being added after falling.; The stock book is weak where it matters: breakouts, LODHA's family, have a realised -₹3,208 and a 35% win rate, and the managed book's stocks and cash are +2.1% against the Nifty 500's +10.0%, so the +76.5% comes from options. The reviewer's own odds: up 33%, down 40%, flat 27% (Base rates are 40/33/27; I moved 7 points from bull to bear because GIFT Nifty is down 0.3% (an indicated open near 25,802, below the 25,807 down-day line), the US closed lower and the fear gauge is 13% above its ten-week average, only partly offset by the uptrend and strong institutional buying.). Figures in the note that the facts do not hold: 1488, 283301, 79014.

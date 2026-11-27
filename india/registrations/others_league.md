@@ -6,80 +6,79 @@ picks over the same horizon. Coverage counts, among the best 20 rises per horizo
 a family fired but did not hold (PASSED), or nothing fired (NOT_COVERED). INFORMED hit rates score each participant's index-futures stance and that
 day's change on the next session's Nifty move; Ananta's daily call is scored the same way. Ratings are decision quality, not rupees.
 
-## League, trailing 20 review sessions (through 2026-11-25; 20 sessions)
+## League, trailing 20 review sessions (through 2026-11-26; 20 sessions)
 
 | H | sessions | HINDSIGHT | MARKET | RANDOM (median) | ANANTA | Ananta pct vs random | TAKEN | CONTROL | PASSED | NOT_COVERED | had a rule | took |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 20 | +4.52% | +0.04% | +0.04% | +0.02% | 48% | 215 | 34 | 60 | 91 | 69% | 54% |
-| 5 | 20 | +10.59% | +1.39% | +1.42% | +0.40% | 28% | 269 | 23 | 13 | 95 | 70% | 67% |
-| 20 | 6 | +23.44% | +6.41% | +6.45% | -0.21% | 0% | 77 | 12 | 0 | 31 | 64% | 64% |
+| 1 | 20 | +4.40% | -0.01% | -0.01% | -0.06% | 47% | 216 | 35 | 60 | 89 | 69% | 54% |
+| 5 | 20 | +10.70% | +1.55% | +1.58% | +0.55% | 27% | 269 | 25 | 13 | 93 | 70% | 67% |
+| 20 | 7 | +23.48% | +6.48% | +6.53% | -0.11% | 0% | 90 | 16 | 0 | 34 | 64% | 64% |
 
 ## Informed money and Ananta's call, next-session hit rates (last 20 scored sessions)
 
 | who | stance hit rate (n) | flow hit rate (n) | latest |
 |---|---|---|---|
-| FII | 30% (20) | 55% (20) | 2026-11-25: short -85230 index futures, added longs |
-| DII | 70% (20) | 50% (20) | 2026-11-25: long 15054 index futures, added shorts |
-| Pro | 40% (20) | 40% (20) | 2026-11-25: long 337 index futures, added longs |
-| Client | 70% (20) | 45% (20) | 2026-11-25: long 69839 index futures, added shorts |
-| ANANTA call | 40% (20) | | 2026-11-25: BEARISH |
+| FII | 25% (20) | 55% (20) | 2026-11-26: short -88469 index futures, added shorts |
+| DII | 75% (20) | 45% (20) | 2026-11-26: long 8549 index futures, added shorts |
+| Pro | 45% (20) | 45% (20) | 2026-11-26: long 6672 index futures, added longs |
+| Client | 75% (20) | 40% (20) | 2026-11-26: long 73248 index futures, added longs |
+| ANANTA call | 40% (20) | | 2026-11-26: BEARISH |
 
-## 2026-11-25: best 1-session trips that closed on the day (entry 2026-11-23, 250 eligible, 0 dropped)
-
-| symbol | net | class | why | situation at entry |
-|---|---|---|---|---|
-| HINDUNILVR | +5.75% | CONTROL | held only by CTL, the random control draw: luck by construction | rising while below its 200-day average |
-| GODREJCP | +5.18% | CONTROL | held only by CTL, the random control draw: luck by construction | rising while below its 200-day average |
-| DMART | +5.10% | CONTROL | held only by CTL, the random control draw: luck by construction | rising while below its 200-day average |
-| BRITANNIA | +4.70% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
-| DIVISLAB | +4.28% | TAKEN | held by BRK (signal 2026-10-30) | extending a run of +22% in 20 sessions |
-| TATACONSUM | +4.28% | PASSED | BRK fired on 2026-11-25; rejected: no_chase | extending a run of +20% in 20 sessions |
-| HDFCLIFE | +4.20% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
-| NESTLEIND | +3.65% | TAKEN | held by REV (signal 2026-10-22) | rising while below its 200-day average |
-| HEROMOTOCO | +3.58% | TAKEN | held by BRK (signal 2026-11-19) | inside its range in an uptrend |
-| LAURUSLABS | +3.47% | TAKEN | held by BRK (signal 2026-10-27) | inside its range in an uptrend |
-
-Ananta's research picks open at 2026-11-23: 146, mean -0.33% to 2026-11-25; random band -0.69% .. -0.10% .. +0.71%; market -0.10%.
-
-## 2026-11-25: best 5-session trips that closed on the day (entry 2026-11-17, 250 eligible, 0 dropped)
+## 2026-11-26: best 1-session trips that closed on the day (entry 2026-11-25, 250 eligible, 0 dropped)
 
 | symbol | net | class | why | situation at entry |
 |---|---|---|---|---|
-| RATNAVEER | +12.22% | TAKEN | held by BRK (signal 2026-11-02) | inside its range in an uptrend |
-| MARUTI | +12.17% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
-| AMBER | +10.73% | TAKEN | held by REV (signal 2026-10-26) | rising while below its 200-day average |
-| BRITANNIA | +7.62% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
-| HEROMOTOCO | +7.59% | TAKEN | held by BRK (signal 2026-11-19) | inside its range in an uptrend |
-| GODREJCP | +7.27% | CONTROL | held only by CTL, the random control draw: luck by construction | breaking out of a tight 20-day base (13% wide) |
-| POLICYBZR | +6.48% | TAKEN | held by REV (signal 2026-10-21) | rising while below its 200-day average |
-| APOLLOHOSP | +6.44% | CONTROL | held only by CTL, the random control draw: luck by construction | inside its range in an uptrend |
-| HINDUNILVR | +6.23% | CONTROL | held only by CTL, the random control draw: luck by construction | rising while below its 200-day average |
-| TATACONSUM | +6.21% | NOT_COVERED | no family fired in the window | inside its range in an uptrend |
+| PRESTIGE | +8.34% | CONTROL | held only by CTL, the random control draw: luck by construction | extending a run of +21% in 20 sessions |
+| MCX | +7.27% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-11-03) | inside its range in an uptrend |
+| WOCKPHARMA | +7.11% | TAKEN | held by BRK (signal 2026-11-19) | inside its range in an uptrend |
+| HCLTECH | +6.12% | TAKEN | held by BRK (signal 2026-10-16) | inside its range in an uptrend |
+| BSE | +5.40% | TAKEN | held by BRK (signal 2026-11-03) | inside its range in an uptrend |
+| WELCORP | +5.15% | TAKEN | held by PULL (signal 2026-10-22, 2026-11-25) | rebounding from a pullback in an uptrend |
+| TDPOWERSYS | +4.74% | TAKEN | held by PULL, REV (signal 2026-11-06, 2026-11-11) | rebounding from a pullback in an uptrend |
+| E2E | +4.62% | TAKEN | held by PULL (signal 2026-11-06) | inside its range in an uptrend |
+| TCS | +4.59% | PASSED | BRK fired on 2026-11-26; rejected: no_chase | inside its range in an uptrend |
+| LODHA | +4.54% | TAKEN | held by REV (signal 2026-10-23) | extending a run of +27% in 20 sessions |
 
-Ananta's research picks open at 2026-11-17: 141, mean -1.36% to 2026-11-25; random band -2.49% .. -0.87% .. +0.93%; market -0.87%.
+Ananta's research picks open at 2026-11-25: 144, mean +0.09% to 2026-11-26; random band -0.68% .. +0.01% .. +0.80%; market +0.01%.
 
-## 2026-11-25: best 20-session trips that closed on the day (entry 2026-10-26, 248 eligible, 2 dropped)
+## 2026-11-26: best 5-session trips that closed on the day (entry 2026-11-18, 250 eligible, 0 dropped)
 
 | symbol | net | class | why | situation at entry |
 |---|---|---|---|---|
-| MOTILALOFS | +31.37% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-11-05) | rebounding from a pullback in an uptrend |
-| NAVINFLUOR | +29.52% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-10-30) | rebounding from a pullback in an uptrend, on 2.1x its 20-day volume |
-| MAHABANK | +29.26% | TAKEN | held by BRK (signal 2026-11-05) | rising while below its 200-day average |
-| DIVISLAB | +29.13% | TAKEN | held by BRK (signal 2026-10-30) | inside its range in an uptrend |
-| CHOLAFIN | +28.65% | TAKEN | held by BRK, REV (signal 2026-10-26, 2026-11-05) | bouncing from oversold (RSI 27) |
-| MAXHEALTH | +28.53% | TAKEN | held by REV (signal 2026-10-19) | bouncing from oversold (RSI 21) |
-| MARUTI | +26.23% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
-| TATACONSUM | +26.20% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
-| BANKINDIA | +26.16% | TAKEN | held by BRK (signal 2026-11-11) | rising while below its 200-day average, on 2.4x its 20-day volume |
-| KALYANKJIL | +25.73% | TAKEN | held by BRK, PULL, REV (signal 2026-10-23, 2026-10-27, 2026-11-06) | rebounding from a pullback in an uptrend |
+| POLICYBZR | +12.68% | TAKEN | held by REV (signal 2026-10-21) | rising while below its 200-day average |
+| TCS | +10.65% | NOT_COVERED | no family fired in the window | inside its range in an uptrend |
+| MARUTI | +10.64% | PASSED | BRK fired on 2026-11-19; rejected: no_chase | rising while below its 200-day average |
+| BRITANNIA | +10.56% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
+| PRESTIGE | +10.15% | CONTROL | held only by CTL, the random control draw: luck by construction | inside its range in an uptrend |
+| HEROMOTOCO | +9.87% | TAKEN | held by BRK (signal 2026-11-19) | inside its range in an uptrend |
+| WOCKPHARMA | +9.83% | TAKEN | held by BRK (signal 2026-11-19) | inside its range in an uptrend |
+| WELSPUNLIV | +9.14% | NOT_COVERED | no family fired in the window | extending a run of +21% in 20 sessions |
+| AMBER | +9.06% | TAKEN | held by REV (signal 2026-10-26) | rising while below its 200-day average |
+| RATNAVEER | +8.92% | TAKEN | held by BRK (signal 2026-11-02) | inside its range in an uptrend |
 
-Ananta's research picks open at 2026-10-26: 71, mean +1.67% to 2026-11-25; random band +4.25% .. +8.48% .. +11.79%; market +8.01%.
+Ananta's research picks open at 2026-11-18: 141, mean -0.16% to 2026-11-26; random band -1.39% .. +0.47% .. +2.17%; market +0.50%.
+
+## 2026-11-26: best 20-session trips that closed on the day (entry 2026-10-27, 248 eligible, 2 dropped)
+
+| symbol | net | class | why | situation at entry |
+|---|---|---|---|---|
+| PRESTIGE | +28.39% | CONTROL | held only by CTL, the random control draw: luck by construction | rising while below its 200-day average |
+| KALYANKJIL | +27.63% | TAKEN | held by BRK, PULL, REV (signal 2026-10-23, 2026-10-27, 2026-11-06) | rebounding from a pullback in an uptrend |
+| MAXHEALTH | +27.60% | TAKEN | held by REV (signal 2026-10-19) | bouncing from oversold (RSI 30) |
+| HDFCBANK | +26.40% | NOT_COVERED | no family fired in the window | rising while below its 200-day average |
+| GODREJPROP | +25.99% | CONTROL | held only by CTL, the random control draw: luck by construction | rising while below its 200-day average |
+| CHOLAFIN | +25.09% | TAKEN | held by BRK, REV (signal 2026-10-26, 2026-11-05) | bouncing from oversold (RSI 26) |
+| MOTILALOFS | +25.00% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-11-05) | rebounding from a pullback in an uptrend |
+| LODHA | +24.41% | TAKEN | held by REV (signal 2026-10-23) | rising while below its 200-day average |
+| NAVINFLUOR | +24.01% | TAKEN | held by BRK, PULL (signal 2026-10-23, 2026-10-30) | rebounding from a pullback in an uptrend, on 3.3x its 20-day volume |
+| 360ONE | +23.94% | TAKEN | held by REV (signal 2026-10-27) | rising while below its 200-day average |
+
+Ananta's research picks open at 2026-10-27: 82, mean +0.39% to 2026-11-26; random band +3.01% .. +7.00% .. +10.73%; market +6.93%.
 
 ## History
 
 | date | status | H1 hindsight / market / Ananta | H5 | H20 | NOT_COVERED keys | drafts |
 |---|---|---|---|---|---|---|
-| 2026-10-27 | ok | +6.92% / +0.98% / +1.55% | +6.41% / -2.73% / -3.24% |  | 4 | 0 |
 | 2026-10-28 | ok | +4.19% / -0.17% / +0.01% | +8.66% / -0.74% / -1.81% |  | 4 | 2 |
 | 2026-10-29 | ok | +4.54% / +0.74% / +0.57% | +10.25% / +1.07% / -0.36% |  | 4 | 0 |
 | 2026-10-30 | ok | +3.51% / -1.60% / -1.94% | +13.35% / +2.18% / +2.69% |  | 4 | 0 |
@@ -109,3 +108,4 @@ Ananta's research picks open at 2026-10-26: 71, mean +1.67% to 2026-11-25; rando
 | 2026-11-23 | ok | +2.63% / -1.40% / -1.19% | +6.98% / -1.09% / -1.27% | +26.76% / +8.96% / +2.69% | 6 | 2 |
 | 2026-11-24 | no session (NSE holiday) | | | | | |
 | 2026-11-25 | ok | +3.75% / -0.10% / -0.33% | +6.68% / -0.87% / -1.36% | +25.57% / +8.01% / +1.67% | 4 | 0 |
+| 2026-11-26 | ok | +4.62% / +0.01% / +0.09% | +8.72% / +0.50% / -0.16% | +23.71% / +6.93% / +0.39% | 5 | 0 |

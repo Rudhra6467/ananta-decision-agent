@@ -123,6 +123,8 @@ def managed_words(mb: dict, days: list, splits: list[tuple[str, str]] | None = N
             else:
                 parts = "; ".join(nm + ("" if j == 0 else f" from {_dw(frm)}") for j, (nm, frm, _k) in enumerate(names))
             head += f" Its record is in {len(names)} parts, split at each rule change: {parts}."
+    if mb.get("twins_words"):
+        head += " " + str(mb["twins_words"])
     plan = mb.get("plan") or {}
     return (head + (f" {mb['clock']['words']}" if (mb.get("clock") or {}).get("words") else "")
             + (f" {plan['words']}" if isinstance(plan, dict) and plan.get("words") and not plan.get("error") else ""))
@@ -212,6 +214,13 @@ def build() -> dict:
     # 5b. the managed book (Madhav's yes, 30 Oct evening): the cuts replaced on paper
     mb = _load(D / "paper" / "managed" / "view.json", {}) or {}
     if mb.get("start_day"):
+        try:                       # 27 Nov 2026 (flag 290, Madhav's yes of 26 Nov 22:22): the two twins, marked with the nightly trials run
+            from india import managedtwins
+            tw = managedtwins.build()
+            if tw.get("status") == "ok":
+                mb = {**mb, "twins_words": tw.get("words")}
+        except Exception as e:  # noqa: BLE001  the twins never break the trials list
+            print(f"managed twins not marked: {type(e).__name__}: {e}", file=sys.stderr)
         start = next((d for d in days if d > dt.date.fromisoformat(mb["start_day"])), dt.date.fromisoformat(mb["start_day"]))   # session 1 = the first plan's session
         add("the managed book (cuts replaced on paper)", "your holdings with each cut's money moved into a replacement chosen by the proved not-losing filters, beside the twin, the frozen original and the Nifty 500",
             start, 60, int((mb.get("clock") or {}).get("sessions") or 0), managed_words(mb, days), judge="return and drawdown after costs against the frozen original; the replacement ledger (cut right, replacement rose); nothing read before 60 sessions")

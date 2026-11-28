@@ -368,9 +368,8 @@ def overnight(k: kite.Kite, day: dt.date, nse_tokens: dict, nfo: list[dict] | No
         row["trend"] = "up" if p["close"] > p["sma50"] and p["close"] > p["sma200"] else ("down" if p["close"] < p["sma50"] and p["close"] < p["sma200"] else "mixed")
         out["rows"][sym] = row
     # staleness, shown in the plan (the study had complete inputs; live inputs can lag)
-    last_us_weekday = day - dt.timedelta(days=1)
-    while last_us_weekday.weekday() >= 5:
-        last_us_weekday -= dt.timedelta(days=1)
+    # 28 Nov (flag 293): the latest US session, so a US holiday (Thanksgiving, 26 Nov) does not mark the previous close stale; the mark only
+    last_us_weekday = __import__("india.ussessions", fromlist=["last_us_session_before"]).last_us_session_before(day)
     r0 = out["rows"]["NIFTY"]
     out["stale"] = {"us_qqq": (r0["us_qqq_date"] is None or r0["us_qqq_date"] < last_us_weekday),
                     "participant_oi": (r0["fii_date"] is None or r0["fii_date"] < prev)}
